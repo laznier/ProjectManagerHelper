@@ -1,0 +1,254 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Earned Value Calculator (Hover Definitions)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      margin-bottom: 0.5em;
+    }
+    label {
+      font-weight: bold;
+    }
+    input[type="number"] {
+      width: 120px;
+      margin: 0.3em 0;
+      padding: 0.2em;
+      box-sizing: border-box;
+    }
+    table {
+      border-collapse: collapse;
+      margin-bottom: 1em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      text-align: left;
+    }
+    button {
+      margin: 0.5em 0;
+      padding: 0.5em 1em;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    #results {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 1em;
+      border-radius: 4px;
+      width: 480px;
+      margin-top: 1em;
+    }
+    .result-item {
+      margin: 0.2em 0;
+    }
+    .result-label {
+      font-weight: bold;
+      display: inline-block;
+      width: 220px;
+    }
+    .note {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 1em;
+      width: 480px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Earned Value Calculator</h1>
+<p>Enter your project’s key parameters below. Hover over any label to see its definition or formula. Then click <strong>Calculate</strong> to view EVM metrics, forecasts, and EACs.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <label for="ev"
+          title="Earned Value (EV): The monetary value of the work actually completed.">
+          Earned Value (EV)
+        </label>
+      </td>
+      <td><input type="number" id="ev" placeholder="e.g. 1000" step="0.01"></td>
+    </tr>
+    <tr>
+      <td>
+        <label for="pv"
+          title="Planned Value (PV): The authorized budget for the work planned to be done at this point.">
+          Planned Value (PV)
+        </label>
+      </td>
+      <td><input type="number" id="pv" placeholder="e.g. 1200" step="0.01"></td>
+    </tr>
+    <tr>
+      <td>
+        <label for="ac"
+          title="Actual Cost (AC): The total cost actually incurred in performing the work.">
+          Actual Cost (AC)
+        </label>
+      </td>
+      <td><input type="number" id="ac" placeholder="e.g. 1100" step="0.01"></td>
+    </tr>
+    <tr>
+      <td>
+        <label for="bac"
+          title="Budget at Completion (BAC): The total planned budget for the entire project.">
+          Budget at Completion (BAC)
+        </label>
+      </td>
+      <td><input type="number" id="bac" placeholder="e.g. 5000" step="0.01"></td>
+    </tr>
+    <tr>
+      <td>
+        <label for="origSched"
+          title="Original Schedule (OS): The project's planned total duration (e.g., 12 months).">
+          Original Schedule (OS)
+        </label>
+      </td>
+      <td><input type="number" id="origSched" placeholder="e.g. 5" step="0.01"></td>
+    </tr>
+    <tr>
+      <td>
+        <label for="origCostEst"
+          title="Original Cost Estimate (OCE): The project's originally planned total cost.">
+          Original Cost Estimate (OCE)
+        </label>
+      </td>
+      <td><input type="number" id="origCostEst" placeholder="e.g. 200" step="0.01"></td>
+    </tr>
+  </tbody>
+</table>
+
+<button id="calculateBtn">Calculate</button>
+
+<div id="results" style="display:none;">
+  <!-- Basic EVM metrics -->
+  <div class="result-item">
+    <span class="result-label"
+      title="Schedule Variance (SV) = EV - PV. Positive means ahead of schedule; negative means behind.">
+      SV
+    </span>
+    <span id="svValue"></span>
+  </div>
+  <div class="result-item">
+    <span class="result-label"
+      title="Cost Variance (CV) = EV - AC. Positive means under budget; negative means over.">
+      CV
+    </span>
+    <span id="cvValue"></span>
+  </div>
+  <div class="result-item">
+    <span class="result-label"
+      title="Schedule Performance Index (SPI) = EV / PV. >1 is ahead of schedule; <1 is behind.">
+      SPI
+    </span>
+    <span id="spiValue"></span>
+  </div>
+  <div class="result-item">
+    <span class="result-label"
+      title="Cost Performance Index (CPI) = EV / AC. >1 is under budget; <1 is over.">
+      CPI
+    </span>
+    <span id="cpiValue"></span>
+  </div>
+
+  <!-- Forecasts (assuming same trend) -->
+  <div class="result-item">
+    <span class="result-label"
+      title="Schedule Forecast = Original Schedule / SPI (assumes same schedule performance trend).">
+      Schedule Forecast
+    </span>
+    <span id="schedForecastValue"></span>
+  </div>
+  <div class="result-item">
+    <span class="result-label"
+      title="Cost Forecast = Original Cost Estimate / CPI (assumes same cost performance trend).">
+      Cost Forecast
+    </span>
+    <span id="costForecastValue"></span>
+  </div>
+
+  <!-- EAC: AC + (BAC - EV) / (CPI x SPI) -->
+  <div class="result-item">
+    <span class="result-label"
+      title="EAC = AC + (BAC - EV) / (CPI × SPI). Assumes future work is influenced by both cost & schedule performance.">
+      EAC
+    </span>
+    <span id="eac1Value"></span>
+  </div>
+
+  <!-- EAC(*): AC + (BAC - EV) -->
+  <div class="result-item">
+    <span class="result-label"
+      title="EAC(*) = AC + (BAC - EV). Assumes future work proceeds at the planned rate.">
+      EAC(*)
+    </span>
+    <span id="eac2Value"></span>
+  </div>
+</div>
+
+<p class="note">
+  <strong>*</strong> EAC(*) assumes future work proceeds at the planned rate.
+</p>
+
+<script>
+  document.getElementById('calculateBtn').addEventListener('click', () => {
+    // 1. Gather inputs
+    const ev = parseFloat(document.getElementById('ev').value) || 0;
+    const pv = parseFloat(document.getElementById('pv').value) || 0;
+    const ac = parseFloat(document.getElementById('ac').value) || 0;
+    const bac = parseFloat(document.getElementById('bac').value) || 0;
+    const origSched = parseFloat(document.getElementById('origSched').value) || 0;
+    const origCostEst = parseFloat(document.getElementById('origCostEst').value) || 0;
+
+    // 2. Compute EVM basics
+    const sv = ev - pv;          // Schedule Variance
+    const cv = ev - ac;          // Cost Variance
+    const spi = (pv === 0) ? 0 : (ev / pv);   // Schedule Performance Index
+    const cpi = (ac === 0) ? 0 : (ev / ac);   // Cost Performance Index
+
+    // 3. Forecasts (assuming same trend)
+    let schedForecast = (spi > 0 && origSched > 0) ? (origSched / spi) : 0;
+    let costForecast = (cpi > 0 && origCostEst > 0) ? (origCostEst / cpi) : 0;
+
+    // 4. EAC: AC + (BAC - EV) / (CPI × SPI)
+    let eac1 = 0;
+    if (cpi > 0 && spi > 0) {
+      eac1 = ac + (bac - ev) / (cpi * spi);
+    }
+
+    // 5. EAC(*): future work at planned rate = AC + (BAC - EV)
+    let eac2 = ac + (bac - ev);
+
+    // 6. Display results
+    document.getElementById('svValue').textContent = sv.toFixed(2);
+    document.getElementById('cvValue').textContent = cv.toFixed(2);
+    document.getElementById('spiValue').textContent = spi.toFixed(2);
+    document.getElementById('cpiValue').textContent = cpi.toFixed(2);
+
+    document.getElementById('schedForecastValue').textContent =
+      (schedForecast > 0) ? schedForecast.toFixed(2) : "N/A";
+    document.getElementById('costForecastValue').textContent =
+      (costForecast > 0) ? costForecast.toFixed(2) : "N/A";
+
+    document.getElementById('eac1Value').textContent =
+      (eac1 > 0) ? eac1.toFixed(2) : "N/A";
+    document.getElementById('eac2Value').textContent = eac2.toFixed(2);
+
+    document.getElementById('results').style.display = 'block';
+  });
+</script>
+
+</body>
+</html>
