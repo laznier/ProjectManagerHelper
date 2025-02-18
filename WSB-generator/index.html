@@ -1,0 +1,380 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WBS Generator (Refresh Page to Generate New Chart)</title>
+  <!-- Mermaid.js from a CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      margin-bottom: 0.5em;
+    }
+    label {
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 240px;
+      margin: 0.3em 0;
+    }
+    button {
+      margin: 0.3em 0.5em 0.8em 0;
+      padding: 0.4em 0.8em;
+      cursor: pointer;
+    }
+
+    /* Containers for Deliverables, WPs, and Activities */
+    .deliverable-block,
+    .wp-block,
+    .activity-block {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.5em;
+      margin: 0.5em 0;
+      position: relative; /* so the remove button can be absolutely positioned */
+    }
+
+    /* Remove button (X) in top-right corner */
+    .remove-btn {
+      position: absolute;
+      top: 0.3em;
+      right: 0.3em;
+      background: #f44336;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      text-align: center;
+      font-weight: bold;
+      line-height: 20px;
+      cursor: pointer;
+    }
+    .remove-btn:hover {
+      background: #d32f2f;
+    }
+
+    /* Output area */
+    #wbsOutput {
+      border: 1px solid #ccc;
+      background: #fff;
+      min-height: 300px;
+      margin-top: 1em;
+      padding: 1em;
+      border-radius: 4px;
+    }
+    .mermaid {
+      text-align: center; /* center the chart horizontally */
+      margin-top: 1em;
+    }
+  </style>
+
+  <script>
+    // Initialize Mermaid but don't auto-render
+    mermaid.initialize({ startOnLoad: false });
+  </script>
+</head>
+<body>
+
+<h1>WBS Generator (Refresh page for each WSB)</h1>
+
+<!-- Project Name -->
+<div>
+  <label for="projectName">Project Name:</label><br/>
+  <input type="text" id="projectName" placeholder="e.g. New Website" />
+</div>
+
+<!-- Deliverables Section -->
+<h2>Deliverables</h2>
+<div id="deliverablesContainer"></div>
+<button id="addDeliverableBtn">Add Deliverable</button>
+
+<!-- Generate Button -->
+<br/>
+<button id="generateWbsBtn" style="font-weight:bold;">Generate WBS</button>
+
+<!-- Output Section (Mermaid) -->
+<div id="wbsOutput">
+  <div id="mermaidChart" class="mermaid"></div>
+</div>
+
+<script>
+/*
+  Data structure:
+  project = {
+    name: "",
+    deliverables: [
+      {
+        name: "Deliverable X",
+        workPackages: [
+          {
+            name: "WP1",
+            activities: ["Activity A", "Activity B"]
+          }
+        ]
+      }
+    ]
+  }
+*/
+
+let project = {
+  name: "",
+  deliverables: []
+};
+
+const deliverablesContainer = document.getElementById("deliverablesContainer");
+const addDeliverableBtn = document.getElementById("addDeliverableBtn");
+const generateWbsBtn = document.getElementById("generateWbsBtn");
+const projectNameInput = document.getElementById("projectName");
+const mermaidChartDiv = document.getElementById("mermaidChart");
+
+// 1. Add Deliverable block
+addDeliverableBtn.addEventListener("click", () => {
+  createDeliverableBlock();
+});
+
+function createDeliverableBlock() {
+  const dBlock = document.createElement("div");
+  dBlock.className = "deliverable-block";
+
+  // Remove button
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "remove-btn";
+  removeBtn.textContent = "x";
+  removeBtn.title = "Remove this Deliverable";
+  removeBtn.addEventListener("click", () => dBlock.remove());
+  dBlock.appendChild(removeBtn);
+
+  // Label + input
+  const dLabel = document.createElement("label");
+  dLabel.textContent = "Deliverable Name:";
+  const dInput = document.createElement("input");
+  dInput.type = "text";
+  dInput.placeholder = "e.g. Design Phase";
+
+  // WP container
+  const wpContainer = document.createElement("div");
+  wpContainer.style.marginLeft = "1em";
+
+  // Add WP button
+  const addWpBtn = document.createElement("button");
+  addWpBtn.textContent = "Add Work Package";
+  addWpBtn.addEventListener("click", () => {
+    createWpBlock(wpContainer);
+  });
+
+  // Assemble deliverable block
+  dBlock.appendChild(document.createElement("br"));
+  dBlock.appendChild(dLabel);
+  dBlock.appendChild(document.createElement("br"));
+  dBlock.appendChild(dInput);
+  dBlock.appendChild(document.createElement("br"));
+  dBlock.appendChild(document.createElement("br"));
+  dBlock.appendChild(wpContainer);
+  dBlock.appendChild(addWpBtn);
+
+  deliverablesContainer.appendChild(dBlock);
+}
+
+// 2. Create a WP block under a Deliverable
+function createWpBlock(parent) {
+  const wpBlock = document.createElement("div");
+  wpBlock.className = "wp-block";
+
+  // Remove button
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "remove-btn";
+  removeBtn.textContent = "x";
+  removeBtn.title = "Remove this Work Package";
+  removeBtn.addEventListener("click", () => wpBlock.remove());
+  wpBlock.appendChild(removeBtn);
+
+  // Label + input
+  const wpLabel = document.createElement("label");
+  wpLabel.textContent = "Work Package Name:";
+  const wpInput = document.createElement("input");
+  wpInput.type = "text";
+  wpInput.placeholder = "e.g. UI Prototype";
+
+  // Activities container
+  const actContainer = document.createElement("div");
+  actContainer.style.marginLeft = "1em";
+
+  // Add Activity button
+  const addActBtn = document.createElement("button");
+  addActBtn.textContent = "Add Activity";
+  addActBtn.addEventListener("click", () => {
+    createActivityBlock(actContainer);
+  });
+
+  wpBlock.appendChild(document.createElement("br"));
+  wpBlock.appendChild(wpLabel);
+  wpBlock.appendChild(document.createElement("br"));
+  wpBlock.appendChild(wpInput);
+  wpBlock.appendChild(document.createElement("br"));
+  wpBlock.appendChild(document.createElement("br"));
+  wpBlock.appendChild(actContainer);
+  wpBlock.appendChild(addActBtn);
+
+  parent.appendChild(wpBlock);
+}
+
+// 3. Create an Activity block under a WP
+function createActivityBlock(parent) {
+  const actBlock = document.createElement("div");
+  actBlock.className = "activity-block";
+
+  // Remove button
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "remove-btn";
+  removeBtn.textContent = "x";
+  removeBtn.title = "Remove this Activity";
+  removeBtn.addEventListener("click", () => actBlock.remove());
+  actBlock.appendChild(removeBtn);
+
+  // Label + input
+  const actLabel = document.createElement("label");
+  actLabel.textContent = "Activity:";
+  const actInput = document.createElement("input");
+  actInput.type = "text";
+  actInput.placeholder = "e.g. Sketch UI screens";
+
+  // Assemble activity block
+  actBlock.appendChild(document.createElement("br"));
+  actBlock.appendChild(actLabel);
+  actBlock.appendChild(document.createElement("br"));
+  actBlock.appendChild(actInput);
+
+  parent.appendChild(actBlock);
+}
+
+/** EVENT: Generate the WBS chart **/
+generateWbsBtn.addEventListener("click", () => {
+  buildProjectData();
+  const mText = buildMermaidText();
+  renderMermaidChart(mText);
+});
+
+/** Build the 'project' object from the DOM **/
+function buildProjectData() {
+  project.name = projectNameInput.value.trim() || "Untitled Project";
+  project.deliverables = [];
+
+  // For each deliverable-block
+  const deliverableBlocks = deliverablesContainer.querySelectorAll(".deliverable-block");
+  deliverableBlocks.forEach(dBlock => {
+    const dInput = dBlock.querySelector("input[type='text']");
+    const dName = dInput ? dInput.value.trim() : "";
+    const deliverableObj = {
+      name: dName || "Unnamed Deliverable",
+      workPackages: []
+    };
+
+    // WP blocks
+    const wpBlocks = dBlock.querySelectorAll(".wp-block");
+    wpBlocks.forEach(wpBlock => {
+      const wpInput = wpBlock.querySelector("input[type='text']");
+      const wpName = wpInput ? wpInput.value.trim() : "";
+      const wpObj = {
+        name: wpName || "Unnamed Work Package",
+        activities: []
+      };
+
+      // Activity blocks
+      const actBlocks = wpBlock.querySelectorAll(".activity-block");
+      actBlocks.forEach(actBlock => {
+        const actInput = actBlock.querySelector("input[type='text']");
+        const actName = actInput ? actInput.value.trim() : "";
+        if (actName) {
+          wpObj.activities.push(actName);
+        }
+      });
+
+      deliverableObj.workPackages.push(wpObj);
+    });
+
+    project.deliverables.push(deliverableObj);
+  });
+}
+
+/** Builds a Mermaid flowchart from the project data, color-coding each layer **/
+function buildMermaidText() {
+  let mermaidStr = "flowchart TB\n";
+
+  // 1) Project node
+  const projectId = "project";
+  mermaidStr += `    ${projectId}["Project: ${escapeText(project.name)}"]\n\n`;
+
+  // Arrays to store IDs for coloring
+  let deliverableIds = [];
+  let wpIds = [];
+  let activityIds = [];
+
+  // For each deliverable
+  project.deliverables.forEach((d, dIndex) => {
+    const dId = `d${dIndex}`;
+    mermaidStr += `    ${dId}["${escapeText(d.name)}"]\n`;
+    mermaidStr += `    ${projectId} --> ${dId}\n\n`;
+    deliverableIds.push(dId);
+
+    // For each WP
+    d.workPackages.forEach((wp, wpIndex) => {
+      const wpId = `${dId}_wp${wpIndex}`;
+      mermaidStr += `    ${wpId}["${escapeText(wp.name)}"]\n`;
+      mermaidStr += `    ${dId} --> ${wpId}\n`;
+      wpIds.push(wpId);
+
+      // For each Activity
+      wp.activities.forEach((act, actIndex) => {
+        const actId = `${wpId}_act${actIndex}`;
+        mermaidStr += `    ${actId}["${escapeText(act)}"]\n`;
+        mermaidStr += `    ${wpId} --> ${actId}\n`;
+        activityIds.push(actId);
+      });
+      mermaidStr += "\n";
+    });
+  });
+
+  // 2) Color each layer:
+  // Project: Pink
+  mermaidStr += `    style ${projectId} fill:#d81b60,stroke:#d81b60,color:#fff,stroke-width:2px\n`;
+
+  // Deliverables: Green
+  deliverableIds.forEach(dId => {
+    mermaidStr += `    style ${dId} fill:#8bc34a,stroke:#558b2f,color:#fff,stroke-width:1px\n`;
+  });
+
+  // Work Packages: Yellow
+  wpIds.forEach(wpId => {
+    mermaidStr += `    style ${wpId} fill:#ffd54f,stroke:#ffa000,color:#000,stroke-width:1px\n`;
+  });
+
+  // Activities: Lavender
+  activityIds.forEach(aId => {
+    mermaidStr += `    style ${aId} fill:#ce93d8,stroke:#8e24aa,color:#000,stroke-width:1px\n`;
+  });
+
+  return mermaidStr;
+}
+
+/** Escape double quotes for safe Mermaid rendering **/
+function escapeText(str) {
+  return str.replace(/"/g, '\\"');
+}
+
+/** Renders the Mermaid chart **/
+function renderMermaidChart(chartText) {
+  // Place the mermaid code in #mermaidChart
+  mermaidChartDiv.textContent = chartText;
+  // Let Mermaid parse & render
+  mermaid.init(undefined, mermaidChartDiv);
+}
+</script>
+
+</body>
+</html>
