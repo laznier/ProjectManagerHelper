@@ -1,0 +1,50 @@
+﻿/* Basic shared styling for the landing page */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  background: #f7f7f7;
+}
+
+header {
+  background: #333;
+  color: #fff;
+  padding: 1em;
+}
+
+h1 {
+  margin: 0;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 1em 0;
+}
+
+nav ul li {
+  margin: 0.3em 0;
+}
+
+nav a {
+  text-decoration: none;
+  color: #0066cc;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+main {
+  margin: 1em;
+  padding: 1em;
+  background: #fff;
+  border-radius: 4px;
+}
+
+footer {
+  margin: 1em;
+  text-align: center;
+  font-size: 0.9em;
+  color: #666;
+}
