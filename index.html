@@ -1,0 +1,449 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Network Diagram with Critical Path</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      margin-bottom: 0.2em;
+    }
+    #activitiesTable {
+      border-collapse: collapse;
+      margin-bottom: 1em;
+      background: #fff;
+    }
+    #activitiesTable th, #activitiesTable td {
+      border: 1px solid #ccc;
+      padding: 0.3em;
+    }
+    #activitiesTable input {
+      width: 95%;
+      box-sizing: border-box;
+    }
+    button {
+      margin: 0.2em 0.5em 0.8em 0;
+      padding: 0.4em 0.8em;
+      cursor: pointer;
+    }
+    #diagram {
+      border: 1px solid #ccc;
+      background: #fafafa;
+      margin-bottom: 1em;
+    }
+    .activity-circle {
+      fill: white;
+      stroke: #333;
+      stroke-width: 1.5px;
+    }
+    .activity-label {
+      font-size: 14px;
+      text-anchor: middle;
+      dominant-baseline: middle; /* center text vertically */
+      font-weight: bold;
+    }
+    .activity-time {
+      font-size: 12px;
+      text-anchor: middle;
+      fill: #555;
+    }
+    .arrow-line {
+      stroke: #555;
+      stroke-width: 1.5px;
+      fill: none;
+    }
+    .arrow-line.critical {
+      stroke: red; /* highlight critical edges in red */
+      stroke-width: 2px;
+    }
+    #pathsOutput {
+      white-space: pre; /* so we can format text-based output nicely */
+      background: #fff;
+      padding: 0.8em;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Network Diagram with Critical Path Highlighting</h1>
+<p>
+  Enter your activities below (name, predecessors, duration), then click 
+  <strong>Generate Diagram</strong>. You can also click <strong>Add Row</strong> 
+  for more activities.
+</p>
+
+<table id="activitiesTable">
+  <thead>
+    <tr>
+      <th>Activity</th>
+      <th>Predecessors (comma-separated)</th>
+      <th>Duration</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Example rows; edit or remove as needed -->
+    <tr>
+      <td><input type="text" value="A" /></td>
+      <td><input type="text" value="" /></td>
+      <td><input type="number" value="4" /></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="B" /></td>
+      <td><input type="text" value="" /></td>
+      <td><input type="number" value="7" /></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="C" /></td>
+      <td><input type="text" value="A,B" /></td>
+      <td><input type="number" value="2" /></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="D" /></td>
+      <td><input type="text" value="B" /></td>
+      <td><input type="number" value="5" /></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="E" /></td>
+      <td><input type="text" value="C" /></td>
+      <td><input type="number" value="10" /></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="F" /></td>
+      <td><input type="text" value="C,D" /></td>
+      <td><input type="number" value="13" /></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="G" /></td>
+      <td><input type="text" value="E,F" /></td>
+      <td><input type="number" value="4" /></td>
+    </tr>
+  </tbody>
+</table>
+
+<button id="addRowBtn">Add Row</button>
+<button id="generateBtn">Generate Diagram</button>
+
+<svg id="diagram" width="900" height="600"></svg>
+
+<div id="pathsOutput"></div>
+
+<script>
+/*
+  Extended AoN Network Diagram with Critical Path detection:
+  ----------------------------------------------------------
+  1) Reads table rows for (activity, predecessors, duration).
+  2) Builds a directed acyclic graph (DAG) in memory.
+  3) Does a topological "level" assignment for layout (left -> right).
+  4) Draws an SVG diagram: circles for each activity + arrows from preds to succ.
+  5) Finds all "start" nodes (inDegree=0) and "end" nodes (no successors).
+  6) DFS from each start to each end to find all possible paths, sum durations.
+  7) Identify the maximum path duration => "critical path" length.
+  8) Highlight edges in critical paths (in red).
+  9) Print out a summary of all paths and durations, marking critical paths.
+*/
+
+/** Layout spacing constants **/
+const RADIUS = 20;
+const X_GAP = 160;
+const Y_GAP = 100;
+const MARGIN_X = 60;
+const MARGIN_Y = 60;
+
+let tasks = {};         // { name: { name, duration, preds:[], succ:[], level, inDegree, x, y } }
+let edgesMap = {};      // store references to the SVG lines for coloring
+let allPaths = [];      // store arrays of { path: [...activities], totalDuration }
+
+/** Add Row Button **/
+document.getElementById("addRowBtn").addEventListener("click", () => {
+  const tbody = document.getElementById("activitiesTable").querySelector("tbody");
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td><input type="text" value="" /></td>
+    <td><input type="text" value="" /></td>
+    <td><input type="number" value="5" /></td>
+  `;
+  tbody.appendChild(row);
+});
+
+/** Generate Diagram Button **/
+document.getElementById("generateBtn").addEventListener("click", () => {
+  readTableData();    // Step 1
+  computeLevels();    // Step 2
+  drawDiagram();      // Step 3 & 4
+  findAllPaths();     // Step 5 & 6
+  highlightCriticalPaths(); // Step 7 & 8
+  showPathsOutput();  // Step 9
+});
+
+/** Step 1: Read table data into 'tasks' **/
+function readTableData() {
+  tasks = {};
+  edgesMap = {};
+  allPaths = [];
+
+  const rows = document.querySelectorAll("#activitiesTable tbody tr");
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    const name = cells[0].querySelector("input").value.trim();
+    if (!name) return;
+    const predsStr = cells[1].querySelector("input").value.trim();
+    const duration = parseFloat(cells[2].querySelector("input").value.trim() || "0");
+
+    if (!tasks[name]) {
+      tasks[name] = {
+        name: name,
+        duration: duration,
+        preds: [],
+        succ: [],
+        level: 0,
+        inDegree: 0,
+        x: 0,
+        y: 0
+      };
+    }
+
+    if (predsStr) {
+      const pList = predsStr.split(",").map(s => s.trim()).filter(Boolean);
+      tasks[name].preds = pList;
+    }
+  });
+
+  // Build successors + inDegree
+  for (let t in tasks) {
+    tasks[t].inDegree = tasks[t].preds.length;
+    tasks[t].succ = []; // reset
+  }
+  for (let t in tasks) {
+    tasks[t].preds.forEach((p) => {
+      if (!tasks[p]) {
+        tasks[p] = {
+          name: p,
+          duration: 0,
+          preds: [],
+          succ: [],
+          level: 0,
+          inDegree: 0,
+          x: 0,
+          y: 0
+        };
+      }
+      tasks[p].succ.push(t);
+    });
+  }
+}
+
+/** Step 2: Compute topological levels (Kahn's algorithm) for left->right layout **/
+function computeLevels() {
+  // We'll keep an inDegree copy so we don't destroy the real inDegree
+  let inDegCopy = {};
+  let queue = [];
+  for (let t in tasks) {
+    inDegCopy[t] = tasks[t].inDegree;
+    if (inDegCopy[t] === 0) {
+      queue.push(t);
+    }
+  }
+
+  while (queue.length > 0) {
+    let current = queue.shift();
+    let curLevel = tasks[current].level;
+    tasks[current].succ.forEach((s) => {
+      inDegCopy[s]--;
+      tasks[s].level = Math.max(tasks[s].level, curLevel + 1);
+      if (inDegCopy[s] === 0) {
+        queue.push(s);
+      }
+    });
+  }
+}
+
+/** Step 3 & 4: Draw the diagram in the SVG **/
+function drawDiagram() {
+  const svg = document.getElementById("diagram");
+  // Clear previous
+  while (svg.firstChild) {
+    svg.removeChild(svg.firstChild);
+  }
+
+  // Group tasks by level
+  let levelMap = {};
+  let maxLevel = 0;
+  for (let t in tasks) {
+    let lvl = tasks[t].level;
+    if (!levelMap[lvl]) levelMap[lvl] = [];
+    levelMap[lvl].push(t);
+    if (lvl > maxLevel) maxLevel = lvl;
+  }
+
+  // Assign x,y
+  for (let lvl = 0; lvl <= maxLevel; lvl++) {
+    const tList = levelMap[lvl] || [];
+    for (let i = 0; i < tList.length; i++) {
+      let taskName = tList[i];
+      tasks[taskName].x = MARGIN_X + lvl * X_GAP;
+      tasks[taskName].y = MARGIN_Y + i * Y_GAP;
+    }
+  }
+
+  // Resize the SVG
+  let maxRow = 0;
+  for (let lvl = 0; lvl <= maxLevel; lvl++) {
+    if (levelMap[lvl] && levelMap[lvl].length > maxRow) {
+      maxRow = levelMap[lvl].length;
+    }
+  }
+  const width = (maxLevel + 1) * X_GAP + 2 * MARGIN_X;
+  const height = maxRow * Y_GAP + 2 * MARGIN_Y;
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", height);
+
+  // Draw arrows first
+  for (let t in tasks) {
+    let tx = tasks[t].x;
+    let ty = tasks[t].y;
+    tasks[t].preds.forEach((p) => {
+      let px = tasks[p].x;
+      let py = tasks[p].y;
+      let edgeKey = p + "->" + t;
+      drawArrow(svg, px, py, tx, ty, edgeKey);
+    });
+  }
+
+  // Draw circles + labels
+  for (let t in tasks) {
+    drawCircle(svg, tasks[t].x, tasks[t].y, RADIUS, t, tasks[t].duration);
+  }
+}
+
+/** Draw an arrow from (x1,y1) to (x2,y2) **/
+function drawArrow(svg, x1, y1, x2, y2, edgeKey) {
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", x1);
+  line.setAttribute("y1", y1);
+  line.setAttribute("x2", x2);
+  line.setAttribute("y2", y2);
+  line.setAttribute("class", "arrow-line");
+  line.setAttribute("marker-end", "url(#arrowhead)");
+
+  svg.appendChild(line);
+  edgesMap[edgeKey] = line;
+
+  if (!document.getElementById("arrowhead")) {
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+    marker.setAttribute("id", "arrowhead");
+    marker.setAttribute("viewBox", "0 0 10 10");
+    marker.setAttribute("refX", "10");
+    marker.setAttribute("refY", "5");
+    marker.setAttribute("markerUnits", "strokeWidth");
+    marker.setAttribute("markerWidth", "6");
+    marker.setAttribute("markerHeight", "6");
+    marker.setAttribute("orient", "auto");
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+    path.setAttribute("fill", "#555");
+    marker.appendChild(path);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+  }
+}
+
+/** Draw circle + text for activity **/
+function drawCircle(svg, cx, cy, r, label, duration) {
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", cx);
+  circle.setAttribute("cy", cy);
+  circle.setAttribute("r", r);
+  circle.setAttribute("class", "activity-circle");
+  svg.appendChild(circle);
+
+  const durText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  durText.setAttribute("x", cx);
+  durText.setAttribute("y", cy - (r + 8));
+  durText.setAttribute("class", "activity-time");
+  durText.textContent = duration;
+  svg.appendChild(durText);
+
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", cx);
+  text.setAttribute("y", cy);
+  text.setAttribute("class", "activity-label");
+  text.textContent = label;
+  svg.appendChild(text);
+}
+
+/** Step 5 & 6: Find all start->end paths, accumulate durations **/
+function findAllPaths() {
+  allPaths = [];
+  let startNodes = Object.values(tasks).filter(t => t.inDegree === 0).map(t => t.name);
+  let endNodes = Object.values(tasks).filter(t => t.succ.length === 0).map(t => t.name);
+
+  startNodes.forEach(start => {
+    dfsPaths([start], start, 0);
+  });
+
+  function dfsPaths(pathSoFar, current, durationSoFar) {
+    let newDuration = durationSoFar + tasks[current].duration;
+    if (tasks[current].succ.length === 0) {
+      allPaths.push({
+        path: pathSoFar.slice(),
+        totalDuration: newDuration
+      });
+      return;
+    }
+    tasks[current].succ.forEach(s => {
+      let newPath = pathSoFar.slice();
+      newPath.push(s);
+      dfsPaths(newPath, s, newDuration);
+    });
+  }
+}
+
+/** Step 7 & 8: Identify critical path(s) and highlight them **/
+function highlightCriticalPaths() {
+  if (allPaths.length === 0) return;
+  let maxDuration = Math.max(...allPaths.map(p => p.totalDuration));
+  let criticalPaths = allPaths.filter(p => p.totalDuration === maxDuration);
+
+  criticalPaths.forEach(cp => {
+    let arr = cp.path;
+    for (let i = 0; i < arr.length - 1; i++) {
+      let from = arr[i];
+      let to = arr[i+1];
+      let edgeKey = from + "->" + to;
+      if (edgesMap[edgeKey]) {
+        edgesMap[edgeKey].classList.add("critical");
+      }
+    }
+  });
+}
+
+/** Step 9: Show all paths and mark critical ones in text output **/
+function showPathsOutput() {
+  const outputDiv = document.getElementById("pathsOutput");
+  outputDiv.innerHTML = "";
+  if (allPaths.length === 0) {
+    outputDiv.textContent = "No paths found or possibly a cyclic graph.";
+    return;
+  }
+  let maxDuration = Math.max(...allPaths.map(p => p.totalDuration));
+  let lines = [];
+  lines.push("All Paths (Start -> End) with Durations:\n");
+  allPaths.forEach((p) => {
+    let pathStr = p.path.join(" -> ");
+    let dur = p.totalDuration;
+    let critMark = (dur === maxDuration) ? " *CRITICAL*" : "";
+    lines.push(`Path: ${pathStr} | Duration: ${dur}${critMark}`);
+  });
+  outputDiv.textContent = lines.join("\n");
+}
+</script>
+
+</body>
+</html>
