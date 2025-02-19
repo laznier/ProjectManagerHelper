@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Story Feedback</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      margin-bottom: 0.5em;
+    }
+    label {
+      display: block;
+      margin: 0.5em 0 0.2em;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="email"],
+    textarea {
+      width: 100%;
+      padding: 0.5em;
+      box-sizing: border-box;
+      margin-bottom: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background: #0066cc;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 0.6em 1.2em;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button:hover {
+      background: #0055a3;
+    }
+    .note {
+      margin-top: 1em;
+      color: #666;
+      font-size: 0.9em;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 1.5em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>User Story Feedback</h1>
+  <p>
+    Please share your user story or feedback below. For example:
+    <em>“As a project management student, I want to run Monte Carlo simulations without purchasing or learning complex software, so that I can focus on practical assignments.”</em>
+  </p>
+
+  <form action="https://formspree.io/f/mvgzdrgl" method="POST">
+    <label for="email">Your Email (optional):</label>
+    <input type="email" id="email" name="email" placeholder="example@domain.com">
+
+    <label for="name">Your Name (optional):</label>
+    <input type="text" id="name" name="name" placeholder="e.g. John Doe">
+
+    <label for="message">Your User Story:</label>
+    <textarea id="message" name="message" rows="5"
+      placeholder="As a..., I want to..., so that..."></textarea>
+
+    <button type="submit">Send</button>
+  </form>
+
+  <p class="note">
+    Submissions are sent via Formspree. We’ll use your feedback to improve Project Manager Helper.
+  </p>
+</div>
+
+</body>
+</html>
