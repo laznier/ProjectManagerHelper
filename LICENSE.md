@@ -1,4 +1,6 @@
-## License
+# Proprietary - Free to Use, No Modifications Without Permission
 
-This project is covered under a **Proprietary - Free to Use, No Modifications Without Permission** license.  
-See [LICENSE](LICENSE) for details.
+You are free to **use** this software in its original, unmodified form for personal or internal business purposes at no charge. However:
+
+1. **No Modification or Distribution**  
+   ... [license text continues] ...
