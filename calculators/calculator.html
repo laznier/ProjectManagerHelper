@@ -1,0 +1,227 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Financial Calculators</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+        h2 {
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px;
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Project Management Financial Calculators</h2>
+
+    <!-- Future Value Calculator -->
+    <div class="input-group">
+        <label for="pv">Present Value (PV):</label>
+        <input type="number" id="pv" placeholder="Enter Present Value" value="1000">
+    </div>
+
+    <div class="input-group">
+        <label for="rateFV">Interest Rate (%):</label>
+        <input type="number" id="rateFV" placeholder="Enter Interest Rate" value="2">
+    </div>
+
+    <div class="input-group">
+        <label for="yearsFV">Number of Years:</label>
+        <input type="number" id="yearsFV" placeholder="Enter Number of Years" value="4">
+    </div>
+
+    <button onclick="calculateFV()">Calculate Future Value (FV)</button>
+
+    <div class="result" id="fvResult"></div>
+
+    <!-- Present Value Calculator -->
+    <div class="input-group">
+        <label for="fvPV">Future Value (FV):</label>
+        <input type="number" id="fvPV" placeholder="Enter Future Value" value="3000">
+    </div>
+
+    <div class="input-group">
+        <label for="ratePV">Interest Rate (%):</label>
+        <input type="number" id="ratePV" placeholder="Enter Interest Rate" value="2">
+    </div>
+
+    <div class="input-group">
+        <label for="yearsPV">Number of Years:</label>
+        <input type="number" id="yearsPV" placeholder="Enter Number of Years" value="4">
+    </div>
+
+    <button onclick="calculatePV()">Calculate Present Value (PV)</button>
+
+    <div class="result" id="pvResult"></div>
+
+    <!-- NPV Calculator -->
+    <div class="input-group">
+        <label for="cashFlowNPV">Net Cash Flow ($):</label>
+        <input type="number" id="cashFlowNPV" placeholder="Enter Net Cash Flow" value="20000">
+    </div>
+
+    <div class="input-group">
+        <label for="rateNPV">Discount Rate (%):</label>
+        <input type="number" id="rateNPV" placeholder="Enter Discount Rate" value="5">
+    </div>
+
+    <div class="input-group">
+        <label for="yearsNPV">Number of Years:</label>
+        <input type="number" id="yearsNPV" placeholder="Enter Number of Years" value="5">
+    </div>
+
+    <button onclick="calculateNPV()">Calculate NPV</button>
+
+    <div class="result" id="npvResult"></div>
+
+    <!-- ROI Calculator -->
+    <div class="input-group">
+        <label for="investmentROI">Investment ($):</label>
+        <input type="number" id="investmentROI" placeholder="Enter Investment Amount" value="200">
+    </div>
+
+    <div class="input-group">
+        <label for="gainROI">Gain from Investment ($):</label>
+        <input type="number" id="gainROI" placeholder="Enter Gain from Investment" value="210">
+    </div>
+
+    <button onclick="calculateROI()">Calculate ROI (%)</button>
+
+    <div class="result" id="roiResult"></div>
+
+    <!-- Payback Period Calculator -->
+    <div class="input-group">
+        <label for="initialInvestmentPP">Initial Investment ($):</label>
+        <input type="number" id="initialInvestmentPP" placeholder="Enter Initial Investment" value="100000">
+    </div>
+
+    <div class="input-group">
+        <label for="annualCashFlowPP">Annual Cash Flow ($):</label>
+        <input type="number" id="annualCashFlowPP" placeholder="Enter Annual Cash Flow" value="25000">
+    </div>
+
+    <button onclick="calculatePaybackPeriod()">Calculate Payback Period</button>
+
+    <div class="result" id="paybackResult"></div>
+
+    <!-- Breakeven Point Calculator -->
+    <div class="input-group">
+        <label for="fixedCostsBE">Fixed Costs ($):</label>
+        <input type="number" id="fixedCostsBE" placeholder="Enter Fixed Costs" value="1000">
+    </div>
+
+    <div class="input-group">
+        <label for="pricePerUnitBE">Price per Unit ($):</label>
+        <input type="number" id="pricePerUnitBE" placeholder="Enter Price per Unit" value="11">
+    </div>
+
+    <div class="input-group">
+        <label for="variableCostBE">Variable Cost per Unit ($):</label>
+        <input type="number" id="variableCostBE" placeholder="Enter Variable Cost per Unit" value="7">
+    </div>
+
+    <button onclick="calculateBreakevenPoint()">Calculate Breakeven Point (Units)</button>
+
+    <div class="result" id="breakevenResult"></div>
+</div>
+
+<script>
+// Future Value (FV)
+function calculateFV() {
+    let pv = parseFloat(document.getElementById("pv").value);
+    let rate = parseFloat(document.getElementById("rateFV").value) / 100;
+    let years = parseFloat(document.getElementById("yearsFV").value);
+    let fv = pv * Math.pow((1 + rate), years);
+    document.getElementById("fvResult").innerText = "Future Value (FV): $" + fv.toFixed(2);
+}
+
+// Present Value (PV)
+function calculatePV() {
+    let fv = parseFloat(document.getElementById("fvPV").value);
+    let rate = parseFloat(document.getElementById("ratePV").value) / 100;
+    let years = parseFloat(document.getElementById("yearsPV").value);
+    let pv = fv / Math.pow((1 + rate), years);
+    document.getElementById("pvResult").innerText = "Present Value (PV): $" + pv.toFixed(2);
+}
+
+// Net Present Value (NPV)
+function calculateNPV() {
+    let cashFlow = parseFloat(document.getElementById("cashFlowNPV").value);
+    let rate = parseFloat(document.getElementById("rateNPV").value) / 100;
+    let years = parseFloat(document.getElementById("yearsNPV").value);
+    let npv = 0;
+    for (let n = 1; n <= years; n++) {
+        npv += cashFlow / Math.pow((1 + rate), n);
+    }
+    document.getElementById("npvResult").innerText = "Net Present Value (NPV): $" + npv.toFixed(2);
+}
+
+// Return on Investment (ROI)
+function calculateROI() {
+    let investment = parseFloat(document.getElementById("investmentROI").value);
+    let gain = parseFloat(document.getElementById("gainROI").value);
+    let roi = ((gain - investment) / investment) * 100;
+    document.getElementById("roiResult").innerText = "ROI: " + roi.toFixed(2) + "%";
+}
+
+// Payback Period
+function calculatePaybackPeriod() {
+    let initialInvestment = parseFloat(document.getElementById("initialInvestmentPP").value);
+    let annualCashFlow = parseFloat(document.getElementById("annualCashFlowPP").value);
+    let paybackPeriod = initialInvestment / annualCashFlow;
+    document.getElementById("paybackResult").innerText = "Payback Period: " + paybackPeriod.toFixed(2) + " years";
+}
+
+// Breakeven Point (Units)
+function calculateBreakevenPoint() {
+    let fixedCosts = parseFloat(document.getElementById("fixedCostsBE").value);
+    let pricePerUnit = parseFloat(document.getElementById("pricePerUnitBE").value);
+    let variableCost = parseFloat(document.getElementById("variableCostBE").value);
+    let breakevenPoint = fixedCosts / (pricePerUnit - variableCost);
+    document.getElementById("breakevenResult").innerText = "Breakeven Point: " + breakevenPoint.toFixed(2) + " units";
+}
+</script>
+
+</body>
+</html>
