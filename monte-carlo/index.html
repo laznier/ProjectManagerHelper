@@ -1,0 +1,445 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monte Carlo Simulations</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      margin-bottom: 0.5em;
+    }
+    table {
+      border-collapse: collapse;
+      margin-bottom: 1em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5em;
+    }
+    select, input[type="number"], input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      margin: 0.3em 0.5em 0.8em 0;
+      padding: 0.4em 0.8em;
+      cursor: pointer;
+    }
+    #variableTable {
+      width: 700px;
+      max-width: 100%;
+    }
+    #resultsArea {
+      margin-top: 1em;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 1em;
+      width: 700px;
+      max-width: 100%;
+    }
+    #histogramCanvas {
+      width: 600px;
+      height: 350px;
+      border: 1px solid #ccc;
+      display: block;
+      margin-top: 1em;
+    }
+    .sim-btn {
+      background: #0066cc;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+    }
+    .sim-btn:hover {
+      background: #0055a3;
+    }
+    .stat-line {
+      margin: 0.2em 0;
+    }
+    .stat-label {
+      display: inline-block;
+      width: 120px;
+      font-weight: bold;
+    }
+    .slider-container {
+      margin-top: 1em;
+      background: #f9f9f9;
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      border-radius: 4px;
+    }
+    .slider-container label {
+      display: inline-block;
+      margin-right: 0.5em;
+      font-weight: bold;
+    }
+    .slider-value {
+      font-weight: bold;
+      margin-left: 0.5em;
+    }
+    .percentile-text {
+      margin-top: 0.5em;
+      font-style: italic;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Monte Carlo Simulations</h1>
+<p>
+  Add uncertain variables below. Choose a <strong>distribution</strong> and enter its parameters.
+  Then specify the <strong>Number of Trials</strong> and click <strong>Run Simulation</strong>.
+  The tool will simulate each variable, sum them, and show a histogram with clearer labels.<br/>
+  If you provide the wrong number of parameters, the row is skipped and you get an alert. 
+  Use the <strong>Percentile Slider</strong> to see the value at that percentile (e.g., P10, P50, P90).
+</p>
+
+<table id="variableTable">
+  <thead>
+    <tr>
+      <th>Variable Name</th>
+      <th>Distribution</th>
+      <th>Parameters</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Rows will be added dynamically -->
+  </tbody>
+</table>
+
+<button id="addVarBtn" class="sim-btn">Add Variable</button>
+
+<label for="numTrials">Number of Trials:</label>
+<input type="number" id="numTrials" value="5000" style="width:100px;" />
+
+<button id="runSimBtn" class="sim-btn">Run Simulation</button>
+
+<div id="resultsArea" style="display:none;">
+  <div id="statsOutput"></div>
+  <canvas id="histogramCanvas"></canvas>
+
+  <div class="slider-container" style="display:none;" id="sliderContainer">
+    <label for="percentileSlider">Percentile:</label>
+    <input type="range" id="percentileSlider" min="0" max="100" value="50" />
+    <span class="slider-value" id="percentileValue">50</span>%
+    <div class="stat-line">
+      <span class="stat-label">Value at Percentile:</span>
+      <span id="valAtPercentile"></span>
+    </div>
+    <div class="percentile-text" id="percentileText"></div>
+  </div>
+</div>
+
+<script>
+  let variables = [];
+  let sumsArray = [];
+
+  const varTableBody = document.querySelector("#variableTable tbody");
+  const addVarBtn = document.getElementById("addVarBtn");
+  const runSimBtn = document.getElementById("runSimBtn");
+  const numTrialsInput = document.getElementById("numTrials");
+  const resultsArea = document.getElementById("resultsArea");
+  const statsOutput = document.getElementById("statsOutput");
+  const histCanvas = document.getElementById("histogramCanvas");
+  const histCtx = histCanvas.getContext("2d");
+
+  const sliderContainer = document.getElementById("sliderContainer");
+  const percentileSlider = document.getElementById("percentileSlider");
+  const percentileValue = document.getElementById("percentileValue");
+  const valAtPercentile = document.getElementById("valAtPercentile");
+  const percentileText = document.getElementById("percentileText");
+
+  // Dist options
+  const distOptions = [
+    { value: "triangular", label: "Triangular (min, mode, max)" },
+    { value: "normal", label: "Normal (mean, stdDev)" },
+    { value: "uniform", label: "Uniform (min, max)" }
+  ];
+
+  // Add an initial row
+  createVariableRow();
+
+  function createVariableRow() {
+    const tr = document.createElement("tr");
+
+    // Var Name
+    const tdName = document.createElement("td");
+    const inputName = document.createElement("input");
+    inputName.type = "text";
+    inputName.placeholder = "e.g. Cost of Part A";
+    tdName.appendChild(inputName);
+
+    // Dist Type
+    const tdDist = document.createElement("td");
+    const selectDist = document.createElement("select");
+    distOptions.forEach(opt => {
+      const optionEl = document.createElement("option");
+      optionEl.value = opt.value;
+      optionEl.textContent = opt.label;
+      selectDist.appendChild(optionEl);
+    });
+    tdDist.appendChild(selectDist);
+
+    // Params
+    const tdParams = document.createElement("td");
+    const inputParams = document.createElement("input");
+    inputParams.type = "text";
+    inputParams.placeholder = "Params (comma-separated)";
+    tdParams.appendChild(inputParams);
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdDist);
+    tr.appendChild(tdParams);
+
+    varTableBody.appendChild(tr);
+  }
+
+  addVarBtn.addEventListener("click", () => {
+    createVariableRow();
+  });
+
+  runSimBtn.addEventListener("click", () => {
+    variables = [];
+    const rows = varTableBody.querySelectorAll("tr");
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll("input, select");
+      if (inputs.length >= 3) {
+        const varName = inputs[0].value.trim();
+        const distType = inputs[1].value;
+        const paramsStr = inputs[2].value.trim();
+        if (varName && distType && paramsStr) {
+          const parts = paramsStr.split(",").map(p => parseFloat(p.trim()));
+          if (validateParams(distType, parts)) {
+            variables.push({ name: varName, distType, params: parts });
+          } else {
+            alert(`Row for "${varName}" has incorrect number of parameters for a ${distType} distribution. Skipping this row.`);
+          }
+        }
+      }
+    });
+
+    const nTrials = parseInt(numTrialsInput.value) || 1000;
+    if (variables.length === 0) {
+      alert("No valid rows found. Please check your inputs.");
+      return;
+    }
+
+    const results = runMonteCarlo(variables, nTrials);
+    sumsArray = results.slice().sort((a,b) => a - b);
+
+    displayStats(sumsArray);
+    drawHistogram(sumsArray);
+    resultsArea.style.display = "block";
+
+    sliderContainer.style.display = "block";
+    updatePercentile();
+  });
+
+  percentileSlider.addEventListener("input", () => {
+    updatePercentile();
+  });
+
+  function validateParams(distType, parts) {
+    switch(distType) {
+      case "triangular": return parts.length === 3;
+      case "normal":     return parts.length === 2;
+      case "uniform":    return parts.length === 2;
+      default:           return false;
+    }
+  }
+
+  function updatePercentile() {
+    const pct = parseInt(percentileSlider.value);
+    percentileValue.textContent = pct;
+
+    let idx = Math.floor((pct / 100) * sumsArray.length);
+    if (idx >= sumsArray.length) idx = sumsArray.length - 1;
+    if (idx < 0) idx = 0;
+
+    const val = sumsArray[idx];
+    valAtPercentile.textContent = val.toFixed(2);
+
+    drawHistogram(sumsArray, val);
+    percentileText.textContent = `At the ${pct}% percentile, there is a ${pct}% chance the sum is less than or equal to ${val.toFixed(2)}.`;
+  }
+
+  function runMonteCarlo(vars, trials) {
+    const sums = new Array(trials).fill(0);
+    for (let t = 0; t < trials; t++) {
+      let total = 0;
+      for (const v of vars) {
+        total += sampleDistribution(v.distType, v.params);
+      }
+      sums[t] = total;
+    }
+    return sums;
+  }
+
+  function sampleDistribution(distType, parts) {
+    switch(distType) {
+      case "triangular":
+        return sampleTriangular(parts[0], parts[1], parts[2]);
+      case "normal":
+        return sampleNormal(parts[0], parts[1]);
+      case "uniform":
+        return sampleUniform(parts[0], parts[1]);
+      default:
+        return 0;
+    }
+  }
+
+  function sampleTriangular(min, mode, max) {
+    const u = Math.random();
+    const c = (mode - min) / (max - min);
+    if (u < c) {
+      return min + Math.sqrt(u * (max - min) * (mode - min));
+    } else {
+      return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+    }
+  }
+
+  function sampleNormal(mean, stdDev) {
+    let u1 = 0, u2 = 0;
+    while (u1 === 0) u1 = Math.random();
+    while (u2 === 0) u2 = Math.random();
+    const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    return mean + z * stdDev;
+  }
+
+  function sampleUniform(min, max) {
+    return min + (max - min) * Math.random();
+  }
+
+  function displayStats(dataArray) {
+    const n = dataArray.length;
+    if (n < 1) return;
+    const minVal = dataArray[0];
+    const maxVal = dataArray[n-1];
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      sum += dataArray[i];
+    }
+    const mean = sum / n;
+    let variance = 0;
+    for (let i = 0; i < n; i++) {
+      const diff = dataArray[i] - mean;
+      variance += diff * diff;
+    }
+    variance /= n;
+    const stdDev = Math.sqrt(variance);
+
+    statsOutput.innerHTML = `
+      <div class="stat-line"><span class="stat-label">Trials:</span>${n}</div>
+      <div class="stat-line"><span class="stat-label">Min:</span>${minVal.toFixed(2)}</div>
+      <div class="stat-line"><span class="stat-label">Max:</span>${maxVal.toFixed(2)}</div>
+      <div class="stat-line"><span class="stat-label">Mean:</span>${mean.toFixed(2)}</div>
+      <div class="stat-line"><span class="stat-label">Std Dev:</span>${stdDev.toFixed(2)}</div>
+    `;
+  }
+
+  // We'll do margin-based drawing
+  function drawHistogram(dataArray, percentileVal = NaN) {
+    const ctx = histCtx;
+    ctx.clearRect(0, 0, histCanvas.width, histCanvas.height);
+
+    const canvasWidth = histCanvas.width;
+    const canvasHeight = histCanvas.height;
+
+    // Margins
+    const marginLeft = 50;
+    const marginRight = 20;
+    const marginTop = 20;
+    const marginBottom = 50;
+
+    const plotWidth = canvasWidth - marginLeft - marginRight;
+    const plotHeight = canvasHeight - marginTop - marginBottom;
+
+    const n = dataArray.length;
+    if (n < 2) return;
+
+    const minVal = dataArray[0];
+    const maxVal = dataArray[n-1];
+    const range = maxVal - minVal;
+
+    const binCount = 30;
+    const binSize = range / binCount;
+    const freq = new Array(binCount).fill(0);
+
+    dataArray.forEach(val => {
+      const idx = Math.floor((val - minVal) / binSize);
+      if (idx >= 0 && idx < binCount) {
+        freq[idx]++;
+      } else if (idx === binCount) {
+        freq[idx - 1]++;
+      }
+    });
+
+    const maxFreq = Math.max(...freq);
+
+    // draw axes
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 1;
+    // x-axis
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, marginTop + plotHeight);
+    ctx.lineTo(marginLeft + plotWidth, marginTop + plotHeight);
+    ctx.stroke();
+    // y-axis
+    ctx.beginPath();
+    ctx.moveTo(marginLeft, marginTop);
+    ctx.lineTo(marginLeft, marginTop + plotHeight);
+    ctx.stroke();
+
+    // Use a smaller font for labels
+    ctx.font = "11px sans-serif";
+    ctx.fillStyle = "#000";
+
+    // x-axis label
+    ctx.textAlign = "center";
+    ctx.fillText("Value", marginLeft + plotWidth / 2, canvasHeight - 10);
+
+    // y-axis label (rotated)
+    ctx.save();
+    ctx.translate(15, marginTop + plotHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("Frequency", 0, 0);
+    ctx.restore();
+
+    // bars
+    ctx.fillStyle = "#0077cc";
+    const barWidth = plotWidth / binCount;
+    for (let i = 0; i < binCount; i++) {
+      const barHeight = (freq[i] / maxFreq) * plotHeight;
+      const x = marginLeft + i * barWidth;
+      const y = marginTop + (plotHeight - barHeight);
+      ctx.fillRect(x, y, barWidth - 1, barHeight);
+    }
+
+    // min & max labels
+    ctx.textAlign = "left";
+    ctx.fillText(minVal.toFixed(2), marginLeft, marginTop + plotHeight + 12);
+    ctx.textAlign = "right";
+    ctx.fillText(maxVal.toFixed(2), marginLeft + plotWidth, marginTop + plotHeight + 12);
+
+    // if percentileVal is real, draw vertical line
+    if (!isNaN(percentileVal)) {
+      const xPos = marginLeft + ((percentileVal - minVal) / range) * plotWidth;
+      if (xPos >= marginLeft && xPos <= marginLeft + plotWidth) {
+        ctx.strokeStyle = "red";
+        ctx.beginPath();
+        ctx.moveTo(xPos, marginTop);
+        ctx.lineTo(xPos, marginTop + plotHeight);
+        ctx.stroke();
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
