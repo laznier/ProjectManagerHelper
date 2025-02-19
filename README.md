@@ -46,4 +46,7 @@ You are free to **use** this software in its original, unmodified form for perso
 3. **Disclaimer of Warranty**  
    This software is provided “as is,” without warranty of any kind, express or implied. In no event shall the author or contributors be liable for any claim, damages, or other liability arising from its use.
 
-For permission requests or questions, please contact [Your Contact Info].
+This project is covered under a **Proprietary** license.  
+See [LICENSE.md](LICENSE.md) for full details.
+
+For permission requests or questions, please contact Laznier Mederos Santos at laznier@yahoo.com
