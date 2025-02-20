@@ -1,169 +1,279 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Management Financial Calculators</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .container {
-            width: 80%;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-        }
-        h2 {
-            text-align: center;
-        }
-        .input-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 5px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        button {
-            padding: 10px;
-            width: 100%;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .result {
-            margin-top: 15px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Project Management Financial Calculators</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      width: 80%;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 1em;
+    }
+    table th, table td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    button {
+      padding: 10px;
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 1em;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    hr {
+      margin: 2em 0;
+      border: 0;
+      border-top: 1px solid #ccc;
+    }
+    .section-title {
+      margin-top: 2em;
+      margin-bottom: 0.5em;
+      font-size: 1.2em;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+    .small-input {
+      width: 50px;
+    }
+    .remove-btn {
+      background: #ff4444;
+      color: #fff;
+      border-radius: 4px;
+      padding: 4px 8px;
+      margin: 0;
+      border: none;
+      cursor: pointer;
+    }
+    .remove-btn:hover {
+      background: #cc0000;
+    }
+    .tiny-btn {
+      background: #666;
+      color: #fff;
+      border-radius: 3px;
+      padding: 2px 6px;
+      margin-left: 5px;
+      cursor: pointer;
+      font-size: 0.8em;
+      border: none;
+    }
+    .tiny-btn:hover {
+      background: #444;
+    }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Project Management Financial Calculators</h2>
+  <h2>Project Management Financial Calculators</h2>
 
-    <!-- Future Value Calculator -->
-    <div class="input-group">
-        <label for="pv">Present Value (PV):</label>
-        <input type="number" id="pv" placeholder="Enter Present Value" value="1000">
-    </div>
+  <!-- Future Value Calculator -->
+  <div class="section-title">Future Value Calculator</div>
+  <div class="input-group">
+      <label for="pv">Present Value (PV):</label>
+      <input type="number" id="pv" placeholder="Enter Present Value" value="1000">
+  </div>
+  <div class="input-group">
+      <label for="rateFV">Interest Rate (%):</label>
+      <input type="number" id="rateFV" placeholder="Enter Interest Rate" value="2">
+  </div>
+  <div class="input-group">
+      <label for="yearsFV">Number of Years:</label>
+      <input type="number" id="yearsFV" placeholder="Enter Number of Years" value="4">
+  </div>
+  <button onclick="calculateFV()">Calculate Future Value (FV)</button>
+  <div class="result" id="fvResult"></div>
 
-    <div class="input-group">
-        <label for="rateFV">Interest Rate (%):</label>
-        <input type="number" id="rateFV" placeholder="Enter Interest Rate" value="2">
-    </div>
+  <hr>
 
-    <div class="input-group">
-        <label for="yearsFV">Number of Years:</label>
-        <input type="number" id="yearsFV" placeholder="Enter Number of Years" value="4">
-    </div>
+  <!-- Present Value Calculator -->
+  <div class="section-title">Present Value Calculator</div>
+  <div class="input-group">
+      <label for="fvPV">Future Value (FV):</label>
+      <input type="number" id="fvPV" placeholder="Enter Future Value" value="3000">
+  </div>
+  <div class="input-group">
+      <label for="ratePV">Interest Rate (%):</label>
+      <input type="number" id="ratePV" placeholder="Enter Interest Rate" value="2">
+  </div>
+  <div class="input-group">
+      <label for="yearsPV">Number of Years:</label>
+      <input type="number" id="yearsPV" placeholder="Enter Number of Years" value="4">
+  </div>
+  <button onclick="calculatePV()">Calculate Present Value (PV)</button>
+  <div class="result" id="pvResult"></div>
 
-    <button onclick="calculateFV()">Calculate Future Value (FV)</button>
+  <hr>
 
-    <div class="result" id="fvResult"></div>
+  <!-- NPV Calculator -->
+  <div class="section-title">Net Present Value (<span title="Sum of discounted cash flows">NPV</span>)</div>
+  <div class="input-group">
+      <label for="cashFlowNPV">Net Cash Flow ($):</label>
+      <input type="number" id="cashFlowNPV" placeholder="Enter Net Cash Flow" value="20000">
+  </div>
+  <div class="input-group">
+      <label for="rateNPV">Discount Rate (%):</label>
+      <input type="number" id="rateNPV" placeholder="Enter Discount Rate" value="5">
+  </div>
+  <div class="input-group">
+      <label for="yearsNPV">Number of Years:</label>
+      <input type="number" id="yearsNPV" placeholder="Enter Number of Years" value="5">
+  </div>
+  <button onclick="calculateNPV()">Calculate NPV</button>
+  <div class="result" id="npvResult"></div>
 
-    <!-- Present Value Calculator -->
-    <div class="input-group">
-        <label for="fvPV">Future Value (FV):</label>
-        <input type="number" id="fvPV" placeholder="Enter Future Value" value="3000">
-    </div>
+  <hr>
 
-    <div class="input-group">
-        <label for="ratePV">Interest Rate (%):</label>
-        <input type="number" id="ratePV" placeholder="Enter Interest Rate" value="2">
-    </div>
+  <!-- ROI Calculator -->
+  <div class="section-title">Return on Investment (<span title="(Gain - Investment) / Investment * 100%">ROI</span>)</div>
+  <div class="input-group">
+      <label for="investmentROI">Investment ($):</label>
+      <input type="number" id="investmentROI" placeholder="Enter Investment Amount" value="200">
+  </div>
+  <div class="input-group">
+      <label for="gainROI">Gain from Investment ($):</label>
+      <input type="number" id="gainROI" placeholder="Enter Gain from Investment" value="210">
+  </div>
+  <button onclick="calculateROI()">Calculate ROI (%)</button>
+  <div class="result" id="roiResult"></div>
 
-    <div class="input-group">
-        <label for="yearsPV">Number of Years:</label>
-        <input type="number" id="yearsPV" placeholder="Enter Number of Years" value="4">
-    </div>
+  <hr>
 
-    <button onclick="calculatePV()">Calculate Present Value (PV)</button>
+  <!-- Payback Period Calculator -->
+  <div class="section-title">Payback Period</div>
+  <div class="input-group">
+      <label for="initialInvestmentPP">Initial Investment ($):</label>
+      <input type="number" id="initialInvestmentPP" placeholder="Enter Initial Investment" value="100000">
+  </div>
+  <div class="input-group">
+      <label for="annualCashFlowPP">Annual Cash Flow ($):</label>
+      <input type="number" id="annualCashFlowPP" placeholder="Enter Annual Cash Flow" value="25000">
+  </div>
+  <button onclick="calculatePaybackPeriod()">Calculate Payback Period</button>
+  <div class="result" id="paybackResult"></div>
 
-    <div class="result" id="pvResult"></div>
+  <hr>
 
-    <!-- NPV Calculator -->
-    <div class="input-group">
-        <label for="cashFlowNPV">Net Cash Flow ($):</label>
-        <input type="number" id="cashFlowNPV" placeholder="Enter Net Cash Flow" value="20000">
-    </div>
+  <!-- Breakeven Point Calculator -->
+  <div class="section-title">Breakeven Point (Units)</div>
+  <div class="input-group">
+      <label for="fixedCostsBE">Fixed Costs ($):</label>
+      <input type="number" id="fixedCostsBE" placeholder="Enter Fixed Costs" value="1000">
+  </div>
+  <div class="input-group">
+      <label for="pricePerUnitBE">Price per Unit ($):</label>
+      <input type="number" id="pricePerUnitBE" placeholder="Enter Price per Unit" value="11">
+  </div>
+  <div class="input-group">
+      <label for="variableCostBE">Variable Cost per Unit ($):</label>
+      <input type="number" id="variableCostBE" placeholder="Enter Variable Cost per Unit" value="7">
+  </div>
+  <button onclick="calculateBreakevenPoint()">Calculate Breakeven Point (Units)</button>
+  <div class="result" id="breakevenResult"></div>
 
-    <div class="input-group">
-        <label for="rateNPV">Discount Rate (%):</label>
-        <input type="number" id="rateNPV" placeholder="Enter Discount Rate" value="5">
-    </div>
+  <hr>
 
-    <div class="input-group">
-        <label for="yearsNPV">Number of Years:</label>
-        <input type="number" id="yearsNPV" placeholder="Enter Number of Years" value="5">
-    </div>
+  <!-- Weighted Score Table (dynamic) -->
+  <div class="section-title">Weighted Score Table</div>
+  <p>Enter <span title="Examples: NPV, IRR, ESG, etc.">criteria</span>, <span title="(1–5) importance factor">weights</span>, and <span title="Score each project from 1–10">project scores</span>. Add or remove rows (criteria) and columns (projects). Then press "Calculate Scores".</p>
 
-    <button onclick="calculateNPV()">Calculate NPV</button>
+  <div style="margin-bottom:1em;">
+    <button onclick="addCriterion()">Add Criterion</button>
+    <button onclick="removeCriterion()">Remove Criterion</button>
+    <button onclick="addProject()">Add Project</button>
+    <button onclick="removeProject()">Remove Project</button>
+  </div>
 
-    <div class="result" id="npvResult"></div>
+  <table id="weightedScoreTable">
+    <thead>
+      <tr id="wstHeader">
+        <th>Criteria</th>
+        <th>Weight<br>(1–5)</th>
+        <th contenteditable="true">Project 1</th>
+        <th contenteditable="true">Project 2</th>
+        <th contenteditable="true">Project 3</th>
+        <th contenteditable="true">Project 4</th>
+      </tr>
+    </thead>
+    <tbody id="wstBody">
+      <!-- 4 sample rows -->
+      <tr>
+        <td contenteditable="true">NPV</td>
+        <td><input type="number" class="small-input" value="3"></td>
+        <td><input type="number" class="small-input" value="9"></td>
+        <td><input type="number" class="small-input" value="6"></td>
+        <td><input type="number" class="small-input" value="7"></td>
+        <td><input type="number" class="small-input" value="10"></td>
+      </tr>
+      <tr>
+        <td contenteditable="true" title="Internal Rate of Return">IRR</td>
+        <td><input type="number" class="small-input" value="3"></td>
+        <td><input type="number" class="small-input" value="4"></td>
+        <td><input type="number" class="small-input" value="8"></td>
+        <td><input type="number" class="small-input" value="9"></td>
+        <td><input type="number" class="small-input" value="6"></td>
+      </tr>
+      <tr>
+        <td contenteditable="true" title="Environmental, Social, Governance">ESG</td>
+        <td><input type="number" class="small-input" value="4"></td>
+        <td><input type="number" class="small-input" value="6"></td>
+        <td><input type="number" class="small-input" value="8"></td>
+        <td><input type="number" class="small-input" value="9"></td>
+        <td><input type="number" class="small-input" value="8"></td>
+      </tr>
+      <tr>
+        <td contenteditable="true">Payback</td>
+        <td><input type="number" class="small-input" value="2"></td>
+        <td><input type="number" class="small-input" value="3"></td>
+        <td><input type="number" class="small-input" value="6"></td>
+        <td><input type="number" class="small-input" value="5"></td>
+        <td><input type="number" class="small-input" value="4"></td>
+      </tr>
+    </tbody>
+  </table>
 
-    <!-- ROI Calculator -->
-    <div class="input-group">
-        <label for="investmentROI">Investment ($):</label>
-        <input type="number" id="investmentROI" placeholder="Enter Investment Amount" value="200">
-    </div>
-
-    <div class="input-group">
-        <label for="gainROI">Gain from Investment ($):</label>
-        <input type="number" id="gainROI" placeholder="Enter Gain from Investment" value="210">
-    </div>
-
-    <button onclick="calculateROI()">Calculate ROI (%)</button>
-
-    <div class="result" id="roiResult"></div>
-
-    <!-- Payback Period Calculator -->
-    <div class="input-group">
-        <label for="initialInvestmentPP">Initial Investment ($):</label>
-        <input type="number" id="initialInvestmentPP" placeholder="Enter Initial Investment" value="100000">
-    </div>
-
-    <div class="input-group">
-        <label for="annualCashFlowPP">Annual Cash Flow ($):</label>
-        <input type="number" id="annualCashFlowPP" placeholder="Enter Annual Cash Flow" value="25000">
-    </div>
-
-    <button onclick="calculatePaybackPeriod()">Calculate Payback Period</button>
-
-    <div class="result" id="paybackResult"></div>
-
-    <!-- Breakeven Point Calculator -->
-    <div class="input-group">
-        <label for="fixedCostsBE">Fixed Costs ($):</label>
-        <input type="number" id="fixedCostsBE" placeholder="Enter Fixed Costs" value="1000">
-    </div>
-
-    <div class="input-group">
-        <label for="pricePerUnitBE">Price per Unit ($):</label>
-        <input type="number" id="pricePerUnitBE" placeholder="Enter Price per Unit" value="11">
-    </div>
-
-    <div class="input-group">
-        <label for="variableCostBE">Variable Cost per Unit ($):</label>
-        <input type="number" id="variableCostBE" placeholder="Enter Variable Cost per Unit" value="7">
-    </div>
-
-    <button onclick="calculateBreakevenPoint()">Calculate Breakeven Point (Units)</button>
-
-    <div class="result" id="breakevenResult"></div>
+  <button onclick="calculateWeightedScores()">Calculate Scores</button>
+  <div class="result" id="weightedScoreResult"></div>
 </div>
 
 <script>
@@ -197,7 +307,7 @@ function calculateNPV() {
     document.getElementById("npvResult").innerText = "Net Present Value (NPV): $" + npv.toFixed(2);
 }
 
-// Return on Investment (ROI)
+// ROI
 function calculateROI() {
     let investment = parseFloat(document.getElementById("investmentROI").value);
     let gain = parseFloat(document.getElementById("gainROI").value);
@@ -205,7 +315,7 @@ function calculateROI() {
     document.getElementById("roiResult").innerText = "ROI: " + roi.toFixed(2) + "%";
 }
 
-// Payback Period
+// Payback
 function calculatePaybackPeriod() {
     let initialInvestment = parseFloat(document.getElementById("initialInvestmentPP").value);
     let annualCashFlow = parseFloat(document.getElementById("annualCashFlowPP").value);
@@ -213,13 +323,141 @@ function calculatePaybackPeriod() {
     document.getElementById("paybackResult").innerText = "Payback Period: " + paybackPeriod.toFixed(2) + " years";
 }
 
-// Breakeven Point (Units)
+// Breakeven
 function calculateBreakevenPoint() {
     let fixedCosts = parseFloat(document.getElementById("fixedCostsBE").value);
     let pricePerUnit = parseFloat(document.getElementById("pricePerUnitBE").value);
     let variableCost = parseFloat(document.getElementById("variableCostBE").value);
     let breakevenPoint = fixedCosts / (pricePerUnit - variableCost);
     document.getElementById("breakevenResult").innerText = "Breakeven Point: " + breakevenPoint.toFixed(2) + " units";
+}
+
+// Weighted Score Table
+function calculateWeightedScores() {
+    const headerRow = document.getElementById("wstHeader");
+    const projectCount = headerRow.cells.length - 2; // subtract "Criteria" & "Weight"
+
+    const body = document.getElementById("wstBody");
+    const rows = body.querySelectorAll("tr");
+
+    // Initialize scores
+    let projectScores = new Array(projectCount).fill(0);
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll("td");
+      if (cells.length < (2 + projectCount)) return;
+
+      // Weight is in cells[1] -> <input>
+      const weightInput = cells[1].querySelector("input");
+      let weight = parseFloat(weightInput.value) || 0;
+
+      // For each project column
+      for (let p = 0; p < projectCount; p++) {
+        let scoreCell = cells[p+2].querySelector("input");
+        let scoreVal = parseFloat(scoreCell.value) || 0;
+        projectScores[p] += scoreVal * weight;
+      }
+    });
+
+    // Build result string
+    let resultStr = "Composite Scores:<br>";
+    for (let p = 0; p < projectCount; p++) {
+      const projectName = headerRow.cells[p+2].textContent.trim() || `Project ${p+1}`;
+      resultStr += `${projectName}: ${projectScores[p].toFixed(2)}<br>`;
+    }
+
+    document.getElementById("weightedScoreResult").innerHTML = resultStr;
+}
+
+// Add Criterion (new row)
+function addCriterion() {
+    const body = document.getElementById("wstBody");
+    const headerRow = document.getElementById("wstHeader");
+    const projectCount = headerRow.cells.length - 2; // excluding "Criteria" & "Weight"
+
+    let newRow = document.createElement("tr");
+
+    // 1) Criteria name (contenteditable)
+    let criteriaCell = document.createElement("td");
+    criteriaCell.contentEditable = "true";
+    criteriaCell.innerText = "New Criterion";
+    newRow.appendChild(criteriaCell);
+
+    // 2) Weight
+    let weightCell = document.createElement("td");
+    let weightInput = document.createElement("input");
+    weightInput.type = "number";
+    weightInput.className = "small-input";
+    weightInput.value = "1";
+    weightCell.appendChild(weightInput);
+    newRow.appendChild(weightCell);
+
+    // 3) Project scores
+    for (let p = 0; p < projectCount; p++) {
+      let scoreCell = document.createElement("td");
+      let scoreInput = document.createElement("input");
+      scoreInput.type = "number";
+      scoreInput.className = "small-input";
+      scoreInput.value = "5";
+      scoreCell.appendChild(scoreInput);
+      newRow.appendChild(scoreCell);
+    }
+
+    body.appendChild(newRow);
+}
+
+// Remove Criterion (remove last row)
+function removeCriterion() {
+    const body = document.getElementById("wstBody");
+    if (body.rows.length > 0) {
+      body.deleteRow(body.rows.length - 1);
+    }
+}
+
+// Add Project (new column)
+function addProject() {
+    const headerRow = document.getElementById("wstHeader");
+    const projectCount = headerRow.cells.length - 2; // current count
+
+    // Insert a new TH for the new project
+    let newTh = document.createElement("th");
+    newTh.contentEditable = "true";
+    newTh.innerText = `Project ${projectCount+1}`;
+    headerRow.appendChild(newTh);
+
+    // For each row in the body, add a new TD with an <input>
+    const body = document.getElementById("wstBody");
+    const rows = body.querySelectorAll("tr");
+
+    rows.forEach(row => {
+      let newTd = document.createElement("td");
+      let newInput = document.createElement("input");
+      newInput.type = "number";
+      newInput.className = "small-input";
+      newInput.value = "5";
+      newTd.appendChild(newInput);
+      row.appendChild(newTd);
+    });
+}
+
+// Remove Project (remove last project column)
+function removeProject() {
+    const headerRow = document.getElementById("wstHeader");
+    let projectCount = headerRow.cells.length - 2;
+    if (projectCount <= 1) {
+      alert("Cannot remove the last project column.");
+      return;
+    }
+
+    // Remove the last project column from the header
+    headerRow.deleteCell(headerRow.cells.length - 1);
+
+    // Remove the corresponding column from each row in the body
+    const body = document.getElementById("wstBody");
+    const rows = body.querySelectorAll("tr");
+    rows.forEach(row => {
+      row.deleteCell(row.cells.length - 1);
+    });
 }
 </script>
 
