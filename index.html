@@ -5,11 +5,12 @@
   <title>Project Manager Helper | Free PM Tools</title>
   <meta name="description" content="Project Manager Helper offers free, easy-to-use tools for network diagrams, WBS, risk assessments, Monte Carlo simulations, and more—streamline your projects today." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Link to your external stylesheet if needed -->
+
+  <!-- Optional external stylesheet -->
   <link rel="stylesheet" href="style.css" />
 
   <style>
-    /* Hero section */
+    /* Hero Section */
     .hero {
       position: relative;
       background: url('images/hero-background.jpg') center/cover no-repeat;
@@ -29,7 +30,7 @@
       z-index: 1;
     }
 
-    /* Navigation bar with horizontal scrolling on mobile */
+    /* Navigation Bar with Horizontal Scrolling */
     .topnav {
       background-color: #333;
       overflow-x: auto; /* Allows horizontal scrolling on small screens */
@@ -43,7 +44,7 @@
       display: flex;
     }
     .topnav ul li {
-      flex: none; /* So items don't shrink on narrow screens */
+      flex: none; /* Items won't shrink on narrow screens */
     }
     .topnav ul li a {
       display: block;
@@ -57,7 +58,7 @@
       color: #333;
     }
 
-    /* Feature slider */
+    /* Feature Slider */
     .feature-slider {
       width: 100%;
       overflow: hidden;
@@ -65,7 +66,7 @@
       color: #fff;
       text-align: center;
       margin-bottom: 2rem;
-      position: relative; /* So arrows appear correctly */
+      position: relative; /* For arrow positioning */
     }
     .slider-wrapper {
       display: flex;
@@ -81,7 +82,7 @@
       padding: 2rem;
     }
 
-    /* Video background for slides */
+    /* Video Background for Slides */
     .slide-video {
       position: absolute;
       top: 0;
@@ -99,7 +100,7 @@
       border-radius: 10px;
     }
 
-    /* Arrows */
+    /* Slider Arrows */
     .slider-arrow {
       position: absolute;
       top: 50%;
@@ -124,10 +125,9 @@
       right: 10px;
     }
 
-    /* Final Slide: typewriter effect */
+    /* Final Slide Typewriter Effect */
     .final-slide {
       background-color: #222;
-      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -142,16 +142,15 @@
       white-space: nowrap;
       overflow: hidden;
       border-right: 3px solid #fff;
-      width: 0;
-      /* Type out over 3s, then stop. Steps = number of characters in "... AND MUCH MORE!" */
-      animation: typing 3s steps(22, end) forwards;
+      width: 0; /* Start at 0 width */
+      /* No animation by default; we'll trigger it via JavaScript when final slide is reached. */
     }
     @keyframes typing {
       from { width: 0; }
-      to { width: 22ch; }
+      to   { width: 18ch; } /* 18 characters in "... AND MUCH MORE!" */
     }
 
-    /* Tools Section */
+    /* Tools Grid & Cards */
     .tool-grid {
       display: flex;
       flex-wrap: wrap;
@@ -165,7 +164,7 @@
       border-radius: 8px;
       width: 300px;
       text-align: center;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       transition: transform 0.3s ease;
     }
     .tool-card:hover {
@@ -236,7 +235,7 @@
       margin-top: 2rem;
     }
 
-    /* Responsive adjustments */
+    /* Responsive Adjustments */
     @media (max-width: 768px) {
       .slide h2 {
         font-size: 1.5rem;
@@ -392,23 +391,22 @@
 
 <!-- Footer -->
 <footer>
-  <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
+  <p>&copy; 2025 Project Manager Helper. All rights reserved.</p>
 </footer>
 
-<!-- JavaScript for Slide Navigation -->
+<!-- JavaScript for Slide Navigation & Typewriter Trigger -->
 <script>
 let currentSlide = 0;
 const slides = document.querySelectorAll(".slide");
 const totalSlides = slides.length;
+const finalText = document.querySelector(".animated-text");
 
 /**
  * Move slides left (direction = -1) or right (direction = 1),
- * but do NOT loop to first/last automatically.
+ * but do NOT loop from last to first or vice versa.
  */
 function moveSlide(direction) {
   currentSlide += direction;
-
-  // Prevent going beyond first/last slide
   if (currentSlide < 0) {
     currentSlide = 0;
   } else if (currentSlide >= totalSlides) {
@@ -420,6 +418,15 @@ function moveSlide(direction) {
 function updateSlide() {
   const slider = document.getElementById("slider");
   slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+  // If final slide, trigger the typewriter animation
+  if (currentSlide === totalSlides - 1) {
+    finalText.style.animation = "typing 3s steps(18, end) forwards";
+  } else {
+    // Reset final slide if user navigates away
+    finalText.style.animation = "none";
+    finalText.style.width = "0";
+  }
 }
 </script>
 
