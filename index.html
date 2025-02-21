@@ -28,11 +28,38 @@
   <meta name="twitter:description" content="Free, user-friendly PM tools—network diagrams, WBS, risk, Monte Carlo, earned value, and more." />
   <meta name="twitter:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
 
-  <!-- Optional: link to your sitemap if you have one 
-  <link rel="sitemap" type="application/xml" title="Sitemap" href="sitemap.xml" />
-  -->
-
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Additional CSS for the top navigation bar -->
+  <style>
+    .topnav {
+      background-color: #333;
+      overflow: hidden;
+    }
+    .topnav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .topnav ul li {
+      margin: 0;
+    }
+    .topnav ul li a {
+      display: block;
+      padding: 14px 20px;
+      color: white;
+      text-decoration: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .topnav ul li a:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+    .topnav ul li a:active {
+      background-color: #ccc;
+    }
+  </style>
 </head>
 <body>
 
@@ -43,8 +70,13 @@
   </div>
 </header>
 
+<!-- Top Navigation Bar -->
 <nav class="topnav">
-  <!-- Optional top navigation links here -->
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="#tools">Tools</a></li>
+    <li><a href="tutorials.html">Tutorials</a></li>
+  </ul>
 </nav>
 
 <main>
