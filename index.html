@@ -134,33 +134,58 @@
       overflow: hidden;
     }
 
+    /* Typewriter Effect */
     .animated-text {
       font-size: 3rem;
       font-weight: bold;
       white-space: nowrap;
-    }
-
-    .animated-text::before {
-      content: attr(aria-label);
-      display: inline-block;
       overflow: hidden;
-      white-space: nowrap;
-      width: 0;
-      animation: typewriter 3s steps(20) forwards, blink 3s step-end forwards;
-      color: white;
       border-right: 3px solid white;
+      width: 0;
+      animation: typewriter 3s steps(20) forwards, blink 0.8s step-end 3s;
     }
 
-    /* Typewriter Effect (Stops After Animation) */
     @keyframes typewriter {
       0% { width: 0; }
       100% { width: 100%; }
     }
 
-    /* Blinking Cursor */
     @keyframes blink {
       50% { border-color: transparent; }
       100% { border-color: transparent; }
+    }
+
+    /* Feedback Section */
+    #feedback-section {
+      text-align: center;
+      padding: 3rem 1rem;
+      background-color: #f8f8f8;
+      margin-top: 2rem;
+    }
+
+    #feedback-section h2 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    #feedback-section p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      color: #555;
+    }
+
+    #feedback-section a {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background-color: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+
+    #feedback-section a:hover {
+      background-color: #0056b3;
     }
 
     /* Responsive adjustments */
@@ -198,7 +223,6 @@
       <div class="slide">
         <video autoplay loop muted playsinline class="slide-video">
           <source src="videos/monte_carlo.mp4" type="video/mp4">
-          Your browser does not support the video tag.
         </video>
         <div class="slide-content">
           <h2>Will my project be done on time?</h2>
@@ -210,7 +234,6 @@
       <div class="slide">
         <video autoplay loop muted playsinline class="slide-video">
           <source src="videos/network.mp4" type="video/mp4">
-          Your browser does not support the video tag.
         </video>
         <div class="slide-content">
           <h2>Which tasks can be fast-tracked?</h2>
@@ -222,7 +245,6 @@
       <div class="slide">
         <video autoplay loop muted playsinline class="slide-video">
           <source src="videos/weighted_average.mp4" type="video/mp4">
-          Your browser does not support the video tag.
         </video>
         <div class="slide-content">
           <h2>Which project should I choose?</h2>
@@ -248,11 +270,18 @@
 
       <!-- Final Slide: "... AND MUCH MORE!" -->
       <div class="slide final-slide">
-        <div class="animated-text" aria-label="... AND MUCH MORE!"></div>
+        <div class="animated-text">... AND MUCH MORE!</div>
       </div>
     </div>
     <button class="slider-arrow next" onclick="moveSlide(1)">&#10095;</button>
   </div>
+</section>
+
+<!-- Feedback Section -->
+<section id="feedback-section">
+  <h2>Your Feedback</h2>
+  <p>Help us improve our tools. Share your ideas or user stories.</p>
+  <a href="feedback.html">Leave Feedback</a>
 </section>
 
 <!-- Navigation Bar -->
