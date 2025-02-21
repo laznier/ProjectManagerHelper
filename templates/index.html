@@ -26,15 +26,16 @@
   <meta name="twitter:description" content="Free, user-friendly PM tools—network diagrams, WBS, risk, Monte Carlo, earned value, and more." />
   <meta name="twitter:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
 
-  <!-- Link to main stylesheet (adjust path for templates folder) -->
+  <!-- Link to main stylesheet -->
   <link rel="stylesheet" href="../style.css" />
 
-  <!-- Additional CSS for navigation, hero responsiveness, and dark overlay -->
+  <!-- Navigation and card styling -->
   <style>
+    /* Top navigation bar */
     .topnav {
       background-color: #333;
-      overflow-x: auto; /* Allow horizontal scrolling on small screens */
-      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .topnav ul {
       list-style: none;
@@ -62,7 +63,7 @@
       background-color: #ccc;
     }
 
-    /* Hero section with dark overlay */
+    /* Hero section */
     .hero {
       position: relative;
       background: url('../images/hero-background.jpg') center/cover no-repeat;
@@ -70,29 +71,27 @@
       padding: 3rem 1rem;
       text-align: center;
     }
-    /* The overlay itself */
     .hero::before {
       content: "";
       position: absolute;
-      inset: 0; /* shorthand for top:0; right:0; bottom:0; left:0; */
-      background: rgba(51, 51, 51, 0.7); /* Dark overlay (#333) at 70% opacity */
+      inset: 0;
+      background: rgba(51, 51, 51, 0.7);
       pointer-events: none;
       z-index: 0;
     }
-    /* Ensure hero content is above the overlay */
     .hero-content {
       position: relative;
       z-index: 1;
     }
     .hero-content h1 {
       margin: 0;
-      white-space: nowrap; /* Prevent title from wrapping */
+      white-space: nowrap;
     }
 
-    /* Responsive hero title on small screens */
+    /* Responsive title for small screens */
     @media (max-width: 480px) {
       .hero-content h1 {
-        font-size: clamp(20px, 5vw, 36px); /* Adjusts automatically between 20px and 36px */
+        font-size: clamp(20px, 5vw, 36px);
       }
       .topnav ul li a {
         padding: 10px 12px;
@@ -100,7 +99,7 @@
       }
     }
 
-    /* Tool card styling */
+    /* Tool grid and card styling */
     .tool-grid {
       display: flex;
       flex-wrap: wrap;
@@ -158,7 +157,7 @@
   </div>
 </header>
 
-<!-- Top Navigation Bar with updated order -->
+<!-- Simple top navigation -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
