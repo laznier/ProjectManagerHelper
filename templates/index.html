@@ -5,8 +5,8 @@
   
   <!-- Basic SEO -->
   <title>Project Manager Helper | Excel Templates</title>
-  <meta name="description" content="Download free Excel templates for project management, including our Learning Curve Template which calculates project break-even, ROI, cost, revenue, and more." />
-  <meta name="keywords" content="project management, Excel templates, learning curve, break-even, ROI, project cost, project revenue" />
+  <meta name="description" content="Download free Excel templates for project management, including our Learning Curve Template and Linear & Polynomial Regression Template for accurate project predictions." />
+  <meta name="keywords" content="project management, Excel templates, learning curve, break-even, ROI, project cost, project revenue, regression, predictions" />
   <meta name="robots" content="index, follow" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -15,7 +15,7 @@
 
   <!-- Open Graph (for social media previews) -->
   <meta property="og:title" content="Project Manager Helper" />
-  <meta property="og:description" content="Free PM tools for network diagrams, WBS, risk assessment, Monte Carlo, earned value, and more—streamline your project workflows." />
+  <meta property="og:description" content="Free PM tools for project templates like Learning Curve and Regression—streamline your project workflows." />
   <meta property="og:url" content="https://projectmanagerhelper.com/" />
   <meta property="og:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
   <meta property="og:type" content="website" />
@@ -23,13 +23,13 @@
   <!-- Twitter Cards (optional) -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Project Manager Helper" />
-  <meta name="twitter:description" content="Free, user-friendly PM tools—network diagrams, WBS, risk, Monte Carlo, earned value, and more." />
+  <meta name="twitter:description" content="Free, user-friendly PM templates like Learning Curve and Regression—optimize project planning and predictions." />
   <meta name="twitter:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
 
   <!-- Link to main stylesheet -->
   <link rel="stylesheet" href="../style.css" />
 
-  <!-- Navigation and card styling -->
+  <!-- Navigation, hero, and card styling -->
   <style>
     /* Top navigation bar */
     .topnav {
@@ -63,7 +63,7 @@
       background-color: #ccc;
     }
 
-    /* Hero section */
+    /* Hero section (darker to match the main page) */
     .hero {
       position: relative;
       background: url('../images/hero-background.jpg') center/cover no-repeat;
@@ -75,7 +75,7 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: rgba(51, 51, 51, 0.7);
+      background: rgba(0, 0, 0, 0.7); /* Dark overlay for consistency */
       pointer-events: none;
       z-index: 0;
     }
@@ -113,7 +113,7 @@
       border-radius: 8px;
       width: 300px;
       text-align: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       transition: transform 0.3s ease;
     }
     .tool-card:hover {
@@ -177,6 +177,16 @@
         This template uses a learning curve, fixed costs, and hourly costs to determine project break-even, ROI, cost, revenue, and more.
       </p>
       <a href="learning_curve.xlsx" class="tool-button" download>Download Template</a>
+    </div>
+
+    <!-- NEW Template Card: Linear and Polynomial Regression -->
+    <div class="tool-card">
+      <img src="../images/regression.PNG" alt="Linear and Polynomial Regression Template" />
+      <h2>Linear and Polynomial Regression</h2>
+      <p>
+        This template can be used to make predictions using multivariable linear and polynomial regression.
+      </p>
+      <a href="linear_and_polynomial_regression.xlsx" class="tool-button" download>Download Template</a>
     </div>
   </section>
 </main>
