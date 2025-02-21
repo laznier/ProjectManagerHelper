@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   
   <!-- Basic SEO -->
-  <title>Project Manager Helper | Free PM Tools</title>
-  <meta name="description" content="Project Manager Helper offers free, easy-to-use tools for network diagrams, WBS, risk assessments, Monte Carlo simulations, and more—streamline your projects today." />
-  <meta name="keywords" content="project management, PM tools, network diagram, WBS, risk register, Monte Carlo, earned value, Gantt, PMI, PMP" />
+  <title>Project Manager Helper | Excel Templates</title>
+  <meta name="description" content="Download free Excel templates for project management, including our Learning Curve Template which calculates project break-even, ROI, cost, revenue, and more." />
+  <meta name="keywords" content="project management, Excel templates, learning curve, break-even, ROI, project cost, project revenue" />
   <meta name="robots" content="index, follow" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Canonical URL -->
-  <link rel="canonical" href="https://projectmanagerhelper.com/" />
+  <link rel="canonical" href="https://projectmanagerhelper.com/templates/" />
 
   <!-- Open Graph (for social media previews) -->
   <meta property="og:title" content="Project Manager Helper" />
@@ -26,9 +26,10 @@
   <meta name="twitter:description" content="Free, user-friendly PM tools—network diagrams, WBS, risk, Monte Carlo, earned value, and more." />
   <meta name="twitter:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
 
-  <link rel="stylesheet" href="style.css" />
+  <!-- Link to main stylesheet (adjust path for templates folder) -->
+  <link rel="stylesheet" href="../style.css" />
 
-  <!-- Additional CSS for the top navigation bar with dropdowns -->
+  <!-- Additional CSS for navigation, hero responsiveness, and dark overlay -->
   <style>
     .topnav {
       background-color: #333;
@@ -43,7 +44,6 @@
       white-space: nowrap;
     }
     .topnav ul li {
-      position: relative; /* Needed for dropdown positioning */
       margin: 0;
       flex: none;
     }
@@ -61,42 +61,91 @@
     .topnav ul li a:active {
       background-color: #ccc;
     }
-    /* Dropdown container (hidden by default) */
-    .topnav .dropdown-content {
-      display: none;
+
+    /* Hero section with dark overlay */
+    .hero {
+      position: relative;
+      background: url('../images/hero-background.jpg') center/cover no-repeat;
+      color: #fff;
+      padding: 3rem 1rem;
+      text-align: center;
+    }
+    /* The overlay itself */
+    .hero::before {
+      content: "";
       position: absolute;
-      top: 48px; /* Adjust for your navbar height */
-      left: 0;
-      background-color: #333;
-      min-width: 160px; /* Width of the dropdown */
+      inset: 0; /* shorthand for top:0; right:0; bottom:0; left:0; */
+      background: rgba(51, 51, 51, 0.7); /* Dark overlay (#333) at 70% opacity */
+      pointer-events: none;
+      z-index: 0;
+    }
+    /* Ensure hero content is above the overlay */
+    .hero-content {
+      position: relative;
       z-index: 1;
     }
-    /* Links inside dropdown */
-    .topnav .dropdown-content a {
-      padding: 14px 20px;
-      color: white;
-      text-decoration: none;
-      display: block;
+    .hero-content h1 {
+      margin: 0;
+      white-space: nowrap; /* Prevent title from wrapping */
     }
-    /* Hover effect inside dropdown */
-    .topnav .dropdown-content a:hover {
-      background-color: #ddd;
-      color: #333;
-    }
-    /* Show the dropdown on hover */
-    .topnav ul li:hover .dropdown-content {
-      display: block;
-    }
-    /* Media query to reduce padding on very small screens */
+
+    /* Responsive hero title on small screens */
     @media (max-width: 480px) {
+      .hero-content h1 {
+        font-size: clamp(20px, 5vw, 36px); /* Adjusts automatically between 20px and 36px */
+      }
       .topnav ul li a {
         padding: 10px 12px;
         font-size: 14px;
       }
-      .topnav .dropdown-content {
-        top: 40px; /* Slightly less to match smaller text size */
-        min-width: 140px; 
-      }
+    }
+
+    /* Tool card styling */
+    .tool-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .tool-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    .tool-card:hover {
+      transform: translateY(-5px);
+    }
+    .tool-card img {
+      max-width: 100%;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    .tool-card h2 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1.25rem;
+    }
+    .tool-card p {
+      padding: 0 1rem;
+      font-size: 0.95rem;
+    }
+    .tool-button {
+      display: inline-block;
+      margin: 1rem 0 1.5rem;
+      padding: 0.75rem 1.5rem;
+      background-color: #333;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .tool-button:hover {
+      background-color: #ddd;
+      color: #333;
     }
   </style>
 </head>
@@ -104,101 +153,32 @@
 
 <header class="hero">
   <div class="hero-content">
-    <h1>Project Manager Helper</h1>
-    <p>Streamline your projects with easy-to-use tools.</p>
+    <h1>Excel Templates</h1>
+    <p>Download our free Excel templates for project management.</p>
   </div>
 </header>
 
-<!-- Top Navigation Bar with dropdown menus -->
+<!-- Top Navigation Bar with updated order -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
-
-    <!-- Dropdown for Tools -->
-    <li>
-      <a href="#tools">Tools</a>
-      <div class="dropdown-content">
-        <a href="network-diagram/">Network Diagram Tool</a>
-        <a href="WSB-generator/">WBS Generator</a>
-        <a href="evc/">Earned Value Calculator</a>
-        <a href="risk-register/">Risk Register &amp; Assessment</a>
-        <a href="monte-carlo/">Probability &amp; Simulations</a>
-        <a href="calculators/">Calculator Tool</a>
-      </div>
-    </li>
-
-    <!-- Dropdown for Templates -->
-    <li>
-      <a href="/templates/">Templates</a>
-      <div class="dropdown-content">
-        <a href="/templates/learning_curve_template.pdf">Learning Curve Template</a>
-        <!-- Add more templates as needed -->
-      </div>
-    </li>
-
-    <!-- Tutorials (unfinished, but ready for future dropdown if needed) -->
+    <li><a href="/#tools">Tools</a></li>
+    <li><a href="/templates/">Templates</a></li>
     <li><a href="/tutorials.html">Tutorials</a></li>
   </ul>
 </nav>
 
 <main>
-  <section id="tools" class="tool-grid">
-    <!-- CARD 1: Network Diagram -->
+  <section id="templates" class="tool-grid">
+    <!-- Template Card: Learning Curve Template -->
     <div class="tool-card">
-      <img src="images/network.png" alt="Network Diagram" />
-      <h2>Network Diagram Tool</h2>
-      <p>Analyze your project's critical path and schedule.</p>
-      <a href="network-diagram/" class="tool-button">Open Tool</a>
+      <img src="../images/learning_curve.PNG" alt="Learning Curve Template" />
+      <h2>Learning Curve Template</h2>
+      <p>
+        This template uses a learning curve, fixed costs, and hourly costs to determine project break-even, ROI, cost, revenue, and more.
+      </p>
+      <a href="learning_curve.xlsx" class="tool-button" download>Download Template</a>
     </div>
-
-    <!-- CARD 2: WBS Generator -->
-    <div class="tool-card">
-      <img src="images/WSB.png" alt="WBS Generator" />
-      <h2>WBS Generator</h2>
-      <p>Create a work breakdown structure for your project.</p>
-      <a href="WSB-generator/" class="tool-button">Open Tool</a>
-    </div>
-
-    <!-- CARD 3: Earned Value Calculator -->
-    <div class="tool-card">
-      <img src="images/evc.png" alt="Earned Value Calculator" />
-      <h2>Earned Value Calculator</h2>
-      <p>Calculate CPI, SPI, EAC, and more to track project performance.</p>
-      <a href="evc/" class="tool-button">Open Tool</a>
-    </div>
-
-    <!-- CARD 4: Risk Register & Assessment -->
-    <div class="tool-card">
-      <img src="images/risk_assessment.png" alt="Risk Register & Assessment" />
-      <h2>Risk Register & Assessment</h2>
-      <p>List risks, set probability &amp; impact, and generate a heat map.</p>
-      <a href="risk-register/" class="tool-button">Open Tool</a>
-    </div>
-
-    <!-- CARD 5: Probability & Simulations -->
-    <div class="tool-card">
-      <img src="images/monte_carlo.png" alt="Probability & Simulations" />
-      <h2>Probability &amp; Simulations</h2>
-      <p>Model uncertainties using Monte Carlo for deeper insights.</p>
-      <a href="monte-carlo/" class="tool-button">Open Tool</a>
-    </div>
-
-    <!-- CARD 6: Calculator Tool -->
-    <div class="tool-card">
-      <img src="images/calculator.png" alt="Calculator Tool" />
-      <h2>Calculator Tool</h2>
-      <p>Select the best project and perform additional PM calculations.</p>
-      <a href="calculators/" class="tool-button">Open Tool</a>
-    </div>
-  </section>
-
-  <!-- Sleek, minimal feedback section -->
-  <section id="feedback-section" style="margin: 3em 0; text-align: center;">
-    <h2 style="margin-bottom: 0.5em;">Your Feedback</h2>
-    <p style="margin-bottom: 1em;">
-      Help us improve our tools. Share your ideas or user stories.
-    </p>
-    <a href="feedback.html" class="tool-button">Leave Feedback</a>
   </section>
 </main>
 
