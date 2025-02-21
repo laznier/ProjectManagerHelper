@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   
   <!-- Basic SEO -->
   <title>Project Manager Helper | Free PM Tools</title>
-  <meta name="description"
-        content="Project Manager Helper offers free, easy-to-use tools for network diagrams, WBS, risk assessments, Monte Carlo simulations, and more—streamline your projects today." />
-  <meta name="keywords"
-        content="project management, PM tools, network diagram, WBS, risk register, Monte Carlo, earned value, Gantt, PMI, PMP" />
+  <meta name="description" content="Project Manager Helper offers free, easy-to-use tools for network diagrams, WBS, risk assessments, Monte Carlo simulations, and more—streamline your projects today." />
+  <meta name="keywords" content="project management, PM tools, network diagram, WBS, risk register, Monte Carlo, earned value, Gantt, PMI, PMP" />
   <meta name="robots" content="index, follow" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -34,16 +32,19 @@
   <style>
     .topnav {
       background-color: #333;
-      overflow: hidden;
+      overflow-x: auto; /* Allow horizontal scrolling on small screens */
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     .topnav ul {
       list-style: none;
       margin: 0;
       padding: 0;
       display: flex;
+      white-space: nowrap;
     }
     .topnav ul li {
       margin: 0;
+      flex: none;
     }
     .topnav ul li a {
       display: block;
@@ -59,6 +60,13 @@
     .topnav ul li a:active {
       background-color: #ccc;
     }
+    /* Media query to reduce padding on very small screens */
+    @media (max-width: 480px) {
+      .topnav ul li a {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -70,13 +78,13 @@
   </div>
 </header>
 
-<!-- Top Navigation Bar -->
+<!-- Top Navigation Bar with updated order -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
     <li><a href="#tools">Tools</a></li>
-    <li><a href="tutorials.html">Tutorials</a></li>
-    <li><a href="templates/">Templates</a></li>
+    <li><a href="/templates/">Templates</a></li>
+    <li><a href="/tutorials.html">Tutorials</a></li>
   </ul>
 </nav>
 
@@ -110,7 +118,7 @@
     <div class="tool-card">
       <img src="images/risk_assessment.png" alt="Risk Register & Assessment" />
       <h2>Risk Register & Assessment</h2>
-      <p>List risks, set probability & impact, and generate a heat map.</p>
+      <p>List risks, set probability &amp; impact, and generate a heat map.</p>
       <a href="risk-register/" class="tool-button">Open Tool</a>
     </div>
 
@@ -128,14 +136,6 @@
       <h2>Calculator Tool</h2>
       <p>Select the best project and perform additional PM calculations.</p>
       <a href="calculators/" class="tool-button">Open Tool</a>
-    </div>
-
-    <!-- CARD 7: Excel Templates (Baseball Card Style) -->
-    <div class="tool-card">
-      <img src="images/templates.png" alt="Excel Templates" />
-      <h2>Excel Templates</h2>
-      <p>Download Excel templates for your project management needs.</p>
-      <a href="templates/" class="tool-button">Download Templates</a>
     </div>
   </section>
 
