@@ -30,25 +30,26 @@
 
   <!-- Additional CSS for the top navigation bar with dropdowns -->
   <style>
+    /* Base navigation bar */
     .topnav {
       background-color: #333;
       overflow-x: auto; /* Allow horizontal scrolling on small screens */
       -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+      white-space: nowrap;
     }
     .topnav ul {
       list-style: none;
       margin: 0;
       padding: 0;
-      display: flex;
-      white-space: nowrap;
+      /* Use inline-block so each <li> only takes up the space of its content */
     }
     .topnav ul li {
-      position: relative; /* Needed for dropdown positioning */
-      margin: 0;
-      flex: none;
+      display: inline-block;   /* Ensures each menu item is only as wide as content */
+      position: relative;      /* Needed for the absolutely positioned dropdown */
+      vertical-align: middle;  /* Keeps the nav items aligned nicely */
     }
     .topnav ul li a {
-      display: block;
+      display: inline-block;   /* So the dropdown width can match this anchor's width */
       padding: 14px 20px;
       color: white;
       text-decoration: none;
@@ -61,41 +62,45 @@
     .topnav ul li a:active {
       background-color: #ccc;
     }
-    /* Dropdown container (hidden by default) */
-    .topnav .dropdown-content {
-      display: none;
+
+    /* Dropdown menus */
+    .dropdown-content {
+      display: none;             /* Hidden by default */
       position: absolute;
-      top: 48px; /* Adjust for your navbar height */
+      top: 100%;                 /* Positions dropdown directly under the button */
       left: 0;
       background-color: #333;
-      min-width: 160px; /* Width of the dropdown */
-      z-index: 1;
+      min-width: 100%;           /* Same width as the parent <a> */
+      z-index: 9999;             /* Ensures it's on top of all other elements */
+      box-sizing: border-box;     /* So padding/border doesn't add extra width */
     }
-    /* Links inside dropdown */
-    .topnav .dropdown-content a {
-      padding: 14px 20px;
+    .dropdown-content a {
+      display: block;
+      padding: 12px 20px;
       color: white;
       text-decoration: none;
-      display: block;
+      /* If you want the dropdown items to be exactly the same width as parent,
+         no extra left/right padding is needed—feel free to adjust. */
     }
-    /* Hover effect inside dropdown */
-    .topnav .dropdown-content a:hover {
+    .dropdown-content a:hover {
       background-color: #ddd;
       color: #333;
     }
+
     /* Show the dropdown on hover */
     .topnav ul li:hover .dropdown-content {
       display: block;
     }
+
     /* Media query to reduce padding on very small screens */
     @media (max-width: 480px) {
       .topnav ul li a {
         padding: 10px 12px;
         font-size: 14px;
       }
-      .topnav .dropdown-content {
-        top: 40px; /* Slightly less to match smaller text size */
-        min-width: 140px; 
+      .dropdown-content a {
+        padding: 10px 12px;
+        font-size: 14px;
       }
     }
   </style>
@@ -132,11 +137,11 @@
       <a href="/templates/">Templates</a>
       <div class="dropdown-content">
         <a href="/templates/learning_curve_template.pdf">Learning Curve Template</a>
-        <!-- Add more templates as needed -->
+        <!-- Add more templates below as needed -->
       </div>
     </li>
 
-    <!-- Tutorials (unfinished, but ready for future dropdown if needed) -->
+    <!-- Tutorials (unfinished, but you can later add a dropdown if you wish) -->
     <li><a href="/tutorials.html">Tutorials</a></li>
   </ul>
 </nav>
