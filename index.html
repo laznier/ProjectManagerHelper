@@ -28,7 +28,7 @@
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Additional CSS for the top navigation bar -->
+  <!-- Additional CSS for navigation and hero responsiveness -->
   <style>
     .topnav {
       background-color: #333;
@@ -60,8 +60,22 @@
     .topnav ul li a:active {
       background-color: #ccc;
     }
-    /* Media query to reduce padding on very small screens */
+    /* Hero section styling */
+    .hero {
+      background: url('images/hero-background.jpg') center/cover no-repeat;
+      color: #fff;
+      padding: 3rem 1rem;
+      text-align: center;
+    }
+    .hero-content h1 {
+      margin: 0;
+      white-space: nowrap; /* Prevent title from wrapping */
+    }
+    /* Responsive hero title on small screens */
     @media (max-width: 480px) {
+      .hero-content h1 {
+        font-size: clamp(20px, 5vw, 36px); /* Adjusts automatically between 20px and 36px */
+      }
       .topnav ul li a {
         padding: 10px 12px;
         font-size: 14px;
