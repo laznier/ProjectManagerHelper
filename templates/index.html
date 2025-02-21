@@ -29,7 +29,7 @@
   <!-- Link to main stylesheet (adjust path for templates folder) -->
   <link rel="stylesheet" href="../style.css" />
 
-  <!-- Additional CSS for navigation and hero responsiveness -->
+  <!-- Additional CSS for navigation, hero responsiveness, and dark overlay -->
   <style>
     .topnav {
       background-color: #333;
@@ -61,17 +61,34 @@
     .topnav ul li a:active {
       background-color: #ccc;
     }
-    /* Hero section styling */
+
+    /* Hero section with dark overlay */
     .hero {
+      position: relative;
       background: url('../images/hero-background.jpg') center/cover no-repeat;
       color: #fff;
       padding: 3rem 1rem;
       text-align: center;
     }
+    /* The overlay itself */
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0; /* shorthand for top:0; right:0; bottom:0; left:0; */
+      background: rgba(51, 51, 51, 0.7); /* Dark overlay (#333) at 70% opacity */
+      pointer-events: none;
+      z-index: 0;
+    }
+    /* Ensure hero content is above the overlay */
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
     .hero-content h1 {
       margin: 0;
       white-space: nowrap; /* Prevent title from wrapping */
     }
+
     /* Responsive hero title on small screens */
     @media (max-width: 480px) {
       .hero-content h1 {
@@ -82,6 +99,7 @@
         font-size: 14px;
       }
     }
+
     /* Tool card styling */
     .tool-grid {
       display: flex;
