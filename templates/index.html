@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   
   <!-- Basic SEO -->
   <title>Project Manager Helper | Excel Templates</title>
-  <meta name="description" content="Download free Excel templates for project management, including our Learning Curve Template which calculates break-even, ROI, cost, revenue, and more." />
+  <meta name="description" content="Download free Excel templates for project management, including our Learning Curve Template which calculates project break-even, ROI, cost, revenue, and more." />
   <meta name="keywords" content="project management, Excel templates, learning curve, break-even, ROI, project cost, project revenue" />
   <meta name="robots" content="index, follow" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,34 +14,38 @@
   <link rel="canonical" href="https://projectmanagerhelper.com/templates/" />
 
   <!-- Open Graph (for social media previews) -->
-  <meta property="og:title" content="Project Manager Helper | Excel Templates" />
-  <meta property="og:description" content="Download free Excel templates for project management, including our Learning Curve Template to calculate break-even, ROI, cost, revenue, and more." />
-  <meta property="og:url" content="https://projectmanagerhelper.com/templates/" />
-  <meta property="og:image" content="https://projectmanagerhelper.com/images/learning_curve.PNG" />
+  <meta property="og:title" content="Project Manager Helper" />
+  <meta property="og:description" content="Free PM tools for network diagrams, WBS, risk assessment, Monte Carlo, earned value, and more—streamline your project workflows." />
+  <meta property="og:url" content="https://projectmanagerhelper.com/" />
+  <meta property="og:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
   <meta property="og:type" content="website" />
 
   <!-- Twitter Cards (optional) -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Project Manager Helper | Excel Templates" />
-  <meta name="twitter:description" content="Download free Excel templates for project management including our Learning Curve Template." />
-  <meta name="twitter:image" content="https://projectmanagerhelper.com/images/learning_curve.PNG" />
+  <meta name="twitter:title" content="Project Manager Helper" />
+  <meta name="twitter:description" content="Free, user-friendly PM tools—network diagrams, WBS, risk, Monte Carlo, earned value, and more." />
+  <meta name="twitter:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
 
+  <!-- Link to main stylesheet (adjust path for templates folder) -->
   <link rel="stylesheet" href="../style.css" />
 
-  <!-- Additional CSS for the top navigation bar and tool cards -->
+  <!-- Additional CSS for navigation and hero responsiveness -->
   <style>
     .topnav {
       background-color: #333;
-      overflow: hidden;
+      overflow-x: auto; /* Allow horizontal scrolling on small screens */
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     .topnav ul {
       list-style: none;
       margin: 0;
       padding: 0;
       display: flex;
+      white-space: nowrap;
     }
     .topnav ul li {
       margin: 0;
+      flex: none;
     }
     .topnav ul li a {
       display: block;
@@ -57,7 +61,28 @@
     .topnav ul li a:active {
       background-color: #ccc;
     }
-    /* Template card styling matching the main page */
+    /* Hero section styling */
+    .hero {
+      background: url('../images/hero-background.jpg') center/cover no-repeat;
+      color: #fff;
+      padding: 3rem 1rem;
+      text-align: center;
+    }
+    .hero-content h1 {
+      margin: 0;
+      white-space: nowrap; /* Prevent title from wrapping */
+    }
+    /* Responsive hero title on small screens */
+    @media (max-width: 480px) {
+      .hero-content h1 {
+        font-size: clamp(20px, 5vw, 36px); /* Adjusts automatically between 20px and 36px */
+      }
+      .topnav ul li a {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+    }
+    /* Tool card styling */
     .tool-grid {
       display: flex;
       flex-wrap: wrap;
@@ -115,13 +140,13 @@
   </div>
 </header>
 
-<!-- Top Navigation Bar -->
+<!-- Top Navigation Bar with updated order -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
     <li><a href="/#tools">Tools</a></li>
-    <li><a href="/tutorials.html">Tutorials</a></li>
     <li><a href="/templates/">Templates</a></li>
+    <li><a href="/tutorials.html">Tutorials</a></li>
   </ul>
 </nav>
 
