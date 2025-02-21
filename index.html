@@ -26,30 +26,29 @@
   <meta name="twitter:description" content="Free, user-friendly PM tools—network diagrams, WBS, risk, Monte Carlo, earned value, and more." />
   <meta name="twitter:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
 
+  <!-- Link to external stylesheet -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Additional CSS for the top navigation bar with dropdowns -->
+  <!-- In-page styles for the nav (minimal) -->
   <style>
-    /* Base navigation bar */
     .topnav {
       background-color: #333;
-      overflow-x: auto; /* Allow horizontal scrolling on small screens */
+      overflow-x: auto; /* Allows horizontal scrolling on small screens */
       -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-      white-space: nowrap;
     }
     .topnav ul {
       list-style: none;
       margin: 0;
       padding: 0;
-      /* Use inline-block so each <li> only takes up the space of its content */
+      display: flex;
+      white-space: nowrap;
     }
     .topnav ul li {
-      display: inline-block;   /* Ensures each menu item is only as wide as content */
-      position: relative;      /* Needed for the absolutely positioned dropdown */
-      vertical-align: middle;  /* Keeps the nav items aligned nicely */
+      margin: 0;
+      flex: none;
     }
     .topnav ul li a {
-      display: inline-block;   /* So the dropdown width can match this anchor's width */
+      display: block;
       padding: 14px 20px;
       color: white;
       text-decoration: none;
@@ -62,43 +61,9 @@
     .topnav ul li a:active {
       background-color: #ccc;
     }
-
-    /* Dropdown menus */
-    .dropdown-content {
-      display: none;             /* Hidden by default */
-      position: absolute;
-      top: 100%;                 /* Positions dropdown directly under the button */
-      left: 0;
-      background-color: #333;
-      min-width: 100%;           /* Same width as the parent <a> */
-      z-index: 9999;             /* Ensures it's on top of all other elements */
-      box-sizing: border-box;     /* So padding/border doesn't add extra width */
-    }
-    .dropdown-content a {
-      display: block;
-      padding: 12px 20px;
-      color: white;
-      text-decoration: none;
-      /* If you want the dropdown items to be exactly the same width as parent,
-         no extra left/right padding is needed—feel free to adjust. */
-    }
-    .dropdown-content a:hover {
-      background-color: #ddd;
-      color: #333;
-    }
-
-    /* Show the dropdown on hover */
-    .topnav ul li:hover .dropdown-content {
-      display: block;
-    }
-
     /* Media query to reduce padding on very small screens */
     @media (max-width: 480px) {
       .topnav ul li a {
-        padding: 10px 12px;
-        font-size: 14px;
-      }
-      .dropdown-content a {
         padding: 10px 12px;
         font-size: 14px;
       }
@@ -114,34 +79,12 @@
   </div>
 </header>
 
-<!-- Top Navigation Bar with dropdown menus -->
+<!-- Simple, straightforward top navigation -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
-
-    <!-- Dropdown for Tools -->
-    <li>
-      <a href="#tools">Tools</a>
-      <div class="dropdown-content">
-        <a href="network-diagram/">Network Diagram Tool</a>
-        <a href="WSB-generator/">WBS Generator</a>
-        <a href="evc/">Earned Value Calculator</a>
-        <a href="risk-register/">Risk Register &amp; Assessment</a>
-        <a href="monte-carlo/">Probability &amp; Simulations</a>
-        <a href="calculators/">Calculator Tool</a>
-      </div>
-    </li>
-
-    <!-- Dropdown for Templates -->
-    <li>
-      <a href="/templates/">Templates</a>
-      <div class="dropdown-content">
-        <a href="/templates/learning_curve_template.pdf">Learning Curve Template</a>
-        <!-- Add more templates below as needed -->
-      </div>
-    </li>
-
-    <!-- Tutorials (unfinished, but you can later add a dropdown if you wish) -->
+    <li><a href="#tools">Tools</a></li>
+    <li><a href="/templates/">Templates</a></li>
     <li><a href="/tutorials.html">Tutorials</a></li>
   </ul>
 </nav>
@@ -176,7 +119,7 @@
     <div class="tool-card">
       <img src="images/risk_assessment.png" alt="Risk Register & Assessment" />
       <h2>Risk Register & Assessment</h2>
-      <p>List risks, set probability &amp; impact, and generate a heat map.</p>
+      <p>List risks, set probability & impact, and generate a heat map.</p>
       <a href="risk-register/" class="tool-button">Open Tool</a>
     </div>
 
