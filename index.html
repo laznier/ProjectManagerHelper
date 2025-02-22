@@ -164,9 +164,9 @@
       line-height: 1.6;
     }
 
-    /* Scroll animation */
+    /* Modified Scroll Animation: starts immediately from a visible position */
     @keyframes creditsScroll {
-      0% { transform: translateY(100%); }
+      0% { transform: translateY(0); }
       100% { transform: translateY(-100%); }
     }
 
@@ -451,9 +451,9 @@ function moveSlide(direction) {
 
   // Trigger scrolling immediately if final slide is reached
   if (slides[currentSlide].classList.contains("final-slide")) {
-    startScrollingCredits(); // Start immediately
+    startScrollingCredits();
   } else {
-    stopScrollingCredits();  // Stop when leaving the final slide
+    stopScrollingCredits();
   }
 }
 
@@ -461,8 +461,10 @@ function moveSlide(direction) {
 function startScrollingCredits() {
   creditsList.style.visibility = "visible";
   creditsList.style.animation = "none";
-  creditsList.offsetHeight; // force reflow to restart animation immediately
-  creditsList.style.animation = "creditsScroll 30s linear infinite";
+  requestAnimationFrame(() => {
+    creditsList.style.animation = "creditsScroll 30s linear infinite";
+    creditsList.style.animationDelay = "0s";
+  });
 }
 
 // Function to stop scrolling
@@ -476,7 +478,6 @@ function stopScrollingCredits() {
 document.addEventListener("DOMContentLoaded", () => {
   // Find all video elements
   const allVideos = document.querySelectorAll("video");
-
   // Set playback speed to 1.2x for each video
   allVideos.forEach(video => {
     video.playbackRate = 1.2;
