@@ -34,8 +34,8 @@
     .topnav {
       background-color: #333;
       overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
       white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
     }
     .topnav ul {
       list-style: none;
@@ -154,7 +154,7 @@
       margin: 0;
       padding: 0;
       text-align: center;
-      animation: none; /* Default: No animation until triggered */
+      animation: none;
     }
 
     .credits-list li {
@@ -297,7 +297,7 @@
 <section class="feature-slider">
   <button class="slider-arrow prev" onclick="moveSlide(-1)">&#10094;</button>
   <div class="slider-wrapper" id="slider">
-    <!-- Slide 1 -->
+    <!-- Slide 1: Monte Carlo -->
     <div class="slide">
       <video autoplay loop muted playsinline class="slide-video">
         <source src="videos/monte_carlo.mp4" type="video/mp4">
@@ -308,7 +308,7 @@
       </div>
     </div>
 
-    <!-- Slide 2 -->
+    <!-- Slide 2: Network Diagram -->
     <div class="slide">
       <video autoplay loop muted playsinline class="slide-video">
         <source src="videos/network.mp4" type="video/mp4">
@@ -319,7 +319,34 @@
       </div>
     </div>
 
-    <!-- Final Slide: Scrolling Starts When Visible -->
+    <!-- Slide 3: Weighted Average -->
+    <div class="slide">
+      <video autoplay loop muted playsinline class="slide-video">
+        <source src="videos/weighted_average.mp4" type="video/mp4">
+      </video>
+      <div class="slide-content">
+        <h2>Which project should I choose?</h2>
+        <p>Compare project options and calculate future value with the Weighted Average Calculator.</p>
+      </div>
+    </div>
+
+    <!-- Slide 4: Learning Curve -->
+    <div class="slide" style="background-image: url('images/learning_curve.PNG');">
+      <div class="slide-content">
+        <h2>When will my project become profitable?</h2>
+        <p>Use the Learning Curve Template to determine when your project generates more revenue than its cost.</p>
+      </div>
+    </div>
+
+    <!-- Slide 5: Risk Management -->
+    <div class="slide" style="background-image: url('images/risk_assessment.png');">
+      <div class="slide-content">
+        <h2>How do I manage project risk?</h2>
+        <p>Predict, model, and mitigate risks by combining the Risk Register, Monte Carlo Simulation, and Linear Regression Template.</p>
+      </div>
+    </div>
+
+    <!-- Final Slide: Scrolling Questions -->
     <div class="slide final-slide">
       <div class="credits-scroll-wrapper">
         <ul class="credits-list" id="creditsList">
@@ -379,26 +406,18 @@
 
 <!-- JavaScript for Slide Navigation & Scrolling Animation -->
 <script>
-// Slide navigation logic
 let currentSlide = 0;
 const slides = document.querySelectorAll(".slide");
 const totalSlides = slides.length;
 const creditsList = document.getElementById("creditsList");
 
-// Move slides left or right without looping
 function moveSlide(direction) {
   currentSlide += direction;
   if (currentSlide < 0) currentSlide = 0;
   if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-  updateSlide();
-}
-
-// Update slide position
-function updateSlide() {
   document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
 }
 
-// Trigger scroll only when final slide is visible
 const observer = new IntersectionObserver((entries) => {
   entries.forEach((entry) => {
     if (entry.isIntersecting) {
@@ -409,7 +428,6 @@ const observer = new IntersectionObserver((entries) => {
   });
 });
 
-// Observe final slide
 observer.observe(document.querySelector(".final-slide"));
 </script>
 
