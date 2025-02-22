@@ -124,6 +124,23 @@
     .next {
       right: 10px;
     }
+<style>
+/* Ensure instant load without delay */
+.credits-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  visibility: hidden; /* Hidden until visible */
+  animation: none;
+}
+
+/* Scroll Animation (Faster, Smooth) */
+@keyframes creditsScroll {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(-100%); }
+}
+</style>
 
     /* Final Slide: Continuous Scroll When Visible */
     .final-slide {
@@ -303,7 +320,7 @@
         <source src="videos/monte_carlo.mp4" type="video/mp4">
       </video>
       <div class="slide-content">
-        <h2>Will my project be done on time?</h2>
+        <h2>Will my project be completed on time and budget?</h2>
         <p>Find out the probability of completing your project on schedule and within budget using the Monte Carlo Simulation Tool.</p>
       </div>
     </div>
@@ -314,7 +331,7 @@
         <source src="videos/network.mp4" type="video/mp4">
       </video>
       <div class="slide-content">
-        <h2>Which tasks can be fast-tracked?</h2>
+        <h2>Which tasks need additional resources?</h2>
         <p>Identify float, crashable activities, and the critical path with the Network Diagram Tool.</p>
       </div>
     </div>
@@ -386,8 +403,29 @@
     <div class="tool-card">
       <img src="images/evc.png" alt="Earned Value Calculator" />
       <h2>Earned Value Calculator</h2>
-      <p>Calculate CPI, SPI, and EAC to track project performance.</p>
+      <p>Calculate CPI, SPI, EAC, and more to track project performance.</p>
       <a href="evc/" class="tool-button">Open Tool</a>
+    </div>
+
+    <div class="tool-card">
+      <img src="images/risk_assessment.png" alt="Risk Register" />
+      <h2>Risk Register &amp; Assessment</h2>
+      <p>List risks, set probability &amp; impact, and generate a heat map.</p>
+      <a href="risk-register/" class="tool-button">Open Tool</a>
+    </div>
+
+    <div class="tool-card">
+      <img src="images/monte_carlo.png" alt="Monte Carlo Simulations" />
+      <h2>Monte Carlo Simulation</h2>
+      <p>Model uncertainties and predict outcomes with Monte Carlo analysis.</p>
+      <a href="monte-carlo/" class="tool-button">Open Tool</a>
+    </div>
+
+    <div class="tool-card">
+      <img src="images/calculator.png" alt="Calculator Tool" />
+      <h2>Calculator Tool</h2>
+      <p>Select the best project and perform additional PM calculations.</p>
+      <a href="calculators/" class="tool-button">Open Tool</a>
     </div>
   </section>
 </main>
@@ -411,6 +449,7 @@ const slides = document.querySelectorAll(".slide");
 const totalSlides = slides.length;
 const creditsList = document.getElementById("creditsList");
 
+// Move slides left or right
 function moveSlide(direction) {
   currentSlide += direction;
   if (currentSlide < 0) currentSlide = 0;
@@ -418,18 +457,23 @@ function moveSlide(direction) {
   document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
 }
 
+// Start animation immediately when final slide appears
 const observer = new IntersectionObserver((entries) => {
   entries.forEach((entry) => {
     if (entry.isIntersecting) {
-      creditsList.style.animation = "creditsScroll 40s linear infinite";
+      creditsList.style.animation = "creditsScroll 30s linear infinite";
+      creditsList.style.visibility = "visible";  // Ensure instant visibility
     } else {
       creditsList.style.animation = "none";
+      creditsList.style.visibility = "hidden";  // Hide when user scrolls away
     }
   });
 });
 
+// Observe final slide
 observer.observe(document.querySelector(".final-slide"));
 </script>
+
 
 </body>
 </html>
