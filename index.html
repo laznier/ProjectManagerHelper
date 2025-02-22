@@ -6,7 +6,7 @@
   <meta name="description" content="Project Manager Helper offers free, easy-to-use tools for network diagrams, WBS, risk assessments, Monte Carlo simulations, and more—streamline your projects today." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Optional external stylesheet -->
+  <!-- Link to your existing style.css -->
   <link rel="stylesheet" href="style.css" />
 
   <style>
@@ -125,29 +125,49 @@
       right: 10px;
     }
 
-    /* Final Slide Typewriter Effect */
+    /* Final Slide: Continuous Credits-Style Scroll */
     .final-slide {
       background-color: #222;
+      position: relative;
+      overflow: hidden; /* Hide overflow for the scrolling effect */
+      height: 400px;
+      color: #fff;
+      text-align: center;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 400px;
-      position: relative;
-      overflow: hidden;
     }
-    .animated-text {
-      font-size: 3rem;
-      font-weight: bold;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      border-right: 3px solid #fff;
-      width: 0; /* Start at 0 width */
-      /* No animation by default; we'll trigger it via JavaScript when final slide is reached. */
+    .credits-container {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 600px;
+      bottom: -100%; /* Start below the slide */
+      text-align: center;
+      animation: creditsScroll 40s linear infinite;
+      /* Increase or decrease 40s for slower/faster scrolling */
     }
-    @keyframes typing {
-      from { width: 0; }
-      to   { width: 18ch; } /* 18 characters in "... AND MUCH MORE!" */
+    .credits-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .credits-list li {
+      margin: 1rem 0;
+    }
+
+    /* Keyframes for continuous upward scroll */
+    @keyframes creditsScroll {
+      0% {
+        bottom: -100%;
+      }
+      100% {
+        bottom: 100%;
+      }
     }
 
     /* Tools Grid & Cards */
@@ -199,33 +219,34 @@
     }
 
     /* Feedback Section */
-#feedback-section {
-  text-align: center;
-  padding: 3rem 1rem;
-  background-color: #f8f8f8;
-  margin-top: 2rem;
-}
-#feedback-section h2 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-#feedback-section p {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  color: #555;
-}
-#feedback-section a {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  background-color: #333; /* Changed from #007bff to #333 */
-  color: #fff;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: background-color 0.3s;
-}
-#feedback-section a:hover {
-  background-color: #555; /* Changed from #0056b3 to #555 */
-}
+    #feedback-section {
+      text-align: center;
+      padding: 3rem 1rem;
+      background-color: #f8f8f8;
+      margin-top: 2rem;
+    }
+    #feedback-section h2 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    #feedback-section p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      color: #555;
+    }
+    #feedback-section a {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background-color: #333;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    #feedback-section a:hover {
+      background-color: #555;
+      color: #fff;
+    }
 
     /* Footer */
     footer {
@@ -270,7 +291,7 @@
     <li><a href="/">Home</a></li>
     <li><a href="#tools">Tools</a></li>
     <li><a href="/templates/">Templates</a></li>
-    <li><a href="/tutorials/index.html">Tutorials</a></li>
+    <li><a href="/tutorials/">Tutorials</a></li>
   </ul>
 </nav>
 
@@ -327,10 +348,34 @@
       </div>
     </div>
 
-    <!-- Final Slide: "... AND MUCH MORE!" -->
+    <!-- Final Slide: Continuous Credits-Style Scroll -->
     <div class="slide final-slide">
-      <div class="animated-text">... AND MUCH MORE!</div>
+      <div class="credits-container">
+        <ul class="credits-list">
+          <li>What is the probability that our final project cost will exceed the budget by 10%?</li>
+          <li>How can we estimate optimal staffing levels using linear regression on past project data?</li>
+          <li>When will the project break even if we apply a learning curve to labor and material costs?</li>
+          <li>How do we forecast cash flow trends using polynomial regression for a multi-phase project?</li>
+          <li>Which tasks carry the highest risk exposure, and how can we mitigate them effectively?</li>
+          <li>What is the net present value (NPV) of our project scenarios, given cost of equity and debt?</li>
+          <li>How do we calculate cost variance (CV) and schedule variance (SV) using an earned value calculator?</li>
+          <li>Which tasks can be partially overlapped (fast-tracked) or crashed to shorten the schedule at minimal cost?</li>
+          <li>How do we measure float and critical path changes if we add a new milestone mid-project?</li>
+          <li>What’s the expected schedule slip if resource availability is reduced by 20%?</li>
+          <li>How do we compute a Weighted Average Score for multiple projects, factoring in risk, ROI, and strategic value?</li>
+          <li>How do we forecast total project duration with 90% confidence using Monte Carlo simulation?</li>
+          <li>Which tasks yield the highest ROI if we apply a learning curve discount factor?</li>
+          <li>How can we predict final project costs using a combination of regression modeling and earned value metrics?</li>
+          <li>What is the future value (FV) of project benefits if we accelerate certain tasks by two weeks?</li>
+          <li>How do we estimate cost of capital for a project when interest rates may fluctuate?</li>
+          <li>Which tasks pose the greatest threat to meeting our next milestone, and how can Monte Carlo quantify that risk?</li>
+          <li>How do we compare project alternatives using NPV versus payback period?</li>
+          <li>Which tasks in the network diagram have negative float, and how does that affect overall schedule risk?</li>
+          <li>How do we balance multiple risk factors (cost overrun, schedule slip, resource constraints) using a Weighted Average approach to pick the best plan?</li>
+        </ul>
+      </div>
     </div>
+
   </div>
   <button class="slider-arrow next" onclick="moveSlide(1)">&#10095;</button>
 </section>
@@ -367,9 +412,9 @@
     </div>
 
     <div class="tool-card">
-      <img src="images/monte_carlo.png" alt="Monte Carlo Simulations" />
-      <h2>Monte Carlo Simulation</h2>
-      <p>Model uncertainties and predict outcomes with Monte Carlo analysis.</p>
+      <img src="images/monte_carlo.png" alt="Probability & Simulations" />
+      <h2>Probability &amp; Simulations</h2>
+      <p>Model uncertainties using Monte Carlo for deeper insights.</p>
       <a href="monte-carlo/" class="tool-button">Open Tool</a>
     </div>
 
@@ -391,20 +436,16 @@
 
 <!-- Footer -->
 <footer>
-  <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
+  <p>&copy; 2025 Project Manager Helper. All rights reserved.</p>
 </footer>
 
-<!-- JavaScript for Slide Navigation & Typewriter Trigger -->
+<!-- JavaScript for Slide Navigation -->
 <script>
 let currentSlide = 0;
 const slides = document.querySelectorAll(".slide");
 const totalSlides = slides.length;
-const finalText = document.querySelector(".animated-text");
 
-/**
- * Move slides left (direction = -1) or right (direction = 1),
- * but do NOT loop from last to first or vice versa.
- */
+/* Move slides left or right without looping from last to first */
 function moveSlide(direction) {
   currentSlide += direction;
   if (currentSlide < 0) {
@@ -418,15 +459,6 @@ function moveSlide(direction) {
 function updateSlide() {
   const slider = document.getElementById("slider");
   slider.style.transform = `translateX(-${currentSlide * 100}%)`;
-
-  // If final slide, trigger the typewriter animation
-  if (currentSlide === totalSlides - 1) {
-    finalText.style.animation = "typing 3s steps(18, end) forwards";
-  } else {
-    // Reset final slide if user navigates away
-    finalText.style.animation = "none";
-    finalText.style.width = "0";
-  }
 }
 </script>
 
