@@ -448,24 +448,28 @@ function moveSlide(direction) {
   if (currentSlide < 0) currentSlide = 0;
   if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
   document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
+
+  // 🔑 Trigger scrolling immediately if final slide is reached
+  if (slides[currentSlide].classList.contains("final-slide")) {
+    startScrollingCredits(); // Start immediately
+  } else {
+    stopScrollingCredits();  // Stop when leaving the final slide
+  }
 }
 
-// Trigger scroll when final slide appears
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      creditsList.style.animation = "creditsScroll 30s linear infinite";
-      creditsList.style.visibility = "visible";  // Ensure instant visibility
-    } else {
-      creditsList.style.animation = "none";
-      creditsList.style.visibility = "hidden";  // Hide when not visible
-    }
-  });
-});
+// Function to start scrolling
+function startScrollingCredits() {
+  creditsList.style.animation = "creditsScroll 30s linear infinite";
+  creditsList.style.visibility = "visible";
+}
 
-// Observe final slide
-observer.observe(document.querySelector(".final-slide"));
+// Function to stop scrolling
+function stopScrollingCredits() {
+  creditsList.style.animation = "none";
+  creditsList.style.visibility = "hidden";
+}
 </script>
+
   
 <script>
 document.addEventListener("DOMContentLoaded", () => {
