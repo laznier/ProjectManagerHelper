@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Multi-variable Statistics, Regression & Distribution Fit Calculator</title>
-  <meta name="description" content="Input multiple variables and observations (or paste from Excel) to compute descriptive statistics, correlation coefficients, distribution fit, and run multi-regression (linear or polynomial) with predictions and chart output based on your dataset." />
+  <meta name="description" content="Input multiple variables and observations (or paste from Excel) to compute descriptive statistics, correlation coefficients, distribution fit, and run multi-regression (linear or polynomial) with predictions and error metrics displayed along with chart output based on your dataset." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -151,10 +151,11 @@
   <div class="container" id="regressionContainer">
     <h1>Regression Calculator & Predictions</h1>
     <p>
-      The regression analysis uses the dataset above. Select the <strong>Independent Variable</strong> from the dropdown. All other variables will be treated as <strong>Dependent Variables</strong> for regression.
+      The regression analysis uses the dataset above. Select the <strong>Independent Variable</strong> from the dropdown below.
+      All other variables are automatically treated as <strong>Dependent Variables</strong> for regression.
       Then click either "Calculate Linear Regression" or "Calculate Polynomial Regression" (specify the degree) to run the analysis.
-      A chart below will display the data points and regression lines for each dependent variable.
-      Finally, enter a new X value to calculate predictions for each dependent variable.
+      A chart below will display the data points along with regression lines for each dependent variable.
+      Finally, enter a new X value to generate predictions from each model.
     </p>
     <div id="regressionSelectors">
       <label for="xVarSelect">Independent Variable:</label>
@@ -181,9 +182,9 @@
      * Global and Utility Functions
      ***********************/
     let multiRegModels = []; // Stores regression models for each dependent variable
-    let regChart; // Chart.js global instance
+    let regChart; // global Chart.js instance
 
-    // Utility functions for descriptive statistics (same as before)
+    // Utility functions for descriptive statistics.
     function calculateMean(values) {
       const sum = values.reduce((acc, val) => acc + val, 0);
       return sum / values.length;
@@ -273,7 +274,7 @@
     }
 
     /***********************
-     * Multi-variable Statistics Section (unchanged)
+     * Multi-variable Statistics Section
      ***********************/
     document.addEventListener("DOMContentLoaded", () => {
       // Initialize with two default variables and one observation.
@@ -421,7 +422,7 @@
         }
       });
       resultsHTML += "</div>";
-      // Correlation matrix (if applicable)
+      // Correlation Matrix:
       const variablesWithData = descriptiveStats.filter(stat => stat.count > 1);
       if (variablesWithData.length >= 2) {
         resultsHTML += "<div class='result-section'><h2>Correlation Matrix</h2><table class='correlation-table'><tr><th></th>";
@@ -455,9 +456,9 @@
     }
 
     /***********************
-     * Regression Calculator Section (Multi-Regression)
+     * Regression Calculator Section (Multi-Regression with Error Metrics)
      ***********************/
-    // Update the independent variable dropdown from the dataset headers.
+    // Update the independent variable dropdown from dataset headers.
     function updateRegressionSelectors() {
       const headerRow = document.getElementById("headerRow");
       const selectX = document.getElementById("xVarSelect");
@@ -474,12 +475,12 @@
         selectX.appendChild(option);
       }
     }
-    // Get regression data: independent values from the selected column and for each other column, dependent values.
+    // Get regression data: independent from selected column and dependent for all other columns.
     function getMultiRegressionData() {
       const headerRow = document.getElementById("headerRow");
       const variableCount = headerRow.getElementsByTagName("th").length - 1;
       const selectX = document.getElementById("xVarSelect");
-      const xColIndex = parseInt(selectX.value); // 1-based index
+      const xColIndex = parseInt(selectX.value);
       const headers = headerRow.getElementsByTagName("th");
       const variableNames = [];
       for (let i = 1; i < headers.length; i++) {
@@ -487,11 +488,10 @@
         if (!name) name = "Variable " + i;
         variableNames.push(name);
       }
-      // Get independent data (from xColIndex) and dependent data for all other columns.
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       const rows = tbody.getElementsByTagName("tr");
       let xData = [];
-      let depData = {}; // key: dependent column index (1-based), value: array of numbers
+      let depData = {};
       for (let i = 1; i <= variableCount; i++) {
         if (i !== xColIndex) {
           depData[i] = [];
@@ -499,7 +499,6 @@
       }
       for (let row of rows) {
         const cells = row.getElementsByTagName("td");
-        // cells[0] is row number.
         const xVal = parseFloat(cells[xColIndex].getElementsByTagName("input")[0].value);
         if (!isNaN(xVal)) {
           xData.push(xVal);
@@ -517,12 +516,7 @@
       }
       return { xData, depData, variableNames, xColIndex };
     }
-    // Global storage for regression models (one per dependent variable)
-    // Each model: {depIndex, depName, slope, intercept, polyCoeffs (if polynomial), xData, yData}
-    // For polynomial models, polyCoeffs is an array; for linear, slope & intercept are used.
-    /***********************
-     * Linear Regression Multi-Model
-     ***********************/
+    // Linear Regression: returns {slope, intercept}
     function linearRegression(xVals, yVals) {
       const n = xVals.length;
       let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -540,29 +534,38 @@
       const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
       multiRegModels = [];
       let resultsHTML = "<div class='result-section'><h2>Linear Regression Models</h2>";
-      // For each dependent variable (each column index not equal to xColIndex)
       for (let depIndex in depData) {
-        // Filter out any nulls (assume rows with valid xData have valid yData)
         let yData = depData[depIndex].filter(val => val !== null);
-        // Ensure xData and yData have the same length (assume they do for valid rows)
         if (xData.length < 2 || yData.length < 2) continue;
         const { slope, intercept } = linearRegression(xData, yData);
+        // Compute predictions, RMSE, and R².
+        let predictions = xData.map(x => slope * x + intercept);
+        let sumSquaredError = 0;
+        for (let i = 0; i < predictions.length; i++) {
+          let error = yData[i] - predictions[i];
+          sumSquaredError += error * error;
+        }
+        let rmse = Math.sqrt(sumSquaredError / predictions.length);
+        let meanY = calculateMean(yData);
+        let ssTot = 0;
+        for (let i = 0; i < yData.length; i++) {
+          ssTot += Math.pow(yData[i] - meanY, 2);
+        }
+        let rSquared = 1 - (sumSquaredError / ssTot);
         multiRegModels.push({
           depIndex: parseInt(depIndex),
           depName: variableNames[parseInt(depIndex) - 1],
           slope, intercept,
           type: "linear",
-          xData, yData
+          xData, yData,
+          rmse, rSquared
         });
-        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}</div>`;
+        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}</div>`;
       }
       resultsHTML += "</div>";
       document.getElementById("regressionResults").innerHTML = resultsHTML;
       plotMultiRegressionModels("linear");
     }
-    /***********************
-     * Polynomial Regression Multi-Model
-     ***********************/
     function polynomialRegression(xVals, yVals, degree) {
       const n = xVals.length;
       let X = [];
@@ -606,13 +609,34 @@
         let yData = depData[depIndex].filter(val => val !== null);
         if (xData.length < 2 || yData.length < 2) continue;
         const coeffs = polynomialRegression(xData, yData, degree);
+        // Compute predictions, RMSE, and R².
+        let predictions = xData.map(x => {
+          let yPred = 0;
+          for (let j = 0; j < coeffs.length; j++){
+            yPred += coeffs[j] * Math.pow(x, j);
+          }
+          return yPred;
+        });
+        let sumSquaredError = 0;
+        for (let i = 0; i < predictions.length; i++){
+          let error = yData[i] - predictions[i];
+          sumSquaredError += error * error;
+        }
+        let rmse = Math.sqrt(sumSquaredError / predictions.length);
+        let meanY = calculateMean(yData);
+        let ssTot = 0;
+        for (let i = 0; i < yData.length; i++){
+          ssTot += Math.pow(yData[i] - meanY, 2);
+        }
+        let rSquared = 1 - (sumSquaredError / ssTot);
         multiRegModels.push({
           depIndex: parseInt(depIndex),
           depName: variableNames[parseInt(depIndex) - 1],
           polyCoeffs: coeffs,
           type: "polynomial",
           degree,
-          xData, yData
+          xData, yData,
+          rmse, rSquared
         });
         let eqStr = "y = ";
         for (let i = 0; i < coeffs.length; i++) {
@@ -627,13 +651,13 @@
             eqStr += term;
           }
         }
-        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: ${eqStr}</div>`;
+        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: ${eqStr} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}</div>`;
       }
       resultsHTML += "</div>";
       document.getElementById("regressionResults").innerHTML = resultsHTML;
       plotMultiRegressionModels("polynomial");
     }
-    // Gaussian elimination for polynomial regression.
+    // Gaussian elimination for solving linear systems.
     function gaussianElimination(A, b) {
       const n = A.length;
       for (let i = 0; i < n; i++) {
@@ -665,17 +689,14 @@
       }
       return x;
     }
-    // Plot all regression models (both data points and regression lines) on one chart.
+    // Plot all regression models on one chart.
     function plotMultiRegressionModels(modelType) {
       const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
       let datasets = [];
-      // Colors for datasets.
       const colors = ["rgba(220,53,69,0.8)","rgba(40,167,69,0.8)","rgba(255,193,7,0.8)","rgba(23,162,184,0.8)","rgba(108,117,125,0.8)"];
       let colorIndex = 0;
-      // For each model in multiRegModels, prepare scatter and line datasets.
       multiRegModels.forEach(model => {
         let depIdx = model.depIndex;
-        // Gather data points for this dependent variable.
         const scatterData = [];
         const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
         const rows = tbody.getElementsByTagName("tr");
@@ -687,7 +708,6 @@
             scatterData.push({x: xVal, y: yVal});
           }
         }
-        // Generate regression line data over the range of xData.
         const minX = Math.min(...xData);
         const maxX = Math.max(...xData);
         const regX = [];
@@ -734,25 +754,17 @@
       }
       regChart = new Chart(ctx, {
         type: 'scatter',
-        data: {
-          datasets: datasets
-        },
+        data: { datasets: datasets },
         options: {
           responsive: true,
           scales: {
-            x: {
-              type: 'linear',
-              position: 'bottom',
-              title: { display: true, text: "Independent Variable" }
-            },
-            y: {
-              title: { display: true, text: "Dependent Variable(s)" }
-            }
+            x: { type: 'linear', position: 'bottom', title: { display: true, text: "Independent Variable" } },
+            y: { title: { display: true, text: "Dependent Variable(s)" } }
           }
         }
       });
     }
-    // Prediction: using the stored models in multiRegModels and a new X value.
+    // Predictions: use stored models to predict Y for a new X value.
     function makePredictions() {
       const predX = parseFloat(document.getElementById("predX").value);
       if (isNaN(predX)) {
@@ -764,7 +776,7 @@
         let predY;
         if (model.type === "linear") {
           predY = model.slope * predX + model.intercept;
-        } else { // polynomial
+        } else {
           predY = 0;
           for (let j = 0; j < model.polyCoeffs.length; j++) {
             predY += model.polyCoeffs[j] * Math.pow(predX, j);
@@ -773,14 +785,14 @@
         predictionHTML += `<div class="result-line"><strong>${model.depName}:</strong> For X = ${predX}, predicted Y = ${predY.toFixed(2)}</div>`;
       });
       predictionHTML += "</div>";
-      // Append predictions to regressionResults.
       document.getElementById("regressionResults").innerHTML += predictionHTML;
     }
-    // Button functions for regression.
+    // Button functions.
     function calculateMultiLinearRegression() {
       calculateMultiLinearRegressionInternal();
     }
     function calculateMultiLinearRegressionInternal() {
+      // (See linear regression function above)
       const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
       multiRegModels = [];
       let resultsHTML = "<div class='result-section'><h2>Linear Regression Models</h2>";
@@ -788,14 +800,28 @@
         let yData = depData[depIndex].filter(val => val !== null);
         if (xData.length < 2 || yData.length < 2) continue;
         const { slope, intercept } = linearRegression(xData, yData);
+        let predictions = xData.map(x => slope * x + intercept);
+        let sumSquaredError = 0;
+        for (let i = 0; i < predictions.length; i++) {
+          let error = yData[i] - predictions[i];
+          sumSquaredError += error * error;
+        }
+        let rmse = Math.sqrt(sumSquaredError / predictions.length);
+        let meanY = calculateMean(yData);
+        let ssTot = 0;
+        for (let i = 0; i < yData.length; i++) {
+          ssTot += Math.pow(yData[i] - meanY, 2);
+        }
+        let rSquared = 1 - (sumSquaredError / ssTot);
         multiRegModels.push({
           depIndex: parseInt(depIndex),
           depName: variableNames[parseInt(depIndex) - 1],
           slope, intercept,
           type: "linear",
-          xData, yData
+          xData, yData,
+          rmse, rSquared
         });
-        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}</div>`;
+        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}</div>`;
       }
       resultsHTML += "</div>";
       document.getElementById("regressionResults").innerHTML = resultsHTML;
@@ -814,13 +840,33 @@
         let yData = depData[depIndex].filter(val => val !== null);
         if (xData.length < 2 || yData.length < 2) continue;
         const coeffs = polynomialRegression(xData, yData, degree);
+        let predictions = xData.map(x => {
+          let yPred = 0;
+          for (let j = 0; j < coeffs.length; j++){
+            yPred += coeffs[j] * Math.pow(x, j);
+          }
+          return yPred;
+        });
+        let sumSquaredError = 0;
+        for (let i = 0; i < predictions.length; i++){
+          let error = yData[i] - predictions[i];
+          sumSquaredError += error * error;
+        }
+        let rmse = Math.sqrt(sumSquaredError / predictions.length);
+        let meanY = calculateMean(yData);
+        let ssTot = 0;
+        for (let i = 0; i < yData.length; i++){
+          ssTot += Math.pow(yData[i] - meanY, 2);
+        }
+        let rSquared = 1 - (sumSquaredError / ssTot);
         multiRegModels.push({
           depIndex: parseInt(depIndex),
           depName: variableNames[parseInt(depIndex) - 1],
           polyCoeffs: coeffs,
           type: "polynomial",
           degree,
-          xData, yData
+          xData, yData,
+          rmse, rSquared
         });
         let eqStr = "y = ";
         for (let i = 0; i < coeffs.length; i++) {
@@ -835,11 +881,33 @@
             eqStr += term;
           }
         }
-        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: ${eqStr}</div>`;
+        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: ${eqStr} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}</div>`;
       }
       resultsHTML += "</div>";
       document.getElementById("regressionResults").innerHTML = resultsHTML;
       plotMultiRegressionModels("polynomial");
+    }
+    function makePredictions() {
+      const predX = parseFloat(document.getElementById("predX").value);
+      if (isNaN(predX)) {
+        alert("Please enter a valid number for X.");
+        return;
+      }
+      let predictionHTML = "<div class='result-section'><h2>Predictions</h2>";
+      multiRegModels.forEach(model => {
+        let predY;
+        if (model.type === "linear") {
+          predY = model.slope * predX + model.intercept;
+        } else {
+          predY = 0;
+          for (let j = 0; j < model.polyCoeffs.length; j++) {
+            predY += model.polyCoeffs[j] * Math.pow(predX, j);
+          }
+        }
+        predictionHTML += `<div class="result-line"><strong>${model.depName}:</strong> For X = ${predX}, predicted Y = ${predY.toFixed(2)}</div>`;
+      });
+      predictionHTML += "</div>";
+      document.getElementById("regressionResults").innerHTML += predictionHTML;
     }
   </script>
 </body>
