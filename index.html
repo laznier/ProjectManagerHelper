@@ -83,7 +83,6 @@
       padding: 2rem;
       position: relative;
     }
-    /* Video Background for Slides */
     .slide-video {
       position: absolute;
       top: 0;
@@ -100,7 +99,6 @@
       padding: 2rem;
       border-radius: 10px;
     }
-    /* Slider Arrows */
     .slider-arrow {
       position: absolute;
       top: 50%;
@@ -452,7 +450,7 @@
 
 <!-- JavaScript for Slide Navigation & Dropdown Portaling -->
 <script>
-  // Slide navigation (unchanged)
+  // Slide navigation
   let currentSlide = 0;
   const slides = document.querySelectorAll(".slide");
   const totalSlides = slides.length;
@@ -462,11 +460,9 @@
     currentSlide += direction;
     if (currentSlide < 0) currentSlide = 0;
     if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-
-    // We must use quotes around translateX
+    // Use quotes or template literal
     document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
 
-    // If final slide, start scrolling
     if (slides[currentSlide].classList.contains("final-slide")) {
       startScrollingCredits();
     } else {
@@ -495,12 +491,13 @@ document.addEventListener("DOMContentLoaded", () => {
     video.playbackRate = 1.2;
   });
 
-  // === Original Desktop Portal Approach, but immediate disappearance on mouse leave or scroll
+  // The dropdown "portal" approach for desktop, but with immediate disappearance:
   const dropdowns = document.querySelectorAll('.dropdown');
+
   dropdowns.forEach(drop => {
     const dropdownMenu = drop.querySelector('.dropdown-menu');
 
-    // On mouse enter: detach (portal) the menu
+    // MOUSE ENTER: portal to body
     drop.addEventListener('mouseenter', () => {
       const rect = drop.getBoundingClientRect();
       document.body.appendChild(dropdownMenu);
@@ -511,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dropdownMenu.style.zIndex = '10000000';
     });
 
-    // On mouse leave: reattach immediately
+    // MOUSE LEAVE: hide immediately
     drop.addEventListener('mouseleave', () => {
       if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
         drop.appendChild(dropdownMenu);
@@ -522,7 +519,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Also handle leaving the menu itself: immediate
+    // Also if the mouse leaves the menu itself
     dropdownMenu.addEventListener('mouseleave', () => {
       if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
         drop.appendChild(dropdownMenu);
@@ -534,11 +531,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Hide any open dropdown if user scrolls
+  // Hide menu on scroll (desktop or mobile)
   window.addEventListener('scroll', () => {
     dropdowns.forEach(drop => {
       const dropdownMenu = drop.querySelector('.dropdown-menu');
-      // If it's currently "detached" (fixed), reattach it
       if (dropdownMenu.style.position === 'fixed') {
         drop.appendChild(dropdownMenu);
         dropdownMenu.style.position = '';
@@ -549,7 +545,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // === Two-Tap Fix on Mobile: second tap forcibly navigates
+  // Two-tap fix on mobile
   if ('ontouchstart' in window) {
     document.querySelectorAll('.dropdown > a').forEach(topLink => {
       let isOpen = false;
@@ -557,7 +553,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const parentLi = topLink.closest('.dropdown');
         const dropdownMenu = parentLi.querySelector('.dropdown-menu');
         if (!isOpen) {
-          // First tap: open menu, prevent navigation
+          // first tap: open menu
           e.preventDefault();
           const rect = parentLi.getBoundingClientRect();
           document.body.appendChild(dropdownMenu);
@@ -568,12 +564,12 @@ document.addEventListener("DOMContentLoaded", () => {
           dropdownMenu.style.zIndex = '10000000';
           isOpen = true;
         } else {
-          // Second tap: forcibly navigate
+          // second tap: navigate
           e.preventDefault();
           isOpen = false;
           setTimeout(() => {
             window.location = topLink.href;
-          }, 50);
+          }, 100);
         }
       });
     });
