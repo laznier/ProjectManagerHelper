@@ -34,7 +34,7 @@
     /* Navigation Bar with Horizontal Scrolling */
     .topnav {
       background-color: #333;
-      overflow-x: auto;
+      overflow-x: auto; 
       white-space: nowrap;
       -webkit-overflow-scrolling: touch;
     }
@@ -83,6 +83,7 @@
       padding: 2rem;
       position: relative;
     }
+    /* Video background for slides */
     .slide-video {
       position: absolute;
       top: 0;
@@ -99,6 +100,7 @@
       padding: 2rem;
       border-radius: 10px;
     }
+    /* Slider Arrows */
     .slider-arrow {
       position: absolute;
       top: 50%;
@@ -460,7 +462,8 @@
     currentSlide += direction;
     if (currentSlide < 0) currentSlide = 0;
     if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-    // Use quotes or template literal
+
+    // Use template literal for transform
     document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
 
     if (slides[currentSlide].classList.contains("final-slide")) {
@@ -469,6 +472,7 @@
       stopScrollingCredits();
     }
   }
+
   function startScrollingCredits() {
     creditsList.style.visibility = "visible";
     creditsList.style.animation = "none";
@@ -477,6 +481,7 @@
       creditsList.style.animationDelay = "0s";
     });
   }
+
   function stopScrollingCredits() {
     creditsList.style.animation = "none";
     creditsList.style.visibility = "hidden";
@@ -485,19 +490,18 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // Speed up all videos
+  // Speed up videos
   const allVideos = document.querySelectorAll("video");
   allVideos.forEach(video => {
     video.playbackRate = 1.2;
   });
 
-  // The dropdown "portal" approach for desktop, but with immediate disappearance:
+  // Desktop "portal" approach, immediate hide on mouse leave or scroll
   const dropdowns = document.querySelectorAll('.dropdown');
-
   dropdowns.forEach(drop => {
     const dropdownMenu = drop.querySelector('.dropdown-menu');
 
-    // MOUSE ENTER: portal to body
+    // Mouse enter: detach to body
     drop.addEventListener('mouseenter', () => {
       const rect = drop.getBoundingClientRect();
       document.body.appendChild(dropdownMenu);
@@ -508,7 +512,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dropdownMenu.style.zIndex = '10000000';
     });
 
-    // MOUSE LEAVE: hide immediately
+    // Mouse leave: hide immediately
     drop.addEventListener('mouseleave', () => {
       if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
         drop.appendChild(dropdownMenu);
@@ -519,7 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Also if the mouse leaves the menu itself
+    // Also if mouse leaves the menu
     dropdownMenu.addEventListener('mouseleave', () => {
       if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
         drop.appendChild(dropdownMenu);
@@ -531,7 +535,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Hide menu on scroll (desktop or mobile)
+  // Hide any open menu on scroll
   window.addEventListener('scroll', () => {
     dropdowns.forEach(drop => {
       const dropdownMenu = drop.querySelector('.dropdown-menu');
@@ -553,7 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const parentLi = topLink.closest('.dropdown');
         const dropdownMenu = parentLi.querySelector('.dropdown-menu');
         if (!isOpen) {
-          // first tap: open menu
+          // First tap: show the menu, prevent default
           e.preventDefault();
           const rect = parentLi.getBoundingClientRect();
           document.body.appendChild(dropdownMenu);
@@ -564,12 +568,15 @@ document.addEventListener("DOMContentLoaded", () => {
           dropdownMenu.style.zIndex = '10000000';
           isOpen = true;
         } else {
-          // second tap: navigate
-          e.preventDefault();
+          // Second tap: do NOT prevent default, so iOS navigates
           isOpen = false;
-          setTimeout(() => {
-            window.location = topLink.href;
-          }, 100);
+          // Hide menu immediately
+          dropdownMenu.style.display = 'none';
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          parentLi.appendChild(dropdownMenu);
+          // Let normal link navigation proceed
         }
       });
     });
