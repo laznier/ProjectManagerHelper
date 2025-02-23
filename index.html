@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="google-site-verification" content="LUtF3ePMNFZ3gR4zHpAObl02SLdqvMPCVMudRmvn_Ns" />
+  <meta name="google-site-verification" content="..." />
   <meta charset="UTF-8">
   <title>Project Manager Helper | Free PM Tools</title>
-  <meta name="description" content="Project Manager Helper offers free, easy-to-use tools for network diagrams, WBS, risk assessments, Monte Carlo simulations, linear and polynomial regression, and more—streamline your projects today." />
+  <meta name="description" content="Project Manager Helper offers free, easy-to-use tools..." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Link to external stylesheet -->
@@ -46,7 +46,7 @@
     }
     .topnav ul li {
       flex: none;
-      position: relative; /* needed for dropdown positioning initially */
+      position: relative;
     }
     .topnav ul li a {
       display: block;
@@ -56,6 +56,31 @@
       transition: background-color 0.3s ease, color 0.3s ease;
     }
     .topnav ul li a:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+
+    /* The sub-menu for mobile toggles in place, but for desktop we do a portal approach */
+    .dropdown-menu {
+      position: absolute; /* for desktop hover (portal approach) */
+      top: 100%;
+      left: 0;
+      display: none;
+      background-color: #333;
+      min-width: 150px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      z-index: 9999;
+    }
+    .dropdown-menu li a {
+      display: block;
+      padding: 10px 20px;
+      color: #fff;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .dropdown-menu li a:hover {
       background-color: #ddd;
       color: #333;
     }
@@ -83,7 +108,6 @@
       padding: 2rem;
       position: relative;
     }
-    /* Video background for slides */
     .slide-video {
       position: absolute;
       top: 0;
@@ -249,6 +273,13 @@
 
     /* Responsive Adjustments */
     @media (max-width: 768px) {
+      /* Hide the desktop hover approach, do mobile toggles in place */
+      .dropdown-menu {
+        position: static; /* no absolute or fixed */
+        display: none;    /* toggled by JS */
+        background-color: #333;
+        margin-left: 20px; /* indent if desired */
+      }
       .slide h2 {
         font-size: 1.5rem;
       }
@@ -281,8 +312,10 @@
   <ul>
     <li><a href="/">Home</a></li>
     <li class="dropdown">
-      <a href="#tools">Tools</a>
+      <a href="#tools" class="parent-link">Tools</a>
       <ul class="dropdown-menu">
+        <!-- On mobile, also provide a direct link to parent if needed: -->
+        <li class="go-parent"><a href="#tools">Go to Tools</a></li>
         <li><a href="network-diagram/">Network Diagram Tool</a></li>
         <li><a href="WSB-generator/">WBS Generator</a></li>
         <li><a href="statistics/">Statistical Analysis</a></li>
@@ -293,15 +326,17 @@
       </ul>
     </li>
     <li class="dropdown">
-      <a href="/templates/">Templates</a>
+      <a href="/templates/" class="parent-link">Templates</a>
       <ul class="dropdown-menu">
+        <li class="go-parent"><a href="/templates/">Go to Templates</a></li>
         <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
         <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
       </ul>
     </li>
     <li class="dropdown">
-      <a href="/tutorials/">Tutorials</a>
+      <a href="/tutorials/" class="parent-link">Tutorials</a>
       <ul class="dropdown-menu">
+        <li class="go-parent"><a href="/tutorials/">Go to Tutorials</a></li>
         <li><a href="/tutorials/index.html">Coming Soon</a></li>
       </ul>
     </li>
@@ -474,117 +509,90 @@ function stopScrollingCredits() {
 }
 </script>
 
-<!-- Dropdown Portal + Two-Tap Logic -->
+<!-- Desktop Portal + Mobile Toggle Approach -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // Speed up all videos
+  // Speed up videos
   const allVideos = document.querySelectorAll("video");
   allVideos.forEach(video => {
     video.playbackRate = 1.2;
   });
 
-  // Desktop "portal" approach
+  // Check if device can hover
+  const canHover = window.matchMedia('(hover: hover)').matches;
+
   const dropdowns = document.querySelectorAll('.dropdown');
-  dropdowns.forEach(drop => {
-    const dropdownMenu = drop.querySelector('.dropdown-menu');
 
-    // On mouse enter
-    drop.addEventListener('mouseenter', () => {
-      const rect = drop.getBoundingClientRect();
-      document.body.appendChild(dropdownMenu);
-      dropdownMenu.style.position = 'fixed';
-      dropdownMenu.style.top = rect.bottom + 'px';
-      dropdownMenu.style.left = rect.left + 'px';
-      dropdownMenu.style.display = 'block';
-      dropdownMenu.style.zIndex = '10000000';
-    });
-
-    // On mouse leave
-    drop.addEventListener('mouseleave', () => {
-      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-        drop.appendChild(dropdownMenu);
-        dropdownMenu.style.position = '';
-        dropdownMenu.style.top = '';
-        dropdownMenu.style.left = '';
-        dropdownMenu.style.display = 'none';
-      }
-    });
-
-    // Menu mouse leave
-    dropdownMenu.addEventListener('mouseleave', () => {
-      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-        drop.appendChild(dropdownMenu);
-        dropdownMenu.style.position = '';
-        dropdownMenu.style.top = '';
-        dropdownMenu.style.left = '';
-        dropdownMenu.style.display = 'none';
-      }
-    });
-  });
-
-  // Hide any open menu on scroll or touchmove
-  function hideOpenMenus() {
+  if (canHover) {
+    /* =============== DESKTOP HOVER: Portal Approach =============== */
     dropdowns.forEach(drop => {
       const dropdownMenu = drop.querySelector('.dropdown-menu');
-      if (dropdownMenu.style.position === 'fixed') {
-        drop.appendChild(dropdownMenu);
-        dropdownMenu.style.position = '';
-        dropdownMenu.style.top = '';
-        dropdownMenu.style.left = '';
-        dropdownMenu.style.display = 'none';
-      }
-    });
-  }
-  document.addEventListener('scroll', hideOpenMenus, { passive: true });
-  document.addEventListener('touchmove', hideOpenMenus, { passive: true });
 
-  // Also close if user taps anywhere outside the menu
-  document.addEventListener('touchstart', (ev) => {
-    // If user taps outside any open dropdown menu
-    let tappedInside = false;
-    dropdowns.forEach(drop => {
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      if (dropdownMenu.style.position === 'fixed') {
-        // Check if the tap is inside the dropdown
-        if (dropdownMenu.contains(ev.target)) {
-          tappedInside = true;
-        }
-      }
-    });
-    // If not inside, hide all
-    if (!tappedInside) {
-      hideOpenMenus();
-    }
-  }, { passive: true });
+      // On mouse enter
+      drop.addEventListener('mouseenter', () => {
+        const rect = drop.getBoundingClientRect();
+        document.body.appendChild(dropdownMenu);
+        dropdownMenu.style.position = 'fixed';
+        dropdownMenu.style.top = rect.bottom + 'px';
+        dropdownMenu.style.left = rect.left + 'px';
+        dropdownMenu.style.display = 'block';
+        dropdownMenu.style.zIndex = '10000000';
+      });
 
-  // Two-tap fix on mobile
-  if ('ontouchstart' in window) {
-    document.querySelectorAll('.dropdown > a').forEach(topLink => {
-      let isOpen = false;
-      topLink.addEventListener('click', e => {
-        const parentLi = topLink.closest('.dropdown');
-        const dropdownMenu = parentLi.querySelector('.dropdown-menu');
-        if (!isOpen) {
-          // First tap: open menu, prevent nav
-          e.preventDefault();
-          const rect = parentLi.getBoundingClientRect();
-          document.body.appendChild(dropdownMenu);
-          dropdownMenu.style.position = 'fixed';
-          dropdownMenu.style.top = rect.bottom + 'px';
-          dropdownMenu.style.left = rect.left + 'px';
-          dropdownMenu.style.display = 'block';
-          dropdownMenu.style.zIndex = '10000000';
-          isOpen = true;
-        } else {
-          // Second tap: do NOT prevent default -> iOS navigates
-          isOpen = false;
-          // Hide the menu
-          dropdownMenu.style.display = 'none';
+      // On mouse leave
+      drop.addEventListener('mouseleave', () => {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
           dropdownMenu.style.position = '';
           dropdownMenu.style.top = '';
           dropdownMenu.style.left = '';
-          parentLi.appendChild(dropdownMenu);
-          // Let normal link navigation happen
+          dropdownMenu.style.display = 'none';
+        }
+      });
+
+      // Also if mouse leaves the menu
+      dropdownMenu.addEventListener('mouseleave', () => {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+    });
+
+    // Hide on scroll
+    window.addEventListener('scroll', () => {
+      dropdowns.forEach(drop => {
+        const dropdownMenu = drop.querySelector('.dropdown-menu');
+        if (dropdownMenu.style.position === 'fixed') {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+    });
+
+  } else {
+    /* =============== MOBILE: Simple Toggle In-Place =============== */
+    dropdowns.forEach(drop => {
+      const parentLink = drop.querySelector('.parent-link');
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      // Start closed
+      dropdownMenu.style.display = 'none';
+
+      // On tap, toggle
+      parentLink.addEventListener('click', e => {
+        e.preventDefault(); 
+        if (dropdownMenu.style.display === 'block') {
+          // Close
+          dropdownMenu.style.display = 'none';
+        } else {
+          // Open
+          dropdownMenu.style.display = 'block';
         }
       });
     });
