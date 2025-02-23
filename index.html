@@ -32,7 +32,6 @@
     }
 
     /* Navigation Bar with Horizontal Scrolling */
-    /* (Navigation HTML has been modified to include dropdown menus) */
     .topnav {
       background-color: #333;
       overflow-x: auto;
@@ -60,7 +59,6 @@
       background-color: #ddd;
       color: #333;
     }
-    /* (No dropdown z-index rules here because JS will handle portaling) */
 
     /* Feature Slider */
     .feature-slider {
@@ -126,6 +124,7 @@
     .next {
       right: 10px;
     }
+
     /* Final Slide: Continuous Scroll When Visible */
     .final-slide {
       background-color: #222;
@@ -138,7 +137,6 @@
       position: relative;
       text-align: center;
     }
-    /* Wrapper for the scrolling area */
     .credits-scroll-wrapper {
       width: 90%;
       max-width: 600px;
@@ -147,13 +145,12 @@
       position: relative;
       margin: 0 auto;
     }
-    /* The list that scrolls upward */
     .credits-list {
       list-style: none;
       margin: 0;
       padding: 0;
       text-align: center;
-      visibility: hidden; /* Preload and hide until visible */
+      visibility: hidden;
       animation: none;
     }
     .credits-list li {
@@ -498,7 +495,7 @@
       video.playbackRate = 1.2;
     });
 
-    // Dropdown Portaling on mouseenter/mouseleave (desktop)
+    // === Original Desktop Portal Approach ===
     document.querySelectorAll('.dropdown').forEach(function(drop) {
       const dropdownMenu = drop.querySelector('.dropdown-menu');
       drop.addEventListener('mouseenter', function() {
@@ -534,9 +531,9 @@
       });
     });
 
-    // === Minimal addition: "two-tap" fix on mobile so first tap opens, second tap navigates ===
-    // We'll do it only if there's a 'touchstart' in window (i.e., touchscreen).
+    // === Minimal Two-Tap Fix on Mobile ===
     if ('ontouchstart' in window) {
+      // For each top-level link in .dropdown
       document.querySelectorAll('.dropdown > a').forEach(function(topLink) {
         let isOpen = false;
         topLink.addEventListener('click', function(e) {
@@ -554,8 +551,9 @@
             dropdownMenu.style.zIndex = '10000000';
             isOpen = true;
           } else {
-            // second tap: let the navigation happen
+            // Second tap: forcibly navigate
             isOpen = false;
+            window.location = topLink.href;
           }
         });
       });
