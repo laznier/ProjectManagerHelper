@@ -462,7 +462,11 @@
     currentSlide += direction;
     if (currentSlide < 0) currentSlide = 0;
     if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-    document.getElementById("slider").style.transform = translateX(-${currentSlide * 100}%);
+
+    // We must use quotes around translateX
+    document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
+
+    // If final slide, start scrolling
     if (slides[currentSlide].classList.contains("final-slide")) {
       startScrollingCredits();
     } else {
@@ -484,79 +488,97 @@
 </script>
 
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // Set playback speed for all videos
-    const allVideos = document.querySelectorAll("video");
-    allVideos.forEach(video => {
-      video.playbackRate = 1.2;
-    });
-
-    // === Original Desktop Portal Approach ===
-    document.querySelectorAll('.dropdown').forEach(function(drop) {
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      drop.addEventListener('mouseenter', function() {
-        const rect = drop.getBoundingClientRect();
-        document.body.appendChild(dropdownMenu);
-        dropdownMenu.style.position = 'fixed';
-        dropdownMenu.style.top = rect.bottom + 'px';
-        dropdownMenu.style.left = rect.left + 'px';
-        dropdownMenu.style.display = 'block';
-        dropdownMenu.style.zIndex = '10000000';
-      });
-      drop.addEventListener('mouseleave', function() {
-        setTimeout(function() {
-          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-            drop.appendChild(dropdownMenu);
-            dropdownMenu.style.position = '';
-            dropdownMenu.style.top = '';
-            dropdownMenu.style.left = '';
-            dropdownMenu.style.display = 'none';
-          }
-        }, 150);
-      });
-      dropdownMenu.addEventListener('mouseleave', function() {
-        setTimeout(function() {
-          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-            drop.appendChild(dropdownMenu);
-            dropdownMenu.style.position = '';
-            dropdownMenu.style.top = '';
-            dropdownMenu.style.left = '';
-            dropdownMenu.style.display = 'none';
-          }
-        }, 150);
-      });
-    });
-
-    // === Two-Tap Fix on Mobile: second tap forcibly navigates ===
-    if ('ontouchstart' in window) {
-      document.querySelectorAll('.dropdown > a').forEach(function(topLink) {
-        let isOpen = false;
-        topLink.addEventListener('click', function(e) {
-          const parentLi = topLink.closest('.dropdown');
-          const dropdownMenu = parentLi.querySelector('.dropdown-menu');
-          if (!isOpen) {
-            // First tap: open menu, prevent navigation
-            e.preventDefault();
-            const rect = parentLi.getBoundingClientRect();
-            document.body.appendChild(dropdownMenu);
-            dropdownMenu.style.position = 'fixed';
-            dropdownMenu.style.top = rect.bottom + 'px';
-            dropdownMenu.style.left = rect.left + 'px';
-            dropdownMenu.style.display = 'block';
-            dropdownMenu.style.zIndex = '10000000';
-            isOpen = true;
-          } else {
-            // Second tap: forcibly navigate after tiny delay
-            e.preventDefault();
-            isOpen = false;
-            setTimeout(() => {
-              window.location = topLink.href;
-            }, 50);
-          }
-        });
-      });
-    }
+document.addEventListener("DOMContentLoaded", () => {
+  // Speed up all videos
+  const allVideos = document.querySelectorAll("video");
+  allVideos.forEach(video => {
+    video.playbackRate = 1.2;
   });
+
+  // === Original Desktop Portal Approach, but immediate disappearance on mouse leave or scroll
+  const dropdowns = document.querySelectorAll('.dropdown');
+  dropdowns.forEach(drop => {
+    const dropdownMenu = drop.querySelector('.dropdown-menu');
+
+    // On mouse enter: detach (portal) the menu
+    drop.addEventListener('mouseenter', () => {
+      const rect = drop.getBoundingClientRect();
+      document.body.appendChild(dropdownMenu);
+      dropdownMenu.style.position = 'fixed';
+      dropdownMenu.style.top = rect.bottom + 'px';
+      dropdownMenu.style.left = rect.left + 'px';
+      dropdownMenu.style.display = 'block';
+      dropdownMenu.style.zIndex = '10000000';
+    });
+
+    // On mouse leave: reattach immediately
+    drop.addEventListener('mouseleave', () => {
+      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+        drop.appendChild(dropdownMenu);
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.display = 'none';
+      }
+    });
+
+    // Also handle leaving the menu itself: immediate
+    dropdownMenu.addEventListener('mouseleave', () => {
+      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+        drop.appendChild(dropdownMenu);
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.display = 'none';
+      }
+    });
+  });
+
+  // Hide any open dropdown if user scrolls
+  window.addEventListener('scroll', () => {
+    dropdowns.forEach(drop => {
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      // If it's currently "detached" (fixed), reattach it
+      if (dropdownMenu.style.position === 'fixed') {
+        drop.appendChild(dropdownMenu);
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.display = 'none';
+      }
+    });
+  });
+
+  // === Two-Tap Fix on Mobile: second tap forcibly navigates
+  if ('ontouchstart' in window) {
+    document.querySelectorAll('.dropdown > a').forEach(topLink => {
+      let isOpen = false;
+      topLink.addEventListener('click', e => {
+        const parentLi = topLink.closest('.dropdown');
+        const dropdownMenu = parentLi.querySelector('.dropdown-menu');
+        if (!isOpen) {
+          // First tap: open menu, prevent navigation
+          e.preventDefault();
+          const rect = parentLi.getBoundingClientRect();
+          document.body.appendChild(dropdownMenu);
+          dropdownMenu.style.position = 'fixed';
+          dropdownMenu.style.top = rect.bottom + 'px';
+          dropdownMenu.style.left = rect.left + 'px';
+          dropdownMenu.style.display = 'block';
+          dropdownMenu.style.zIndex = '10000000';
+          isOpen = true;
+        } else {
+          // Second tap: forcibly navigate
+          e.preventDefault();
+          isOpen = false;
+          setTimeout(() => {
+            window.location = topLink.href;
+          }, 50);
+        }
+      });
+    });
+  }
+});
 </script>
 </body>
 </html>
