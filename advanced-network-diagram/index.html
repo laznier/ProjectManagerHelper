@@ -1,0 +1,778 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Network Diagram with Critical Path</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      margin-bottom: 0.2em;
+    }
+    #activitiesTable {
+      border-collapse: collapse;
+      margin-bottom: 1em;
+      background: #fff;
+    }
+    #activitiesTable th, #activitiesTable td {
+      border: 1px solid #ccc;
+      padding: 0.3em;
+    }
+    #activitiesTable input, #activitiesTable select {
+      width: 95%;
+      box-sizing: border-box;
+    }
+    button {
+      margin: 0.2em 0.5em 0.8em 0;
+      padding: 0.4em 0.8em;
+      cursor: pointer;
+    }
+    #diagram {
+      border: 1px solid #ccc;
+      background: #fafafa;
+      margin-bottom: 1em;
+    }
+    .activity-circle {
+      fill: white;
+      stroke: #333;
+      stroke-width: 1.5px;
+    }
+    .activity-label {
+      font-size: 14px;
+      text-anchor: middle;
+      dominant-baseline: middle; /* center text vertically */
+      font-weight: bold;
+    }
+    .activity-time {
+      font-size: 12px;
+      text-anchor: middle;
+      fill: #555;
+    }
+    .arrow-line {
+      stroke: #555;
+      stroke-width: 1.5px;
+      fill: none;
+    }
+    .arrow-line.critical {
+      stroke: red; /* concurrency-based critical edges in red */
+      stroke-width: 2px;
+    }
+    .arrow-label {
+      font-size: 12px;
+      fill: #666;
+    }
+    #pathsOutput {
+      white-space: pre; /* so we can format text-based output nicely */
+      background: #fff;
+      padding: 0.8em;
+      border: 1px solid #ccc;
+    }
+    /* JSON output styling: smaller height now */
+    #jsonOutput {
+      width: 90%;
+      height: 80px; /* smaller than 150px */
+      margin-top: 1em;
+      padding: 8px;
+      font-family: monospace;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+
+  <h1>Network Diagram with Critical Path Highlighting</h1>
+  <p>
+    Enter your activities below (name, predecessors, duration). For each row, select a
+    <strong>Dependency Type</strong> (FS default) and enter a <strong>Lead/Lag</strong> (days).
+    If multiple predecessors are comma-separated, the same type/lag applies to all of them.
+    Then click <strong>Generate Diagram</strong>.
+  </p>
+
+  <table id="activitiesTable">
+    <thead>
+      <tr>
+        <th>Activity</th>
+        <th>Predecessors<br>(comma-separated)</th>
+        <th>Duration</th>
+        <th>Dependency Type</th>
+        <th>Lead/Lag</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Example rows -->
+      <tr>
+        <td><input type="text" value="A" /></td>
+        <td><input type="text" value="" /></td>
+        <td><input type="number" value="4" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="B" /></td>
+        <td><input type="text" value="" /></td>
+        <td><input type="number" value="7" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="C" /></td>
+        <td><input type="text" value="A,B" /></td>
+        <td><input type="number" value="2" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="D" /></td>
+        <td><input type="text" value="B" /></td>
+        <td><input type="number" value="5" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="E" /></td>
+        <td><input type="text" value="C" /></td>
+        <td><input type="number" value="10" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="F" /></td>
+        <td><input type="text" value="C,D" /></td>
+        <td><input type="number" value="13" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      </tr>
+      <tr>
+        <td><input type="text" value="G" /></td>
+        <td><input type="text" value="E,F" /></td>
+        <td><input type="number" value="4" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <button id="addRowBtn">Add Row</button>
+  <button id="removeRowBtn">Remove Row</button>
+
+  <button id="generateBtn">Generate Diagram</button>
+
+  <svg id="diagram" width="900" height="600"></svg>
+
+  <div id="pathsOutput"></div>
+
+  <button id="copyJsonBtn">Copy JSON Output</button>
+  <textarea id="jsonOutput" readonly placeholder="JSON output will appear here..."></textarea>
+
+  <script>
+    /**********************
+     * Constants & Data
+     **********************/
+    const RADIUS = 20;
+    const X_GAP = 160;
+    const Y_GAP = 100;
+    const MARGIN_X = 60;
+    const MARGIN_Y = 60;
+
+    let tasks = {};  // name -> { name, duration, preds, succ, level, ES, EF, LS, LF, deps:[] }
+    let edgesMap = {};
+    let allActivities = [];
+
+    // Add/Remove Row
+    document.getElementById("addRowBtn").addEventListener("click", () => {
+      const tbody = document.getElementById("activitiesTable").querySelector("tbody");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><input type="text" value="" /></td>
+        <td><input type="text" value="" /></td>
+        <td><input type="number" value="5" /></td>
+        <td>
+          <select>
+            <option value="FS" selected>FS</option>
+            <option value="SS">SS</option>
+            <option value="FF">FF</option>
+            <option value="SF">SF</option>
+          </select>
+        </td>
+        <td><input type="number" value="0" /></td>
+      `;
+      tbody.appendChild(row);
+    });
+    document.getElementById("removeRowBtn").addEventListener("click", () => {
+      const tbody = document.getElementById("activitiesTable").querySelector("tbody");
+      if (tbody.rows.length > 0) {
+        tbody.removeChild(tbody.lastElementChild);
+      }
+    });
+
+    // Generate Diagram
+    document.getElementById("generateBtn").addEventListener("click", () => {
+      readTableData();
+      computeTopologicalLevels();
+      doForwardPass();
+      doBackwardPass();
+      drawDiagram();
+      highlightCriticalEdges();
+
+      // concurrency-based summary
+      let concurrencyLines = showConcurrencySummary();
+      // naive path listing
+      let naiveLines = showNaivePathsWithLag();
+
+      document.getElementById("pathsOutput").textContent =
+        concurrencyLines.join("\n") + "\n\n" + naiveLines.join("\n");
+
+      generateJSONOutput();
+    });
+
+    /**********************
+     * Step 1: Read Table
+     **********************/
+    function readTableData() {
+      tasks = {};
+      edgesMap = {};
+      allActivities = [];
+
+      const rows = document.querySelectorAll("#activitiesTable tbody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 5) return;
+        const name = cells[0].querySelector("input").value.trim();
+        if (!name) return;
+
+        const predsStr = cells[1].querySelector("input").value.trim();
+        const duration = parseFloat(cells[2].querySelector("input").value.trim() || "0");
+        const depType  = cells[3].querySelector("select").value;
+        const leadLag  = parseFloat(cells[4].querySelector("input").value.trim() || "0");
+
+        if (!tasks[name]) {
+          tasks[name] = {
+            name,
+            duration,
+            preds: [],
+            succ: [],
+            level: 0,
+            ES: 0, EF: 0, LS: 0, LF: 0,
+            deps: []
+          };
+        }
+        // If multiple preds, same type/lag for each
+        if (predsStr) {
+          const pList = predsStr.split(",").map(s => s.trim()).filter(Boolean);
+          tasks[name].preds = pList;
+          pList.forEach(p => {
+            tasks[name].deps.push({
+              predecessor: p,
+              type: depType || "FS",
+              lag: leadLag || 0
+            });
+          });
+        }
+        tasks[name].duration = duration;
+      });
+
+      // Build successors + inDegree
+      for (let t in tasks) {
+        tasks[t].inDegree = tasks[t].preds.length;
+        tasks[t].succ = [];
+      }
+      for (let t in tasks) {
+        tasks[t].preds.forEach(p => {
+          if (!tasks[p]) {
+            tasks[p] = {
+              name: p,
+              duration: 0,
+              preds: [],
+              succ: [],
+              level: 0,
+              ES: 0, EF: 0, LS: 0, LF: 0,
+              deps: []
+            };
+          }
+          tasks[p].succ.push(t);
+        });
+      }
+    }
+
+    /**********************
+     * Step 2: Topological Levels
+     **********************/
+    function computeTopologicalLevels() {
+      let inDegCopy = {};
+      let queue = [];
+      for (let t in tasks) {
+        inDegCopy[t] = tasks[t].inDegree;
+        if (inDegCopy[t] === 0) {
+          queue.push(t);
+        }
+      }
+      while (queue.length > 0) {
+        let current = queue.shift();
+        allActivities.push(current);
+        let curLevel = tasks[current].level;
+        tasks[current].succ.forEach(s => {
+          inDegCopy[s]--;
+          tasks[s].level = Math.max(tasks[s].level, curLevel + 1);
+          if (inDegCopy[s] === 0) {
+            queue.push(s);
+          }
+        });
+      }
+    }
+
+    /**********************
+     * Step 3: Forward Pass
+     **********************/
+    function doForwardPass() {
+      if (allActivities.length < Object.keys(tasks).length) {
+        // fallback
+        for (let t in tasks) {
+          if (!allActivities.includes(t)) {
+            allActivities.push(t);
+          }
+        }
+      }
+      // init
+      for (let t in tasks) {
+        if (tasks[t].inDegree === 0) {
+          tasks[t].ES = 0;
+          tasks[t].EF = tasks[t].duration;
+        }
+      }
+      // forward
+      allActivities.forEach(actName => {
+        let act = tasks[actName];
+        if (!act.deps || act.deps.length === 0) return;
+        let newES = act.ES;
+        act.deps.forEach(dep => {
+          let pred = tasks[dep.predecessor];
+          if (!pred) return;
+          let candidate = 0;
+          switch(dep.type) {
+            case "FS":
+              candidate = pred.EF + dep.lag;
+              break;
+            case "SS":
+              candidate = pred.ES + dep.lag;
+              break;
+            case "FF":
+              candidate = pred.EF + dep.lag - act.duration;
+              break;
+            case "SF":
+              candidate = pred.ES + dep.lag - act.duration;
+              break;
+          }
+          if (candidate > newES) newES = candidate;
+        });
+        act.ES = Math.max(act.ES, newES);
+        act.EF = act.ES + act.duration;
+      });
+    }
+
+    /**********************
+     * Step 4: Backward Pass
+     **********************/
+    function doBackwardPass() {
+      let endNodes = Object.values(tasks).filter(t => t.succ.length === 0).map(t => t.name);
+      let maxEF = 0;
+      endNodes.forEach(n => {
+        if (tasks[n].EF > maxEF) maxEF = tasks[n].EF;
+      });
+      let reverseOrder = allActivities.slice().reverse();
+      endNodes.forEach(n => {
+        tasks[n].LF = maxEF;
+        tasks[n].LS = tasks[n].LF - tasks[n].duration;
+      });
+      reverseOrder.forEach(actName => {
+        let act = tasks[actName];
+        if (act.succ.length === 0) {
+          if (act.LF === 0) {
+            act.LF = act.EF;
+            act.LS = act.LF - act.duration;
+          }
+          return;
+        }
+        let newLF = Number.MAX_VALUE;
+        act.succ.forEach(succName => {
+          let succ = tasks[succName];
+          let depObj = succ.deps.find(d => d.predecessor === actName);
+          if (!depObj) return;
+          let candidateLF = 0;
+          switch(depObj.type) {
+            case "FS":
+              candidateLF = succ.LS - depObj.lag;
+              break;
+            case "SS":
+              candidateLF = (succ.LS - depObj.lag) + act.duration;
+              break;
+            case "FF":
+              candidateLF = succ.LF - depObj.lag;
+              break;
+            case "SF":
+              candidateLF = (succ.LF - depObj.lag) + act.duration;
+              break;
+          }
+          if (candidateLF < newLF) {
+            newLF = candidateLF;
+          }
+        });
+        if (newLF === Number.MAX_VALUE) {
+          act.LF = act.EF;
+          act.LS = act.LF - act.duration;
+        } else {
+          act.LF = Math.min(act.LF || newLF, newLF);
+          act.LS = act.LF - act.duration;
+        }
+      });
+    }
+
+    /**********************
+     * Step 5: Draw Diagram
+     **********************/
+    function drawDiagram() {
+      const svg = document.getElementById("diagram");
+      while (svg.firstChild) {
+        svg.removeChild(svg.firstChild);
+      }
+      let levelMap = {};
+      let maxLevel = 0;
+      for (let t in tasks) {
+        let lvl = tasks[t].level;
+        if (!levelMap[lvl]) levelMap[lvl] = [];
+        levelMap[lvl].push(t);
+        if (lvl > maxLevel) maxLevel = lvl;
+      }
+      for (let lvl = 0; lvl <= maxLevel; lvl++) {
+        const tList = levelMap[lvl] || [];
+        for (let i = 0; i < tList.length; i++) {
+          let taskName = tList[i];
+          tasks[taskName].x = MARGIN_X + lvl * X_GAP;
+          tasks[taskName].y = MARGIN_Y + i * Y_GAP;
+        }
+      }
+      let maxRow = 0;
+      for (let lvl = 0; lvl <= maxLevel; lvl++) {
+        if (levelMap[lvl] && levelMap[lvl].length > maxRow) {
+          maxRow = levelMap[lvl].length;
+        }
+      }
+      const width = (maxLevel + 1) * X_GAP + 2 * MARGIN_X;
+      const height = maxRow * Y_GAP + 2 * MARGIN_Y;
+      svg.setAttribute("width", width);
+      svg.setAttribute("height", height);
+
+      // edges
+      for (let t in tasks) {
+        let act = tasks[t];
+        act.deps.forEach(dep => {
+          let px = tasks[dep.predecessor].x;
+          let py = tasks[dep.predecessor].y;
+          let edgeKey = dep.predecessor + "->" + t;
+          drawArrow(svg, px, py, act.x, act.y, edgeKey, dep.type, dep.lag);
+        });
+      }
+      // nodes
+      for (let t in tasks) {
+        drawNode(svg, tasks[t]);
+      }
+    }
+    function drawArrow(svg, x1, y1, x2, y2, edgeKey, depType, lag) {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("class", "arrow-line");
+      line.setAttribute("marker-end", "url(#arrowhead)");
+      svg.appendChild(line);
+      edgesMap[edgeKey] = line;
+
+      if (!document.getElementById("arrowhead")) {
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+        marker.setAttribute("id", "arrowhead");
+        marker.setAttribute("viewBox", "0 0 10 10");
+        marker.setAttribute("refX", "10");
+        marker.setAttribute("refY", "5");
+        marker.setAttribute("markerUnits", "strokeWidth");
+        marker.setAttribute("markerWidth", "6");
+        marker.setAttribute("markerHeight", "6");
+        marker.setAttribute("orient", "auto");
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+        path.setAttribute("fill", "#555");
+        marker.appendChild(path);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+      }
+      // arrow label
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      let labelStr = depType;
+      if (lag > 0) labelStr += "+" + lag;
+      else if (lag < 0) labelStr += lag;
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("class", "arrow-label");
+      label.setAttribute("x", midX);
+      label.setAttribute("y", midY - 5);
+      label.setAttribute("text-anchor", "middle");
+      label.textContent = labelStr;
+      svg.appendChild(label);
+    }
+    function drawNode(svg, act) {
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", act.x);
+      circle.setAttribute("cy", act.y);
+      circle.setAttribute("r", RADIUS);
+      circle.setAttribute("class", "activity-circle");
+      svg.appendChild(circle);
+
+      const durText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      durText.setAttribute("x", act.x);
+      durText.setAttribute("y", act.y - (RADIUS+8));
+      durText.setAttribute("class", "activity-time");
+      durText.textContent = act.duration;
+      svg.appendChild(durText);
+
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", act.x);
+      text.setAttribute("y", act.y);
+      text.setAttribute("class", "activity-label");
+      text.textContent = act.name;
+      svg.appendChild(text);
+    }
+
+    /**********************
+     * highlight concurrency-based critical edges
+     **********************/
+    function highlightCriticalEdges() {
+      for (let t in tasks) {
+        tasks[t].succ.forEach(succName => {
+          let depObj = tasks[succName].deps.find(d => d.predecessor === t);
+          if (!depObj) return;
+          let act = tasks[t];
+          let succ = tasks[succName];
+          let requiredStart = 0;
+          switch(depObj.type) {
+            case "FS": requiredStart = act.EF + depObj.lag; break;
+            case "SS": requiredStart = act.ES + depObj.lag; break;
+            case "FF": requiredStart = act.EF + depObj.lag - succ.duration; break;
+            case "SF": requiredStart = act.ES + depObj.lag - succ.duration; break;
+          }
+          let actFloat = act.LS - act.ES;
+          let succFloat = succ.LS - succ.ES;
+          let edgeKey = t + "->" + succName;
+          if (Math.abs(succ.ES - requiredStart) < 0.0001 &&
+              Math.abs(actFloat) < 0.0001 &&
+              Math.abs(succFloat) < 0.0001) {
+            if (edgesMap[edgeKey]) {
+              edgesMap[edgeKey].classList.add("critical");
+            }
+          }
+        });
+      }
+    }
+
+    /**********************
+     * concurrency-based summary
+     **********************/
+    function showConcurrencySummary() {
+      let lines = [];
+      lines.push("Concurrency-based summary (ES, EF, LS, LF, Float):");
+      for (let t in tasks) {
+        let act = tasks[t];
+        let floatVal = (act.LS - act.ES).toFixed(2);
+        lines.push(`${act.name}: ES=${act.ES.toFixed(2)} EF=${act.EF.toFixed(2)} LS=${act.LS.toFixed(2)} LF=${act.LF.toFixed(2)} Float=${floatVal}`);
+      }
+      return lines;
+    }
+
+    /**********************
+     * Naive path listing that does a mini forward pass for each path
+     **********************/
+    function showNaivePathsWithLag() {
+      let lines = [];
+      lines.push("Naive Paths (Start -> End) with Durations (including lead/lag):");
+
+      // find start nodes
+      let startNodes = Object.values(tasks).filter(t => t.inDegree === 0).map(t => t.name);
+      let allNaivePaths = [];
+
+      startNodes.forEach(sn => {
+        // DFS all possible paths from sn to an end
+        dfsNaive([sn], sn, {});
+      });
+
+      function dfsNaive(pathSoFar, current, localTimes) {
+        // localTimes is an object storing { startTime:..., finishTime:... } for each node in this path
+        // If it's empty and current is the start, we init
+        if (!localTimes[current]) {
+          localTimes[current] = { start: 0, finish: tasks[current].duration };
+        }
+
+        // if no successors => end node
+        if (tasks[current].succ.length === 0) {
+          let finalFinish = localTimes[current].finish;
+          allNaivePaths.push({
+            path: pathSoFar.slice(),
+            total: finalFinish
+          });
+          return;
+        }
+
+        tasks[current].succ.forEach(succName => {
+          let newPath = pathSoFar.slice();
+          newPath.push(succName);
+
+          // copy localTimes to a new object so each path is independent
+          let newTimes = JSON.parse(JSON.stringify(localTimes));
+
+          // do a mini forward pass for the edge current->succName
+          let depObj = tasks[succName].deps.find(d => d.predecessor === current);
+          if (!depObj) {
+            // fallback: if no direct link, just assume FS with no lag
+            depObj = { type: "FS", lag: 0 };
+          }
+          let predStart = newTimes[current].start;
+          let predFinish= newTimes[current].finish;
+          let nextStart  = 0;
+
+          switch(depObj.type) {
+            case "FS":
+              // successor can start after predecessor finishes + lag
+              nextStart = predFinish + depObj.lag;
+              break;
+            case "SS":
+              // successor starts after predecessor starts + lag
+              nextStart = predStart + depObj.lag;
+              break;
+            case "FF":
+              // successor finishes after predecessor finishes + lag => start = (predFinish + lag) - duration
+              nextStart = (predFinish + depObj.lag) - tasks[succName].duration;
+              break;
+            case "SF":
+              // successor finishes after predecessor starts + lag => start = (predStart + lag) - duration
+              nextStart = (predStart + depObj.lag) - tasks[succName].duration;
+              break;
+          }
+          if (nextStart < 0) nextStart = 0; // clamp to 0 if negative
+
+          newTimes[succName] = {
+            start: Math.max( (newTimes[succName]?.start || 0), nextStart ),
+            finish: 0
+          };
+          newTimes[succName].finish = newTimes[succName].start + tasks[succName].duration;
+
+          // DFS deeper
+          dfsNaive(newPath, succName, newTimes);
+        });
+      }
+
+      if (allNaivePaths.length === 0) {
+        lines.push("(No paths found or cyclical graph.)");
+      } else {
+        // find the max
+        let maxDur = Math.max(...allNaivePaths.map(p => p.total));
+        allNaivePaths.forEach(p => {
+          let pathStr = p.path.join(" -> ");
+          let critMark = (p.total === maxDur) ? " *CRITICAL*" : "";
+          lines.push(`Path: ${pathStr} | Duration: ${p.total}${critMark}`);
+        });
+      }
+
+      return lines;
+    }
+
+    /**********************
+     * Copy JSON
+     **********************/
+    document.getElementById("copyJsonBtn").addEventListener("click", () => {
+      const jsonText = document.getElementById("jsonOutput");
+      jsonText.select();
+      jsonText.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      alert("JSON output copied to clipboard.");
+    });
+
+    /**********************
+     * Generate JSON
+     **********************/
+    function generateJSONOutput() {
+      let activities = [];
+      for (let t in tasks) {
+        let task = tasks[t];
+        activities.push({
+          name: task.name,
+          duration: task.duration,
+          // For your Monte Carlo: store both 'predecessors' and 'dependencies'
+          predecessors: task.deps.map(d => d.predecessor),
+          dependencies: task.deps.map(d => ({
+            predecessor: d.predecessor,
+            type: d.type,
+            lag: d.lag
+          }))
+        });
+      }
+      const jsonStr = JSON.stringify(activities, null, 2);
+      document.getElementById("jsonOutput").value = jsonStr;
+    }
+  </script>
+</body>
+</html>

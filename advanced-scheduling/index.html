@@ -1,0 +1,881 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monte Carlo Project Schedule Simulator</title>
+  <meta name="description" content="Paste your network diagram JSON, configure activity distributions, and run Monte Carlo simulations that account for concurrency (FS/SS/FF/SF) and lead/lag to predict project duration." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- (Optional) Chart.js CDN if you need advanced charting: <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 40px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      max-width: 1000px;
+      margin: auto;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 8px;
+      box-sizing: border-box;
+      font-family: monospace;
+      margin-bottom: 1em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 0.4em;
+      text-align: center;
+    }
+    select, input[type="number"], input[type="text"] {
+      width: 90%;
+      padding: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px 2px;
+      background-color: #007BFF;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    /* Explicit canvas dimensions */
+    #histogramCanvas {
+      width: 600px;
+      height: 350px;
+      border: 1px solid #ccc;
+      margin-top: 1em;
+    }
+    .stat-line {
+      margin: 0.2em 0;
+    }
+    .stat-label {
+      display: inline-block;
+      width: 150px;
+      font-weight: bold;
+    }
+    .slider-container {
+      margin-top: 1em;
+      background: #f9f9f9;
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      border-radius: 4px;
+    }
+    .slider-container label {
+      margin-right: 0.5em;
+      font-weight: bold;
+    }
+    .slider-value {
+      font-weight: bold;
+      margin-left: 0.5em;
+    }
+    .percentile-text {
+      margin-top: 0.5em;
+      font-style: italic;
+      color: #333;
+    }
+    /* Back button remains as in your version */
+    #backButton {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Back Button (unchanged) -->
+  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+
+  <!-- Section 1: Load/Manual Network -->
+  <div class="container" id="networkContainer">
+    <h1>Monte Carlo Project Schedule Simulator</h1>
+    <p>
+      <strong>Option A:</strong> Paste the JSON output from your Network Diagram tool below, then click <em>Load Network</em>.
+      <br>
+      <strong>Option B:</strong> Or manually add activities and dependencies (without JSON). Just click <em>Manual Add Activity</em> or <em>Manual Add Dependency</em> in the tables below.
+    </p>
+    <textarea id="networkJson" placeholder='Paste network JSON here...'></textarea>
+    <button id="loadNetworkBtn">Load Network</button>
+  </div>
+
+  <!-- Section 2: Activity Distribution Configuration -->
+  <!-- CHANGED from style="display:none;" to style="display:block;" -->
+  <div class="container" id="activityConfigContainer" style="display:block;">
+    <h2>Activity Distribution Configuration</h2>
+    <p>
+      For each activity, choose a distribution type and enter its parameters (comma-separated).
+      (For example, for normal: "mean,stdDev")
+    </p>
+    <!-- Buttons to add/remove activity rows manually -->
+    <button id="addActivityRowBtn">Manual Add Activity</button>
+    <button id="removeActivityRowBtn">Remove Last Activity</button>
+
+    <table id="activityConfigTable">
+      <thead>
+        <tr>
+          <th>Activity</th>
+          <th>Base Duration</th>
+          <th>Distribution</th>
+          <th>Parameters</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Generated dynamically, or manually added -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 3: Dependency Configuration -->
+  <!-- CHANGED from style="display:none;" to style="display:block;" -->
+  <div class="container" id="dependencyConfigContainer" style="display:block;">
+    <h2>Dependency Configuration</h2>
+    <p>
+      The table below is auto-filled from your diagram's JSON <code>dependencies</code> array,
+      or you can <em>Manual Add Dependency</em> to create a row from scratch.
+    </p>
+    <!-- Buttons to add/remove dependency rows manually -->
+    <button id="addDependencyRowBtn">Manual Add Dependency</button>
+    <button id="removeDependencyRowBtn">Remove Last Dependency</button>
+
+    <table id="dependencyTable">
+      <thead>
+        <tr>
+          <th>Activity</th>
+          <th>Predecessor</th>
+          <th>Dependency Type</th>
+          <th>Lead/Lag (days)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Generated dynamically, or manually added -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 4: Run Simulation and Show Results -->
+  <!-- CHANGED from style="display:none;" to style="display:block;" -->
+  <div class="container" id="simulationContainer" style="display:block;">
+    <h2>Run Simulation</h2>
+    <label for="numTrials">Number of Trials:</label>
+    <input type="number" id="numTrials" value="5000" style="width:100px;" />
+    <button id="runSimBtn">Run Simulation</button>
+    <div id="resultsArea" style="display:none;">
+      <div id="statsOutput"></div>
+      <canvas id="histogramCanvas" width="600" height="350"></canvas>
+      <div class="slider-container" id="sliderContainer" style="display:none;">
+        <label for="percentileSlider">Percentile:</label>
+        <input type="range" id="percentileSlider" min="0" max="100" value="50" oninput="updatePercentile()" />
+        <span class="slider-value" id="percentileValue">50</span>%
+        <div class="stat-line">
+          <span class="stat-label">Value at Percentile:</span>
+          <span id="valAtPercentile"></span>
+        </div>
+        <div class="percentile-text" id="percentileText"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**********************
+     * Canvas & Context Setup
+     **********************/
+    const histCanvas = document.getElementById("histogramCanvas");
+    const histCtx = histCanvas.getContext("2d");
+
+    /**********************
+     * Global Variables
+     **********************/
+    let networkActivities = [];  // loaded or manually built: each { name, duration, dependencies: [ { predecessor, type, lag } ] }
+    let activityConfigs = [];    // { name, base, dist, params }
+    let dependencyConfigs = [];  // { activity, predecessor, depType, lag }
+    let simulatedDurations = []; // project durations per trial
+
+    // Distribution options:
+    const distOptions = [
+      { value: "triangular", label: "Triangular (min, mode, max)" },
+      { value: "normal",     label: "Normal (mean, stdDev)" },
+      { value: "uniform",    label: "Uniform (min, max)" },
+      { value: "pert",       label: "PERT (optimistic, most likely, pessimistic)" },
+      { value: "exponential", label: "Exponential (λ)" },
+      { value: "lognormal",   label: "Lognormal (mu, sigma)" },
+      { value: "weibull",     label: "Weibull (shape, scale)" },
+      { value: "gamma",       label: "Gamma (shape, scale)" },
+      { value: "poisson",     label: "Poisson (λ)" },
+      { value: "binomial",    label: "Binomial (n, p)" }
+    ];
+
+    // Dependency types:
+    const dependencyTypes = [
+      { value: "FS", label: "Finish-to-Start" },
+      { value: "SS", label: "Start-to-Start" },
+      { value: "FF", label: "Finish-to-Finish" },
+      { value: "SF", label: "Start-to-Finish" }
+    ];
+
+    /**********************
+     * 1) Load Network JSON
+     **********************/
+    document.getElementById("loadNetworkBtn").addEventListener("click", () => {
+      const jsonText = document.getElementById("networkJson").value;
+      try {
+        networkActivities = JSON.parse(jsonText);
+      } catch (e) {
+        alert("Invalid JSON. Please check your input.");
+        return;
+      }
+      if (!Array.isArray(networkActivities) || networkActivities.length === 0) {
+        alert("JSON must be an array of activities.");
+        return;
+      }
+      console.log("Loaded network activities:", networkActivities);
+
+      generateActivityConfigTable();
+      generateDependencyTable();
+    });
+
+    /**********************
+     * 2) Activity Config Table
+     **********************/
+    function generateActivityConfigTable() {
+      activityConfigs = [];
+      const tbody = document.getElementById("activityConfigTable").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      // Build from networkActivities if present
+      networkActivities.forEach(act => {
+        const config = {
+          name: act.name,
+          base: act.duration,
+          dist: "normal",  // default
+          params: []
+        };
+        activityConfigs.push(config);
+        addActivityRowToTable(config);
+      });
+      console.log("Activity config table done:", activityConfigs);
+    }
+
+    function addActivityRowToTable(cfg) {
+      const tbody = document.getElementById("activityConfigTable").querySelector("tbody");
+
+      const tr = document.createElement("tr");
+      // Activity name
+      let tdName = document.createElement("td");
+      let inputName = document.createElement("input");
+      inputName.type = "text";
+      inputName.value = cfg.name || "";
+      inputName.addEventListener("input", e => {
+        cfg.name = e.target.value.trim();
+      });
+      tdName.appendChild(inputName);
+      tr.appendChild(tdName);
+
+      // Base duration
+      let tdBase = document.createElement("td");
+      let inputBase = document.createElement("input");
+      inputBase.type = "number";
+      inputBase.value = cfg.base || 0;
+      inputBase.addEventListener("input", e => {
+        cfg.base = parseFloat(e.target.value) || 0;
+      });
+      tdBase.appendChild(inputBase);
+      tr.appendChild(tdBase);
+
+      // Distribution
+      let tdDist = document.createElement("td");
+      let selectDist = document.createElement("select");
+      distOptions.forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.label;
+        if (opt.value === cfg.dist) option.selected = true;
+        selectDist.appendChild(option);
+      });
+      selectDist.addEventListener("change", e => {
+        cfg.dist = e.target.value;
+      });
+      tdDist.appendChild(selectDist);
+      tr.appendChild(tdDist);
+
+      // Parameters
+      let tdParams = document.createElement("td");
+      let inputParams = document.createElement("input");
+      inputParams.type = "text";
+      inputParams.placeholder = "e.g. mean,stdDev";
+      if (cfg.params && cfg.params.length > 0) {
+        inputParams.value = cfg.params.join(",");
+      }
+      inputParams.addEventListener("input", e => {
+        cfg.params = e.target.value.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+      });
+      tdParams.appendChild(inputParams);
+      tr.appendChild(tdParams);
+
+      tbody.appendChild(tr);
+    }
+
+    // Manual add or remove row
+    document.getElementById("addActivityRowBtn").addEventListener("click", () => {
+      // create a new config with defaults
+      const newCfg = {
+        name: "",
+        base: 0,
+        dist: "normal",
+        params: []
+      };
+      activityConfigs.push(newCfg);
+      addActivityRowToTable(newCfg);
+    });
+    document.getElementById("removeActivityRowBtn").addEventListener("click", () => {
+      const tbody = document.getElementById("activityConfigTable").querySelector("tbody");
+      if (tbody.rows.length > 0) {
+        tbody.removeChild(tbody.lastElementChild);
+        activityConfigs.pop();
+      }
+    });
+
+    /**********************
+     * 3) Dependency Config Table
+     **********************/
+    function generateDependencyTable() {
+      dependencyConfigs = [];
+      const tbody = document.getElementById("dependencyTable").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      // Build from networkActivities
+      networkActivities.forEach(act => {
+        if (Array.isArray(act.dependencies) && act.dependencies.length > 0) {
+          act.dependencies.forEach(dep => {
+            const depConfig = {
+              activity: act.name,
+              predecessor: dep.predecessor,
+              depType: dep.type || "FS",
+              lag: dep.lag || 0
+            };
+            dependencyConfigs.push(depConfig);
+            addDependencyRowToTable(depConfig);
+          });
+        }
+      });
+      console.log("Dependency table done:", dependencyConfigs);
+    }
+
+    function addDependencyRowToTable(depConfig) {
+      const tbody = document.getElementById("dependencyTable").querySelector("tbody");
+
+      const tr = document.createElement("tr");
+
+      // Activity
+      let tdAct = document.createElement("td");
+      let inputAct = document.createElement("input");
+      inputAct.type = "text";
+      inputAct.value = depConfig.activity || "";
+      inputAct.addEventListener("input", e => {
+        depConfig.activity = e.target.value.trim();
+      });
+      tdAct.appendChild(inputAct);
+      tr.appendChild(tdAct);
+
+      // Predecessor
+      let tdPred = document.createElement("td");
+      let inputPred = document.createElement("input");
+      inputPred.type = "text";
+      inputPred.value = depConfig.predecessor || "";
+      inputPred.addEventListener("input", e => {
+        depConfig.predecessor = e.target.value.trim();
+      });
+      tdPred.appendChild(inputPred);
+      tr.appendChild(tdPred);
+
+      // Dependency Type
+      let tdDepType = document.createElement("td");
+      let selectDep = document.createElement("select");
+      dependencyTypes.forEach(dt => {
+        const option = document.createElement("option");
+        option.value = dt.value;
+        option.textContent = dt.label;
+        if (dt.value === depConfig.depType) option.selected = true;
+        selectDep.appendChild(option);
+      });
+      selectDep.addEventListener("change", e => {
+        depConfig.depType = e.target.value;
+      });
+      tdDepType.appendChild(selectDep);
+      tr.appendChild(tdDepType);
+
+      // Lag
+      let tdLag = document.createElement("td");
+      let inputLag = document.createElement("input");
+      inputLag.type = "number";
+      inputLag.value = depConfig.lag || 0;
+      inputLag.addEventListener("input", e => {
+        depConfig.lag = parseFloat(e.target.value) || 0;
+      });
+      tdLag.appendChild(inputLag);
+      tr.appendChild(tdLag);
+
+      tbody.appendChild(tr);
+    }
+
+    // Manual add or remove dependency row
+    document.getElementById("addDependencyRowBtn").addEventListener("click", () => {
+      const newDep = {
+        activity: "",
+        predecessor: "",
+        depType: "FS",
+        lag: 0
+      };
+      dependencyConfigs.push(newDep);
+      addDependencyRowToTable(newDep);
+    });
+    document.getElementById("removeDependencyRowBtn").addEventListener("click", () => {
+      const tbody = document.getElementById("dependencyTable").querySelector("tbody");
+      if (tbody.rows.length > 0) {
+        tbody.removeChild(tbody.lastElementChild);
+        dependencyConfigs.pop();
+      }
+    });
+
+    /**********************
+     * 4) Run Simulation
+     **********************/
+    document.getElementById("runSimBtn").addEventListener("click", () => {
+      // If user built data manually, create "networkActivities" from the tables
+      buildNetworkActivitiesFromTables();
+
+      const nTrials = parseInt(document.getElementById("numTrials").value) || 1000;
+      simulatedDurations = [];
+      console.log("Starting simulation with", nTrials, "trials.");
+
+      // Build a quick map of each activity's distribution config
+      let distMap = {};
+      activityConfigs.forEach(cfg => {
+        distMap[cfg.name] = cfg;
+      });
+
+      // Build concurrency map from dependencyConfigs
+      let concurrencyMap = {};
+      networkActivities.forEach(act => {
+        concurrencyMap[act.name] = [];
+      });
+      dependencyConfigs.forEach(dep => {
+        concurrencyMap[dep.activity].push({
+          predecessor: dep.predecessor,
+          type: dep.depType,
+          lag: dep.lag
+        });
+      });
+
+      for (let t = 0; t < nTrials; t++) {
+        // For each trial, sample each activity's duration
+        let sampledDurations = {};
+        networkActivities.forEach(act => {
+          let c = distMap[act.name];
+          if (!c) {
+            // fallback if missing
+            sampledDurations[act.name] = act.duration;
+          } else {
+            sampledDurations[act.name] = sampleDistribution(c.dist, c.params, c.base);
+          }
+        });
+        // concurrency-based schedule
+        let finishTimes = computeSchedule(sampledDurations, concurrencyMap);
+        let projDuration = Math.max(...Object.values(finishTimes));
+        simulatedDurations.push(projDuration);
+      }
+      simulatedDurations.sort((a, b) => a - b);
+      console.log("Simulation complete. Durations:", simulatedDurations);
+
+      displayStats(simulatedDurations);
+      drawHistogram(simulatedDurations);
+      document.getElementById("resultsArea").style.display = "block";
+      document.getElementById("sliderContainer").style.display = "block";
+      updatePercentile();
+    });
+
+    // Build networkActivities from the user-edited tables
+    function buildNetworkActivitiesFromTables() {
+      networkActivities = [];
+
+      // Each row in activityConfigs => an activity object
+      activityConfigs.forEach(cfg => {
+        let actObj = {
+          name: cfg.name || "Unnamed",
+          duration: cfg.base || 0,
+          dependencies: []
+        };
+        networkActivities.push(actObj);
+      });
+
+      // Now fill dependencies from dependencyConfigs
+      dependencyConfigs.forEach(dep => {
+        let act = networkActivities.find(a => a.name === dep.activity);
+        if (!act) {
+          // create if not found
+          act = {
+            name: dep.activity || "Unnamed",
+            duration: 0,
+            dependencies: []
+          };
+          networkActivities.push(act);
+        }
+        act.dependencies.push({
+          predecessor: dep.predecessor,
+          type: dep.depType,
+          lag: dep.lag
+        });
+      });
+      console.log("Manually built networkActivities:", networkActivities);
+    }
+
+    /**********************
+     * Sampling Functions
+     **********************/
+    function sampleDistribution(distType, parts, base) {
+      switch(distType) {
+        case "triangular":
+          if (parts.length < 3) return base;
+          return sampleTriangular(parts[0], parts[1], parts[2]);
+        case "normal":
+          if (parts.length < 2) return base;
+          return sampleNormal(parts[0], parts[1]);
+        case "uniform":
+          if (parts.length < 2) return base;
+          return sampleUniform(parts[0], parts[1]);
+        case "pert":
+          if (parts.length < 3) return base;
+          return samplePERT(parts[0], parts[1], parts[2]);
+        case "exponential":
+          if (parts.length < 1) return base;
+          return sampleExponential(parts[0]);
+        case "lognormal":
+          if (parts.length < 2) return base;
+          return sampleLognormal(parts[0], parts[1]);
+        case "weibull":
+          if (parts.length < 2) return base;
+          return sampleWeibull(parts[0], parts[1]);
+        case "gamma":
+          if (parts.length < 2) return base;
+          return sampleGammaDistribution(parts[0], parts[1]);
+        case "poisson":
+          if (parts.length < 1) return base;
+          return samplePoisson(parts[0]);
+        case "binomial":
+          if (parts.length < 2) return base;
+          return sampleBinomial(parts[0], parts[1]);
+        default:
+          return base;
+      }
+    }
+    function sampleTriangular(min, mode, max) {
+      const u = Math.random();
+      const c = (mode - min) / (max - min);
+      if (u < c) {
+        return min + Math.sqrt(u * (max - min) * (mode - min));
+      } else {
+        return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+      }
+    }
+    function sampleNormal(mean, stdDev) {
+      let u1 = 0, u2 = 0;
+      while(u1 === 0) u1 = Math.random();
+      while(u2 === 0) u2 = Math.random();
+      const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+      return mean + z * stdDev;
+    }
+    function sampleUniform(min, max) {
+      return min + (max - min) * Math.random();
+    }
+    function samplePERT(optimistic, mostLikely, pessimistic) {
+      if (mostLikely < optimistic) mostLikely = optimistic;
+      if (mostLikely > pessimistic) mostLikely = pessimistic;
+      const range = pessimistic - optimistic;
+      if (range <= 0) return optimistic;
+      const modeRel = (mostLikely - optimistic) / range;
+      const alpha = 1 + 4 * modeRel;
+      const beta  = 1 + 4 * (1 - modeRel);
+      const z = sampleBeta(alpha, beta);
+      return optimistic + z * range;
+    }
+    function sampleExponential(lambda) {
+      const u = Math.random();
+      return -Math.log(u) / lambda;
+    }
+    function sampleLognormal(mu, sigma) {
+      const n = sampleNormal(mu, sigma);
+      return Math.exp(n);
+    }
+    function sampleWeibull(shape, scale) {
+      const u = Math.random();
+      return scale * Math.pow(-Math.log(1 - u), 1 / shape);
+    }
+    function sampleGammaDistribution(shape, scale) {
+      return gammaSample(shape) * scale;
+    }
+    function samplePoisson(lambda) {
+      const L = Math.exp(-lambda);
+      let k = 0;
+      let p = 1;
+      do {
+        k++;
+        p *= Math.random();
+      } while (p > L);
+      return k - 1;
+    }
+    function sampleBinomial(n, p) {
+      let successes = 0;
+      for (let i = 0; i < n; i++) {
+        if (Math.random() < p) successes++;
+      }
+      return successes;
+    }
+    function sampleBeta(alpha, beta) {
+      const x = gammaSample(alpha);
+      const y = gammaSample(beta);
+      return x / (x + y);
+    }
+    function gammaSample(k) {
+      if (k < 1) {
+        return gammaSample(1 + k) * Math.pow(Math.random(), 1 / k);
+      }
+      const d = k - 1/3;
+      const c = 1 / Math.sqrt(9 * d);
+      while (true) {
+        let x, v;
+        do {
+          const u1 = Math.random();
+          const u2 = Math.random();
+          const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+          x = z;
+          v = 1 + c * x;
+        } while (v <= 0);
+        v = v * v * v;
+        const u3 = Math.random();
+        if (u3 < 1 - 0.0331 * Math.pow(x, 4)) {
+          return d * v;
+        }
+        if (Math.log(u3) < 0.5 * x * x + d * (1 - v + Math.log(v))) {
+          return d * v;
+        }
+      }
+    }
+
+    /**********************
+     * computeSchedule
+     **********************/
+    function computeSchedule(sampledDurations, concurrencyMap) {
+      let S = {}; // start times
+      let F = {}; // finish times
+
+      let allNames = networkActivities.map(a => a.name);
+
+      // find inDegree
+      let inDegree = {};
+      allNames.forEach(n => { inDegree[n] = 0; });
+      allNames.forEach(actName => {
+        concurrencyMap[actName].forEach(dep => {
+          inDegree[actName]++;
+        });
+      });
+
+      allNames.forEach(n => {
+        if (inDegree[n] === 0) {
+          S[n] = 0;
+          F[n] = sampledDurations[n];
+        }
+      });
+
+      let unresolved = new Set(allNames);
+      for (let n in S) {
+        unresolved.delete(n);
+      }
+
+      while (unresolved.size > 0) {
+        let progress = false;
+        allNames.forEach(actName => {
+          if (!unresolved.has(actName)) return;
+          let deps = concurrencyMap[actName];
+          let ready = true;
+          let startConstraint = 0;
+          deps.forEach(d => {
+            if (!F.hasOwnProperty(d.predecessor) && !S.hasOwnProperty(d.predecessor)) {
+              ready = false;
+            } else {
+              let candidate = 0;
+              switch(d.type) {
+                case "FS":
+                  candidate = (F[d.predecessor]||0) + d.lag;
+                  break;
+                case "SS":
+                  candidate = (S[d.predecessor]||0) + d.lag;
+                  break;
+                case "FF":
+                  candidate = (F[d.predecessor]||0) + d.lag - sampledDurations[actName];
+                  break;
+                case "SF":
+                  candidate = (S[d.predecessor]||0) + d.lag - sampledDurations[actName];
+                  break;
+              }
+              if (candidate > startConstraint) {
+                startConstraint = candidate;
+              }
+            }
+          });
+          if (ready) {
+            S[actName] = startConstraint;
+            F[actName] = S[actName] + sampledDurations[actName];
+            unresolved.delete(actName);
+            progress = true;
+          }
+        });
+        if (!progress) {
+          alert("Cycle detected or unresolved dependencies in network!");
+          break;
+        }
+      }
+      return F;
+    }
+
+    /**********************
+     * Step 6: Display Simulation Results
+     **********************/
+    function displayStats(dataArray) {
+      const n = dataArray.length;
+      if (n < 1) return;
+      const minVal = dataArray[0];
+      const maxVal = dataArray[n-1];
+      let sum = dataArray.reduce((acc, val) => acc + val, 0);
+      const mean = sum / n;
+      let variance = dataArray.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / n;
+      const stdDev = Math.sqrt(variance);
+      document.getElementById("statsOutput").innerHTML = `
+        <div class="stat-line"><span class="stat-label">Trials:</span>${n}</div>
+        <div class="stat-line"><span class="stat-label">Min Duration:</span>${minVal.toFixed(2)}</div>
+        <div class="stat-line"><span class="stat-label">Max Duration:</span>${maxVal.toFixed(2)}</div>
+        <div class="stat-line"><span class="stat-label">Mean Duration:</span>${mean.toFixed(2)}</div>
+        <div class="stat-line"><span class="stat-label">Std Dev:</span>${stdDev.toFixed(2)}</div>
+      `;
+    }
+
+    function drawHistogram(dataArray, highlightVal = NaN) {
+      histCtx.clearRect(0, 0, histCanvas.width, histCanvas.height);
+
+      const canvasWidth = histCanvas.width;
+      const canvasHeight = histCanvas.height;
+      const marginLeft = 50, marginRight = 20, marginTop = 20, marginBottom = 50;
+      const plotWidth = canvasWidth - marginLeft - marginRight;
+      const plotHeight = canvasHeight - marginTop - marginBottom;
+
+      const n = dataArray.length;
+      if (n < 2) return;
+
+      const minVal = dataArray[0];
+      const maxVal = dataArray[n-1];
+      const range = maxVal - minVal;
+
+      const binCount = 30;
+      const binSize = range / binCount;
+      const freq = new Array(binCount).fill(0);
+
+      dataArray.forEach(val => {
+        const idx = Math.floor((val - minVal) / binSize);
+        if (idx >= 0 && idx < binCount) freq[idx]++;
+        else if (idx === binCount) freq[idx - 1]++;
+      });
+
+      const maxFreq = Math.max(...freq);
+
+      // Draw axes
+      histCtx.strokeStyle = "#333";
+      histCtx.lineWidth = 1;
+      // X-axis
+      histCtx.beginPath();
+      histCtx.moveTo(marginLeft, marginTop + plotHeight);
+      histCtx.lineTo(marginLeft + plotWidth, marginTop + plotHeight);
+      histCtx.stroke();
+      // Y-axis
+      histCtx.beginPath();
+      histCtx.moveTo(marginLeft, marginTop);
+      histCtx.lineTo(marginLeft, marginTop + plotHeight);
+      histCtx.stroke();
+
+      // X-axis label
+      histCtx.font = "11px sans-serif";
+      histCtx.fillStyle = "#000";
+      histCtx.textAlign = "center";
+      histCtx.fillText("Project Duration", marginLeft + plotWidth / 2, canvasHeight - 10);
+
+      // Y-axis label
+      histCtx.save();
+      histCtx.translate(15, marginTop + plotHeight / 2);
+      histCtx.rotate(-Math.PI / 2);
+      histCtx.fillText("Frequency", 0, 0);
+      histCtx.restore();
+
+      // Bars
+      histCtx.fillStyle = "#0077cc";
+      const barWidth = plotWidth / binCount;
+      for (let i = 0; i < binCount; i++) {
+        const barHeight = (freq[i] / maxFreq) * plotHeight;
+        const x = marginLeft + i * barWidth;
+        const y = marginTop + (plotHeight - barHeight);
+        histCtx.fillRect(x, y, barWidth - 1, barHeight);
+      }
+
+      // Min & Max labels
+      histCtx.textAlign = "left";
+      histCtx.fillText(minVal.toFixed(2), marginLeft, marginTop + plotHeight + 12);
+      histCtx.textAlign = "right";
+      histCtx.fillText(maxVal.toFixed(2), marginLeft + plotWidth, marginTop + plotHeight + 12);
+
+      // Highlight vertical line if a highlight value is given
+      if (!isNaN(highlightVal)) {
+        const xPos = marginLeft + ((highlightVal - minVal) / range) * plotWidth;
+        if (xPos >= marginLeft && xPos <= marginLeft + plotWidth) {
+          histCtx.strokeStyle = "red";
+          histCtx.beginPath();
+          histCtx.moveTo(xPos, marginTop);
+          histCtx.lineTo(xPos, marginTop + plotHeight);
+          histCtx.stroke();
+        }
+      }
+    }
+
+    // Also attach 'input' event for older browsers:
+    document.getElementById("percentileSlider").addEventListener("input", updatePercentile);
+
+    function updatePercentile() {
+      const pct = parseInt(document.getElementById("percentileSlider").value);
+      document.getElementById("percentileValue").textContent = pct;
+      let idx = Math.floor((pct / 100) * simulatedDurations.length);
+      if (idx >= simulatedDurations.length) idx = simulatedDurations.length - 1;
+      if (idx < 0) idx = 0;
+      const val = simulatedDurations[idx];
+      document.getElementById("valAtPercentile").textContent = val.toFixed(2);
+      drawHistogram(simulatedDurations, val);
+      document.getElementById("percentileText").textContent = `At the ${pct}% percentile, there's a ${pct}% chance project duration ≤ ${val.toFixed(2)}.`;
+      document.getElementById("sliderContainer").style.display = "block";
+    }
+  </script>
+</body>
+</html>
