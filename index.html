@@ -34,9 +34,10 @@
     /* Navigation Bar with Horizontal Scrolling */
     .topnav {
       background-color: #333;
-      overflow-x: auto;
-      white-space: nowrap;
+      overflow-x: auto;      /* Horizontal scroll */
+      white-space: nowrap;   /* Prevent wrap */
       -webkit-overflow-scrolling: touch;
+      position: relative;
     }
     .topnav ul {
       list-style: none;
@@ -46,7 +47,7 @@
     }
     .topnav ul li {
       flex: none;
-      position: relative; /* needed for dropdown positioning initially */
+      position: relative;
     }
     .topnav ul li a {
       display: block;
@@ -56,6 +57,36 @@
       transition: background-color 0.3s ease, color 0.3s ease;
     }
     .topnav ul li a:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+
+    /* Dropdown Menu - stays in nav, no detaching */
+    .dropdown-menu {
+      position: absolute;      /* Position relative to .dropdown */
+      top: 100%;
+      left: 0;
+      background-color: #333;
+      min-width: 150px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: none;           /* Hidden by default */
+      z-index: 9999;           /* Appear above other nav items */
+    }
+    /* PC hover: show the dropdown */
+    .dropdown:hover .dropdown-menu {
+      display: block;
+    }
+    /* Dropdown link styles */
+    .dropdown-menu li a {
+      display: block;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .dropdown-menu li a:hover {
       background-color: #ddd;
       color: #333;
     }
@@ -83,7 +114,6 @@
       padding: 2rem;
       position: relative;
     }
-    /* Video Background for Slides */
     .slide-video {
       position: absolute;
       top: 0;
@@ -100,7 +130,6 @@
       padding: 2rem;
       border-radius: 10px;
     }
-    /* Slider Arrows */
     .slider-arrow {
       position: absolute;
       top: 50%;
@@ -450,113 +479,72 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
-<!-- JavaScript for Slide Navigation & Dropdown Portaling -->
+<!-- JavaScript for Slide Navigation -->
 <script>
-  // Slide navigation (unchanged)
-  let currentSlide = 0;
-  const slides = document.querySelectorAll(".slide");
-  const totalSlides = slides.length;
-  const creditsList = document.getElementById("creditsList");
+let currentSlide = 0;
+const slides = document.querySelectorAll(".slide");
+const totalSlides = slides.length;
+const creditsList = document.getElementById("creditsList");
 
-  function moveSlide(direction) {
-    currentSlide += direction;
-    if (currentSlide < 0) currentSlide = 0;
-    if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-    document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
-    if (slides[currentSlide].classList.contains("final-slide")) {
-      startScrollingCredits();
-    } else {
-      stopScrollingCredits();
-    }
+function moveSlide(direction) {
+  currentSlide += direction;
+  if (currentSlide < 0) currentSlide = 0;
+  if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+  document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
+
+  // Trigger scrolling immediately if final slide is reached
+  if (slides[currentSlide].classList.contains("final-slide")) {
+    startScrollingCredits();
+  } else {
+    stopScrollingCredits();
   }
-  function startScrollingCredits() {
-    creditsList.style.visibility = "visible";
-    creditsList.style.animation = "none";
-    requestAnimationFrame(() => {
-      creditsList.style.animation = "creditsScroll 30s linear infinite";
-      creditsList.style.animationDelay = "0s";
-    });
-  }
-  function stopScrollingCredits() {
-    creditsList.style.animation = "none";
-    creditsList.style.visibility = "hidden";
-  }
-</script>
+}
 
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // Set playback speed for all videos
-    const allVideos = document.querySelectorAll("video");
-    allVideos.forEach(video => {
-      video.playbackRate = 1.2;
-    });
-
-    // === Original Desktop Portal Approach ===
-    document.querySelectorAll('.dropdown').forEach(function(drop) {
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      drop.addEventListener('mouseenter', function() {
-        const rect = drop.getBoundingClientRect();
-        document.body.appendChild(dropdownMenu);
-        dropdownMenu.style.position = 'fixed';
-        dropdownMenu.style.top = rect.bottom + 'px';
-        dropdownMenu.style.left = rect.left + 'px';
-        dropdownMenu.style.display = 'block';
-        dropdownMenu.style.zIndex = '10000000';
-      });
-      drop.addEventListener('mouseleave', function() {
-        setTimeout(function() {
-          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-            drop.appendChild(dropdownMenu);
-            dropdownMenu.style.position = '';
-            dropdownMenu.style.top = '';
-            dropdownMenu.style.left = '';
-            dropdownMenu.style.display = 'none';
-          }
-        }, 150);
-      });
-      dropdownMenu.addEventListener('mouseleave', function() {
-        setTimeout(function() {
-          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-            drop.appendChild(dropdownMenu);
-            dropdownMenu.style.position = '';
-            dropdownMenu.style.top = '';
-            dropdownMenu.style.left = '';
-            dropdownMenu.style.display = 'none';
-          }
-        }, 150);
-      });
-    });
-
-    // === Two-Tap Fix on Mobile: second tap forcibly navigates ===
-    if ('ontouchstart' in window) {
-      document.querySelectorAll('.dropdown > a').forEach(function(topLink) {
-        let isOpen = false;
-        topLink.addEventListener('click', function(e) {
-          const parentLi = topLink.closest('.dropdown');
-          const dropdownMenu = parentLi.querySelector('.dropdown-menu');
-          if (!isOpen) {
-            // First tap: open menu, prevent navigation
-            e.preventDefault();
-            const rect = parentLi.getBoundingClientRect();
-            document.body.appendChild(dropdownMenu);
-            dropdownMenu.style.position = 'fixed';
-            dropdownMenu.style.top = rect.bottom + 'px';
-            dropdownMenu.style.left = rect.left + 'px';
-            dropdownMenu.style.display = 'block';
-            dropdownMenu.style.zIndex = '10000000';
-            isOpen = true;
-          } else {
-            // Second tap: forcibly navigate after tiny delay
-            e.preventDefault();
-            isOpen = false;
-            setTimeout(() => {
-              window.location = topLink.href;
-            }, 50);
-          }
-        });
-      });
-    }
+function startScrollingCredits() {
+  creditsList.style.visibility = "visible";
+  creditsList.style.animation = "none";
+  requestAnimationFrame(() => {
+    creditsList.style.animation = "creditsScroll 30s linear infinite";
+    creditsList.style.animationDelay = "0s";
   });
+}
+
+function stopScrollingCredits() {
+  creditsList.style.animation = "none";
+  creditsList.style.visibility = "hidden";
+}
 </script>
+
+<!-- Two-Tap Fix on Mobile -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Speed up videos slightly
+  const allVideos = document.querySelectorAll("video");
+  allVideos.forEach(video => {
+    video.playbackRate = 1.2;
+  });
+
+  // If it's a touchscreen, implement two-tap logic for top-level dropdown links.
+  if ('ontouchstart' in window) {
+    document.querySelectorAll('.dropdown > a').forEach(topLink => {
+      let isOpen = false;
+      topLink.addEventListener('click', e => {
+        const dropdownMenu = topLink.parentElement.querySelector('.dropdown-menu');
+        if (!isOpen) {
+          // first tap: show the menu, prevent navigation
+          e.preventDefault();
+          dropdownMenu.style.display = 'block';
+          isOpen = true;
+        } else {
+          // second tap: go to the link
+          isOpen = false;
+          window.location = topLink.href;
+        }
+      });
+    });
+  }
+});
+</script>
+
 </body>
 </html>
