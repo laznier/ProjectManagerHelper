@@ -531,16 +531,15 @@
       });
     });
 
-    // === Minimal Two-Tap Fix on Mobile ===
+    // === Two-Tap Fix on Mobile: second tap forcibly navigates ===
     if ('ontouchstart' in window) {
-      // For each top-level link in .dropdown
       document.querySelectorAll('.dropdown > a').forEach(function(topLink) {
         let isOpen = false;
         topLink.addEventListener('click', function(e) {
-          // If the dropdown is not open yet, open it and prevent navigation
           const parentLi = topLink.closest('.dropdown');
           const dropdownMenu = parentLi.querySelector('.dropdown-menu');
           if (!isOpen) {
+            // First tap: open menu, prevent navigation
             e.preventDefault();
             const rect = parentLi.getBoundingClientRect();
             document.body.appendChild(dropdownMenu);
@@ -551,9 +550,12 @@
             dropdownMenu.style.zIndex = '10000000';
             isOpen = true;
           } else {
-            // Second tap: forcibly navigate
+            // Second tap: forcibly navigate after tiny delay
+            e.preventDefault();
             isOpen = false;
-            window.location = topLink.href;
+            setTimeout(() => {
+              window.location = topLink.href;
+            }, 50);
           }
         });
       });
