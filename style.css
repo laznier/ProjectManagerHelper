@@ -58,6 +58,20 @@ body {
   background-color: #ddd;
   color: #333;
 }
+/* style.css */
+
+/* Hide the dropdown menu off-screen by default */
+.dropdown-menu {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  display: none;
+  background-color: #333;
+  min-width: 150px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
 
 /* Main Tool Grid */
 .tool-grid {
