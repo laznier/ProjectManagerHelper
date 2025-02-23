@@ -47,7 +47,7 @@
     .topnav ul li {
       margin: 0;
       flex: none;
-      position: relative; /* for potential dropdown portal logic */
+      position: relative; /* for dropdown portal logic */
     }
     .topnav ul li a {
       display: block;
@@ -64,7 +64,7 @@
       background-color: #ccc;
     }
 
-    /* If you add nested menus, give them .dropdown-menu */
+    /* Dropdown menus for each .dropdown item */
     .dropdown-menu {
       display: none;
       position: absolute;
@@ -183,13 +183,41 @@
   </div>
 </header>
 
-<!-- Simple top navigation (no submenus yet, but can portal if you add .dropdown classes) -->
+<!-- Navigation Bar with DropDown Menus -->
 <nav class="topnav">
   <ul>
-    <li><a href="/">Home</a></li>
-    <li><a href="/#tools">Tools</a></li>
-    <li><a href="/templates/">Templates</a></li>
-    <li><a href="../tutorials/index.html">Tutorials</a></li>
+    <!-- Example of a "dropdown" for each top-level item -->
+    <li class="dropdown">
+      <a href="/">Home</a>
+      <ul class="dropdown-menu">
+        <li><a href="/">Main Page</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/#tools">Tools</a>
+      <ul class="dropdown-menu">
+        <li><a href="/network-diagram/">Network Diagram Tool</a></li>
+        <li><a href="/WSB-generator/">WBS Generator</a></li>
+        <li><a href="/statistics/">Statistical Analysis</a></li>
+        <li><a href="/evc/">Earned Value Calculator</a></li>
+        <li><a href="/risk-register/">Risk Register &amp; Assessment</a></li>
+        <li><a href="/monte-carlo/">Monte Carlo Simulation</a></li>
+        <li><a href="/calculators/">PM Financial Calculator</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/templates/">Templates</a>
+      <ul class="dropdown-menu">
+        <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
+        <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="../tutorials/index.html">Tutorials</a>
+      <ul class="dropdown-menu">
+        <li><a href="../tutorials/index.html">Coming Soon</a></li>
+      </ul>
+    </li>
   </ul>
 </nav>
 
@@ -224,13 +252,13 @@
 <!-- Portal-based Dropdown & Two-Tap Mobile Logic -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // If you eventually add .dropdown and .dropdown-menu to your nav items:
+  // If you have .dropdown elements, this code will portal them on desktop
   const dropdowns = document.querySelectorAll('.dropdown');
 
   // 1) Desktop Portal Approach (immediate disappearance)
   dropdowns.forEach(drop => {
     const dropdownMenu = drop.querySelector('.dropdown-menu');
-    
+
     // MOUSE ENTER: detach (portal) to body
     drop.addEventListener('mouseenter', () => {
       const rect = drop.getBoundingClientRect();
