@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,6 +8,82 @@
 
   <!-- Link to your existing style.css in the main repository -->
   <link rel="stylesheet" href="../style.css" />
+
+  <style>
+    /* Top navigation bar with dropdown logic */
+    .topnav {
+      background-color: #333;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+    .topnav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .topnav ul li {
+      flex: none;
+      position: relative; /* for dropdown portal logic */
+    }
+    .topnav ul li a {
+      display: block;
+      padding: 14px 20px;
+      color: white;
+      text-decoration: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .topnav ul li a:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+
+    /* Dropdown menu styling */
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: #333;
+      min-width: 150px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      z-index: 9999;
+    }
+    .dropdown-menu li a {
+      display: block;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .dropdown-menu li a:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      background: url('../images/hero-background.jpg') center/cover no-repeat;
+      color: #fff;
+      padding: 3rem 1rem;
+      text-align: center;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+  </style>
 </head>
 <body>
 
@@ -19,13 +95,40 @@
   </div>
 </header>
 
-<!-- Navigation Bar -->
+<!-- Navigation Bar with Dropdowns -->
 <nav class="topnav">
   <ul>
-    <li><a href="/">Home</a></li>
-    <li><a href="/#tools">Tools</a></li>
-    <li><a href="/templates/">Templates</a></li>
-    <li><a href="/tutorials.html">Tutorials</a></li>
+    <li class="dropdown">
+      <a href="/">Home</a>
+      <ul class="dropdown-menu">
+        <li><a href="/">Main Page</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/#tools">Tools</a>
+      <ul class="dropdown-menu">
+        <li><a href="/network-diagram/">Network Diagram Tool</a></li>
+        <li><a href="/WSB-generator/">WBS Generator</a></li>
+        <li><a href="/statistics/">Statistical Analysis</a></li>
+        <li><a href="/evc/">Earned Value Calculator</a></li>
+        <li><a href="/risk-register/">Risk Register &amp; Assessment</a></li>
+        <li><a href="/monte-carlo/">Monte Carlo Simulation</a></li>
+        <li><a href="/calculators/">PM Financial Calculator</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/templates/">Templates</a>
+      <ul class="dropdown-menu">
+        <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
+        <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/tutorials/">Tutorials</a>
+      <ul class="dropdown-menu">
+        <li><a href="/tutorials/index.html">Tutorials Index</a></li>
+      </ul>
+    </li>
   </ul>
 </nav>
 
@@ -43,5 +146,94 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
+<!-- Portal-based Dropdown & Two-Tap Mobile Logic -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // "Portal" approach for desktop with immediate disappearance
+  const dropdowns = document.querySelectorAll('.dropdown');
+
+  // 1) Desktop Portal Approach
+  dropdowns.forEach(drop => {
+    const dropdownMenu = drop.querySelector('.dropdown-menu');
+
+    // MOUSE ENTER: detach (portal) to body
+    drop.addEventListener('mouseenter', () => {
+      const rect = drop.getBoundingClientRect();
+      document.body.appendChild(dropdownMenu);
+      dropdownMenu.style.position = 'fixed';
+      dropdownMenu.style.top = rect.bottom + 'px';
+      dropdownMenu.style.left = rect.left + 'px';
+      dropdownMenu.style.display = 'block';
+      dropdownMenu.style.zIndex = '10000000';
+    });
+
+    // MOUSE LEAVE: hide immediately
+    drop.addEventListener('mouseleave', () => {
+      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+        drop.appendChild(dropdownMenu);
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.display = 'none';
+      }
+    });
+
+    // If mouse leaves the menu itself
+    dropdownMenu.addEventListener('mouseleave', () => {
+      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+        drop.appendChild(dropdownMenu);
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.display = 'none';
+      }
+    });
+  });
+
+  // 2) Hide any open menu if user scrolls
+  window.addEventListener('scroll', () => {
+    dropdowns.forEach(drop => {
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      if (dropdownMenu && dropdownMenu.style.position === 'fixed') {
+        drop.appendChild(dropdownMenu);
+        dropdownMenu.style.position = '';
+        dropdownMenu.style.top = '';
+        dropdownMenu.style.left = '';
+        dropdownMenu.style.display = 'none';
+      }
+    });
+  });
+
+  // 3) Two-Tap Fix on Mobile
+  if ('ontouchstart' in window) {
+    document.querySelectorAll('.dropdown > a').forEach(topLink => {
+      let isOpen = false;
+      topLink.addEventListener('click', e => {
+        const parentLi = topLink.closest('.dropdown');
+        const dropdownMenu = parentLi.querySelector('.dropdown-menu');
+        if (!isOpen) {
+          // First tap: open the menu, prevent navigation
+          e.preventDefault();
+          const rect = parentLi.getBoundingClientRect();
+          document.body.appendChild(dropdownMenu);
+          dropdownMenu.style.position = 'fixed';
+          dropdownMenu.style.top = rect.bottom + 'px';
+          dropdownMenu.style.left = rect.left + 'px';
+          dropdownMenu.style.display = 'block';
+          dropdownMenu.style.zIndex = '10000000';
+          isOpen = true;
+        } else {
+          // Second tap: forcibly navigate
+          e.preventDefault();
+          isOpen = false;
+          setTimeout(() => {
+            window.location = topLink.href;
+          }, 100);
+        }
+      });
+    });
+  }
+});
+</script>
 </body>
 </html>
