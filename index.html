@@ -100,7 +100,6 @@
       padding: 2rem;
       border-radius: 10px;
     }
-    /* Slider Arrows */
     .slider-arrow {
       position: absolute;
       top: 50%;
@@ -323,7 +322,6 @@
         <p>Find out the probability of completing your project on schedule and within budget using the Monte Carlo Simulation Tool.</p>
       </div>
     </div>
-
     <!-- Slide 2: Network Diagram -->
     <div class="slide">
       <video autoplay loop muted playsinline class="slide-video">
@@ -334,7 +332,6 @@
         <p>Identify float, crashable activities, and the critical path with the Network Diagram Tool.</p>
       </div>
     </div>
-
     <!-- Slide 3: Weighted Average -->
     <div class="slide">
       <video autoplay loop muted playsinline class="slide-video">
@@ -345,7 +342,6 @@
         <p>Compare project options and calculate future value with the Weighted Average Calculator.</p>
       </div>
     </div>
-
     <!-- Slide 4: Risk Management -->
     <div class="slide">
       <video autoplay loop muted playsinline class="slide-video">
@@ -356,7 +352,6 @@
         <p>Predict, model, and mitigate risks by combining the Risk Register, Monte Carlo Simulation, and Linear Regression Template.</p>
       </div>
     </div>
-    
     <!-- Final Slide: Scrolling Questions -->
     <div class="slide final-slide">
       <div class="credits-scroll-wrapper">
@@ -393,42 +388,36 @@
       <p>Analyze your project's critical path and schedule.</p>
       <a href="network-diagram/" class="tool-button">Open Tool</a>
     </div>
-
     <div class="tool-card">
       <img src="images/WSB.png" alt="WBS Generator" />
       <h2>WBS Generator</h2>
       <p>Create a work breakdown structure for your project.</p>
       <a href="WSB-generator/" class="tool-button">Open Tool</a>
     </div>
-    
     <div class="tool-card">
       <img src="images/statistics.PNG" alt="Statistical Analysis" />
       <h2>Statistical Analysis</h2>
       <p>Analyze data and make predictions using regression models.</p>
       <a href="statistics/" class="tool-button">Open Tool</a>
     </div>
-    
     <div class="tool-card">
       <img src="images/evc.png" alt="Earned Value Calculator" />
       <h2>Earned Value Calculator</h2>
       <p>Calculate CPI, SPI, and EAC to track project performance.</p>
       <a href="evc/" class="tool-button">Open Tool</a>
     </div>
-
     <div class="tool-card">
       <img src="images/risk_assessment.png" alt="Risk Register" />
       <h2>Risk Register &amp; Assessment</h2>
       <p>Identify, prioritize, and manage project risks efficiently.</p>
       <a href="risk-register/" class="tool-button">Open Tool</a>
     </div>
-
     <div class="tool-card">
       <img src="images/monte_carlo.png" alt="Monte Carlo Simulations" />
       <h2>Monte Carlo Simulation</h2>
       <p>Predict project outcomes based on uncertainty and risks.</p>
       <a href="monte-carlo/" class="tool-button">Open Tool</a>
     </div>
-
     <div class="tool-card">
       <img src="images/calculator.png" alt="PM Financial Calculator" />
       <h2>PM Financial Calculator</h2>
@@ -450,53 +439,52 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
-<!-- JavaScript for Slide Navigation & Dropdown Portaling -->
+<!-- JavaScript for Slide Navigation -->
 <script>
-  // Slide navigation
-  let currentSlide = 0;
-  const slides = document.querySelectorAll(".slide");
-  const totalSlides = slides.length;
-  const creditsList = document.getElementById("creditsList");
+let currentSlide = 0;
+const slides = document.querySelectorAll(".slide");
+const totalSlides = slides.length;
+const creditsList = document.getElementById("creditsList");
 
-  function moveSlide(direction) {
-    currentSlide += direction;
-    if (currentSlide < 0) currentSlide = 0;
-    if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+function moveSlide(direction) {
+  currentSlide += direction;
+  if (currentSlide < 0) currentSlide = 0;
+  if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+  document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
 
-    // Use template literal for transform
-    document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
-
-    if (slides[currentSlide].classList.contains("final-slide")) {
-      startScrollingCredits();
-    } else {
-      stopScrollingCredits();
-    }
+  // If final slide, start scrolling
+  if (slides[currentSlide].classList.contains("final-slide")) {
+    startScrollingCredits();
+  } else {
+    stopScrollingCredits();
   }
+}
 
-  function startScrollingCredits() {
-    creditsList.style.visibility = "visible";
-    creditsList.style.animation = "none";
-    requestAnimationFrame(() => {
-      creditsList.style.animation = "creditsScroll 30s linear infinite";
-      creditsList.style.animationDelay = "0s";
-    });
-  }
+function startScrollingCredits() {
+  creditsList.style.visibility = "visible";
+  creditsList.style.animation = "none";
+  requestAnimationFrame(() => {
+    creditsList.style.animation = "creditsScroll 30s linear infinite";
+    creditsList.style.animationDelay = "0s";
+  });
+}
 
-  function stopScrollingCredits() {
-    creditsList.style.animation = "none";
-    creditsList.style.visibility = "hidden";
-  }
+function stopScrollingCredits() {
+  creditsList.style.animation = "none";
+  creditsList.style.visibility = "hidden";
+}
 </script>
 
+<!-- Dropdown Portal + Two-Tap Logic -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // Speed up videos
+  // Speed up all videos
   const allVideos = document.querySelectorAll("video");
   allVideos.forEach(video => {
     video.playbackRate = 1.2;
   });
 
-  // Desktop "portal" approach, immediate hide on mouse leave or scroll
+  // Desktop "portal" approach, immediate hide on mouse leave
   const dropdowns = document.querySelectorAll('.dropdown');
   dropdowns.forEach(drop => {
     const dropdownMenu = drop.querySelector('.dropdown-menu');
@@ -535,8 +523,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Hide any open menu on scroll
-  window.addEventListener('scroll', () => {
+  // Hide any open menu on scroll or touchmove
+  function hideOpenMenus() {
     dropdowns.forEach(drop => {
       const dropdownMenu = drop.querySelector('.dropdown-menu');
       if (dropdownMenu.style.position === 'fixed') {
@@ -547,7 +535,9 @@ document.addEventListener("DOMContentLoaded", () => {
         dropdownMenu.style.display = 'none';
       }
     });
-  });
+  }
+  window.addEventListener('scroll', hideOpenMenus, { passive: true });
+  window.addEventListener('touchmove', hideOpenMenus, { passive: true });
 
   // Two-tap fix on mobile
   if ('ontouchstart' in window) {
@@ -557,7 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const parentLi = topLink.closest('.dropdown');
         const dropdownMenu = parentLi.querySelector('.dropdown-menu');
         if (!isOpen) {
-          // First tap: show the menu, prevent default
+          // First tap: open menu, prevent navigation
           e.preventDefault();
           const rect = parentLi.getBoundingClientRect();
           document.body.appendChild(dropdownMenu);
@@ -568,20 +558,21 @@ document.addEventListener("DOMContentLoaded", () => {
           dropdownMenu.style.zIndex = '10000000';
           isOpen = true;
         } else {
-          // Second tap: do NOT prevent default, so iOS navigates
+          // Second tap: let normal navigation proceed
           isOpen = false;
-          // Hide menu immediately
+          // Hide menu
           dropdownMenu.style.display = 'none';
           dropdownMenu.style.position = '';
           dropdownMenu.style.top = '';
           dropdownMenu.style.left = '';
           parentLi.appendChild(dropdownMenu);
-          // Let normal link navigation proceed
+          // No preventDefault, so iOS will navigate
         }
       });
     });
   }
 });
 </script>
+
 </body>
 </html>
