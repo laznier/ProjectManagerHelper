@@ -105,9 +105,19 @@
     #predictionSection {
       margin: 10px 0;
     }
+    /* Back button fixed to top left */
+    #backButton {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
+  <!-- Back Button -->
+  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+
   <!-- Multi-variable Statistics, Correlation & Distribution Fit Section -->
   <div class="container" id="statisticsContainer">
     <h1>Multi-variable Statistics, Correlation & Distribution Fit Calculator</h1>
@@ -253,24 +263,58 @@
       values.forEach(val => { sumFourthDiff += Math.pow(val - mean, 4); });
       return (n * (n + 1) / ((n - 1) * (n - 2) * (n - 3))) * (sumFourthDiff / Math.pow(stdDev, 4)) - (3 * Math.pow(n - 1, 2) / ((n - 2) * (n - 3)));
     }
+    // Updated distribution fit function.
+    // This function now “searches” for:
+    // • Triangular, Normal, Uniform, PERT, Exponential, Lognormal, Weibull, Gamma, Poisson, Binomial.
+    // For discrete data, it suggests Poisson or Binomial. Otherwise, it compares skew, kurtosis, and other measures.
     function getDistributionFit(data, mean, stdDev, min, max, modeStr) {
       const n = data.length;
       if(n < 5) return "Insufficient data for distribution analysis";
+      
+      // Determine if data are discrete (all integers)
+      const allIntegers = data.every(val => Number.isInteger(val));
       const skew = calculateSkewness(data, mean, stdDev);
       const kurt = calculateKurtosis(data, mean, stdDev);
-      let distribution = "";
-      if (Math.abs(skew) < 0.5 && Math.abs(kurt) < 0.5) {
-        distribution = "Normal Distribution";
-      } else if (Math.abs(skew) < 0.5 && kurt < -0.8) {
-        distribution = "Uniform Distribution";
-      } else if (modeStr !== "No mode") {
+      
+      if(allIntegers) {
+        if(Math.abs((stdDev*stdDev)-mean)/mean < 0.2) {
+          return `Poisson Distribution (λ ≈ ${mean.toFixed(2)})`;
+        }
+        if(mean < max) {
+          return `Binomial Distribution (n ≈ ${max.toFixed(0)}, p ≈ ${(mean/max).toFixed(2)})`;
+        }
+      }
+      
+      // For continuous data:
+      if(Math.abs(skew) < 0.5 && Math.abs(kurt) < 0.5) {
+        return "Normal Distribution (mean, stdDev)";
+      } else if(Math.abs(skew) < 0.5 && kurt < -0.8) {
+        return "Uniform Distribution (min, max)";
+      } else if(modeStr !== "No mode") {
         const modeVal = parseFloat(modeStr.split(",")[0]);
         const pos = (modeVal - min) / (max - min);
-        distribution = (pos < 0.3 || pos > 0.7) ? "Triangular Distribution" : "PERT Distribution";
-      } else {
-        distribution = "Other / Unclear Distribution";
+        if(pos < 0.3 || pos > 0.7) {
+          return "Triangular Distribution (min, mode, max)";
+        } else {
+          return `PERT Distribution (optimistic: ${min.toFixed(2)}, most likely: ${modeVal.toFixed(2)}, pessimistic: ${max.toFixed(2)})`;
+        }
       }
-      return distribution + ` (Skew: ${skew.toFixed(2)}, Kurtosis: ${kurt.toFixed(2)})`;
+      // Check for exponential: high skew and high kurtosis
+      if(skew > 1.5 && kurt > 5) {
+        return `Exponential Distribution (λ ≈ ${(1/mean).toFixed(2)})`;
+      }
+      // Check for lognormal: moderate-to-high skew, positive values
+      if(skew > 1 && skew < 2 && mean > 0) {
+        return "Lognormal Distribution (mu, sigma)";
+      }
+      // For moderately skewed data, decide between Weibull and Gamma using CV.
+      const cv = stdDev/mean;
+      if(cv > 1) {
+        return "Weibull Distribution (shape, scale)";
+      } else {
+        return "Gamma Distribution (shape, scale)";
+      }
+      return "Random/Unclear Distribution";
     }
 
     /***********************
@@ -787,130 +831,7 @@
       predictionHTML += "</div>";
       document.getElementById("regressionResults").innerHTML += predictionHTML;
     }
-    // Button functions.
-    function calculateMultiLinearRegression() {
-      calculateMultiLinearRegressionInternal();
-    }
-    function calculateMultiLinearRegressionInternal() {
-      // (See linear regression function above)
-      const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
-      multiRegModels = [];
-      let resultsHTML = "<div class='result-section'><h2>Linear Regression Models</h2>";
-      for (let depIndex in depData) {
-        let yData = depData[depIndex].filter(val => val !== null);
-        if (xData.length < 2 || yData.length < 2) continue;
-        const { slope, intercept } = linearRegression(xData, yData);
-        let predictions = xData.map(x => slope * x + intercept);
-        let sumSquaredError = 0;
-        for (let i = 0; i < predictions.length; i++) {
-          let error = yData[i] - predictions[i];
-          sumSquaredError += error * error;
-        }
-        let rmse = Math.sqrt(sumSquaredError / predictions.length);
-        let meanY = calculateMean(yData);
-        let ssTot = 0;
-        for (let i = 0; i < yData.length; i++) {
-          ssTot += Math.pow(yData[i] - meanY, 2);
-        }
-        let rSquared = 1 - (sumSquaredError / ssTot);
-        multiRegModels.push({
-          depIndex: parseInt(depIndex),
-          depName: variableNames[parseInt(depIndex) - 1],
-          slope, intercept,
-          type: "linear",
-          xData, yData,
-          rmse, rSquared
-        });
-        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}</div>`;
-      }
-      resultsHTML += "</div>";
-      document.getElementById("regressionResults").innerHTML = resultsHTML;
-      plotMultiRegressionModels("linear");
-    }
-    function calculateMultiPolynomialRegression() {
-      const degree = parseInt(document.getElementById("polyDegree").value);
-      if (isNaN(degree) || degree < 1) {
-        alert("Please enter a valid polynomial degree (>=1).");
-        return;
-      }
-      const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
-      multiRegModels = [];
-      let resultsHTML = `<div class='result-section'><h2>Polynomial Regression Models (Degree ${degree})</h2>`;
-      for (let depIndex in depData) {
-        let yData = depData[depIndex].filter(val => val !== null);
-        if (xData.length < 2 || yData.length < 2) continue;
-        const coeffs = polynomialRegression(xData, yData, degree);
-        let predictions = xData.map(x => {
-          let yPred = 0;
-          for (let j = 0; j < coeffs.length; j++){
-            yPred += coeffs[j] * Math.pow(x, j);
-          }
-          return yPred;
-        });
-        let sumSquaredError = 0;
-        for (let i = 0; i < predictions.length; i++){
-          let error = yData[i] - predictions[i];
-          sumSquaredError += error * error;
-        }
-        let rmse = Math.sqrt(sumSquaredError / predictions.length);
-        let meanY = calculateMean(yData);
-        let ssTot = 0;
-        for (let i = 0; i < yData.length; i++){
-          ssTot += Math.pow(yData[i] - meanY, 2);
-        }
-        let rSquared = 1 - (sumSquaredError / ssTot);
-        multiRegModels.push({
-          depIndex: parseInt(depIndex),
-          depName: variableNames[parseInt(depIndex) - 1],
-          polyCoeffs: coeffs,
-          type: "polynomial",
-          degree,
-          xData, yData,
-          rmse, rSquared
-        });
-        let eqStr = "y = ";
-        for (let i = 0; i < coeffs.length; i++) {
-          let term = coeffs[i].toFixed(2);
-          if (i > 0) {
-            term += "x";
-            if (i > 1) term += "^" + i;
-          }
-          if (i > 0 && coeffs[i] >= 0) {
-            eqStr += " + " + term;
-          } else {
-            eqStr += term;
-          }
-        }
-        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: ${eqStr} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}</div>`;
-      }
-      resultsHTML += "</div>";
-      document.getElementById("regressionResults").innerHTML = resultsHTML;
-      plotMultiRegressionModels("polynomial");
-    }
-    function makePredictions() {
-      const predX = parseFloat(document.getElementById("predX").value);
-      if (isNaN(predX)) {
-        alert("Please enter a valid number for X.");
-        return;
-      }
-      let predictionHTML = "<div class='result-section'><h2>Predictions</h2>";
-      multiRegModels.forEach(model => {
-        let predY;
-        if (model.type === "linear") {
-          predY = model.slope * predX + model.intercept;
-        } else {
-          predY = 0;
-          for (let j = 0; j < model.polyCoeffs.length; j++) {
-            predY += model.polyCoeffs[j] * Math.pow(predX, j);
-          }
-        }
-        predictionHTML += `<div class="result-line"><strong>${model.depName}:</strong> For X = ${predX}, predicted Y = ${predY.toFixed(2)}</div>`;
-      });
-      predictionHTML += "</div>";
-      document.getElementById("regressionResults").innerHTML += predictionHTML;
-    }
   </script>
 </body>
 <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
-
 </html>
