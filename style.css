@@ -38,6 +38,21 @@ body {
   -webkit-overflow-scrolling: touch;
   white-space: nowrap;
 }
+
+/* Hide the dropdown menu off-screen by default (for portal approach) */
+.dropdown-menu {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  display: none;
+  background-color: #333;
+  min-width: 150px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Top-level nav links */
 .topnav ul {
   list-style: none;
   margin: 0;
@@ -46,23 +61,8 @@ body {
 }
 .topnav ul li {
   flex: none;
-  
-/* Match dropdown links to main nav link styles */
-.topnav .dropdown-menu li a,
-.topnav .dropdown-menu li a:visited {
-  display: block !important;
-  padding: 14px 20px !important;
-  color: white !important;
-  background-color: #333 !important;
-  text-decoration: none !important;
-  transition: background-color 0.3s ease, color 0.3s ease !important;
+  position: relative; /* for initial dropdown positioning before portaling */
 }
-
-.topnav .dropdown-menu li a:hover {
-  background-color: #ddd !important;
-  color: #333 !important;
-}
-
 .topnav ul li a {
   display: block;
   padding: 14px 20px;
@@ -74,19 +74,19 @@ body {
   background-color: #ddd;
   color: #333;
 }
-/* style.css */
 
-/* Hide the dropdown menu off-screen by default */
-.dropdown-menu {
-  position: absolute;
-  top: -9999px;
-  left: -9999px;
-  display: none;
-  background-color: #333;
-  min-width: 150px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
+/* ===== Dropdown items match the same styling as parent links ===== */
+.dropdown-menu li a {
+  display: block;
+  padding: 14px 20px; /* same as topnav links */
+  color: white;       /* same as topnav links */
+  background-color: #333; /* same background as parent */
+  text-decoration: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.dropdown-menu li a:hover {
+  background-color: #ddd;
+  color: #333;
 }
 
 /* Main Tool Grid */
@@ -161,7 +161,6 @@ footer {
   text-decoration: none;
   transition: background-color 0.3s;
 }
-
 #feedback-section a:hover {
   background-color: #555;
   color: #fff;
