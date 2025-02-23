@@ -452,7 +452,6 @@ function moveSlide(direction) {
   if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
   document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
 
-  // If final slide, start scrolling
   if (slides[currentSlide].classList.contains("final-slide")) {
     startScrollingCredits();
   } else {
@@ -484,12 +483,12 @@ document.addEventListener("DOMContentLoaded", () => {
     video.playbackRate = 1.2;
   });
 
-  // Desktop "portal" approach, immediate hide on mouse leave
+  // Desktop "portal" approach
   const dropdowns = document.querySelectorAll('.dropdown');
   dropdowns.forEach(drop => {
     const dropdownMenu = drop.querySelector('.dropdown-menu');
 
-    // Mouse enter: detach to body
+    // On mouse enter
     drop.addEventListener('mouseenter', () => {
       const rect = drop.getBoundingClientRect();
       document.body.appendChild(dropdownMenu);
@@ -500,7 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dropdownMenu.style.zIndex = '10000000';
     });
 
-    // Mouse leave: hide immediately
+    // On mouse leave
     drop.addEventListener('mouseleave', () => {
       if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
         drop.appendChild(dropdownMenu);
@@ -511,7 +510,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Also if mouse leaves the menu
+    // Menu mouse leave
     dropdownMenu.addEventListener('mouseleave', () => {
       if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
         drop.appendChild(dropdownMenu);
@@ -536,8 +535,27 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-  window.addEventListener('scroll', hideOpenMenus, { passive: true });
-  window.addEventListener('touchmove', hideOpenMenus, { passive: true });
+  document.addEventListener('scroll', hideOpenMenus, { passive: true });
+  document.addEventListener('touchmove', hideOpenMenus, { passive: true });
+
+  // Also close if user taps anywhere outside the menu
+  document.addEventListener('touchstart', (ev) => {
+    // If user taps outside any open dropdown menu
+    let tappedInside = false;
+    dropdowns.forEach(drop => {
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      if (dropdownMenu.style.position === 'fixed') {
+        // Check if the tap is inside the dropdown
+        if (dropdownMenu.contains(ev.target)) {
+          tappedInside = true;
+        }
+      }
+    });
+    // If not inside, hide all
+    if (!tappedInside) {
+      hideOpenMenus();
+    }
+  }, { passive: true });
 
   // Two-tap fix on mobile
   if ('ontouchstart' in window) {
@@ -547,7 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const parentLi = topLink.closest('.dropdown');
         const dropdownMenu = parentLi.querySelector('.dropdown-menu');
         if (!isOpen) {
-          // First tap: open menu, prevent navigation
+          // First tap: open menu, prevent nav
           e.preventDefault();
           const rect = parentLi.getBoundingClientRect();
           document.body.appendChild(dropdownMenu);
@@ -558,15 +576,15 @@ document.addEventListener("DOMContentLoaded", () => {
           dropdownMenu.style.zIndex = '10000000';
           isOpen = true;
         } else {
-          // Second tap: let normal navigation proceed
+          // Second tap: do NOT prevent default -> iOS navigates
           isOpen = false;
-          // Hide menu
+          // Hide the menu
           dropdownMenu.style.display = 'none';
           dropdownMenu.style.position = '';
           dropdownMenu.style.top = '';
           dropdownMenu.style.left = '';
           parentLi.appendChild(dropdownMenu);
-          // No preventDefault, so iOS will navigate
+          // Let normal link navigation happen
         }
       });
     });
