@@ -46,23 +46,23 @@ body {
 }
 .topnav ul li {
   flex: none;
-
-  /* Match the parent navigation link styles for dropdown items */
-.dropdown-menu li a {
-  display: block;
-  padding: 14px 20px; /* same padding as parent */
-  color: white;       /* same text color as parent */
-  background-color: #333; /* same background as parent */
-  text-decoration: none;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  
+/* Match dropdown links to main nav link styles */
+.topnav .dropdown-menu li a,
+.topnav .dropdown-menu li a:visited {
+  display: block !important;
+  padding: 14px 20px !important;
+  color: white !important;
+  background-color: #333 !important;
+  text-decoration: none !important;
+  transition: background-color 0.3s ease, color 0.3s ease !important;
 }
 
-.dropdown-menu li a:hover {
-  background-color: #ddd; /* same hover background as parent */
-  color: #333;            /* same hover text color as parent */
+.topnav .dropdown-menu li a:hover {
+  background-color: #ddd !important;
+  color: #333 !important;
 }
 
-}
 .topnav ul li a {
   display: block;
   padding: 14px 20px;
