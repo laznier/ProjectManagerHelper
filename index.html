@@ -464,6 +464,7 @@
   const slides = document.querySelectorAll(".slide");
   const totalSlides = slides.length;
   const creditsList = document.getElementById("creditsList");
+
   function moveSlide(direction) {
     currentSlide += direction;
     if (currentSlide < 0) currentSlide = 0;
@@ -488,6 +489,7 @@
     creditsList.style.visibility = "hidden";
   }
 </script>
+
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     // Set playback speed for all videos
@@ -495,7 +497,8 @@
     allVideos.forEach(video => {
       video.playbackRate = 1.2;
     });
-    // Dropdown Portaling: detach dropdown menu to body on hover
+
+    // Dropdown Portaling on mouseenter/mouseleave (desktop)
     document.querySelectorAll('.dropdown').forEach(function(drop) {
       const dropdownMenu = drop.querySelector('.dropdown-menu');
       drop.addEventListener('mouseenter', function() {
@@ -530,6 +533,33 @@
         }, 150);
       });
     });
+
+    // === Minimal addition: "two-tap" fix on mobile so first tap opens, second tap navigates ===
+    // We'll do it only if there's a 'touchstart' in window (i.e., touchscreen).
+    if ('ontouchstart' in window) {
+      document.querySelectorAll('.dropdown > a').forEach(function(topLink) {
+        let isOpen = false;
+        topLink.addEventListener('click', function(e) {
+          // If the dropdown is not open yet, open it and prevent navigation
+          const parentLi = topLink.closest('.dropdown');
+          const dropdownMenu = parentLi.querySelector('.dropdown-menu');
+          if (!isOpen) {
+            e.preventDefault();
+            const rect = parentLi.getBoundingClientRect();
+            document.body.appendChild(dropdownMenu);
+            dropdownMenu.style.position = 'fixed';
+            dropdownMenu.style.top = rect.bottom + 'px';
+            dropdownMenu.style.left = rect.left + 'px';
+            dropdownMenu.style.display = 'block';
+            dropdownMenu.style.zIndex = '10000000';
+            isOpen = true;
+          } else {
+            // second tap: let the navigation happen
+            isOpen = false;
+          }
+        });
+      });
+    }
   });
 </script>
 </body>
