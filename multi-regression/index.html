@@ -1,0 +1,812 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-variable Statistics, Regression & Distribution Fit Calculator</title>
+  <meta name="description" content="Input multiple variables and observations (or paste from Excel) to compute descriptive statistics, correlation coefficients, distribution fit, and run multiple regression with predictions and error metrics displayed along with chart output based on your dataset." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 20px;
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 40px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 90%;
+      padding: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px 2px;
+      background-color: #007BFF;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .results {
+      margin-top: 20px;
+      padding: 10px;
+      background: #eef;
+      border: 1px solid #ccd;
+      border-radius: 4px;
+    }
+    .result-section {
+      margin-bottom: 20px;
+    }
+    .result-line {
+      margin: 4px 0;
+    }
+    .correlation-table {
+      margin-top: 10px;
+      border: 1px solid #999;
+    }
+    .correlation-table th, .correlation-table td {
+      border: 1px solid #999;
+      padding: 4px;
+    }
+    /* Styling for the Excel paste area */
+    #excelImport {
+      margin: 10px 0;
+    }
+    #excelData {
+      width: 100%;
+      height: 80px;
+      padding: 8px;
+      font-family: monospace;
+      box-sizing: border-box;
+    }
+    /* Back button styling */
+    #backButton {
+      margin-bottom: 20px;
+      background-color: #555;
+    }
+    /* Prediction section styling */
+    #predictionSection input[type="number"] {
+      width: 80px;
+    }
+    /* Tooltip styling */
+    .tooltip {
+      position: relative;
+      cursor: help;
+      border-bottom: 1px dotted #000;
+    }
+    .tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 0;
+      bottom: 100%;
+      background: #333;
+      color: #fff;
+      padding: 5px;
+      white-space: nowrap;
+      border-radius: 4px;
+      font-size: 0.8em;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <!-- Back Button -->
+  <button id="backButton" onclick="window.location.href='index.html'">Back to Main Page</button>
+
+  <!-- Statistics Section -->
+  <div class="container" id="statisticsContainer">
+    <h1>Multi-variable Statistics, Correlation & Distribution Fit Calculator</h1>
+    <p>
+      Input your variables (as columns) and observations (as rows). Use the buttons below to add variables or observations.
+      When you click "Calculate Statistics," the tool computes for each variable:
+      <br>
+      <strong>Count, Sum, Mean, Median, Mode, Variance, Standard Deviation, 95% Confidence Interval, and a guess for the best-fit distribution.</strong>
+      <br>
+      It also generates a correlation matrix for all variables.
+    </p>
+    <div>
+      <button onclick="addVariable()">Add Variable</button>
+      <button onclick="addObservation()">Add Observation</button>
+    </div>
+    
+    <!-- Excel Import Section -->
+    <div id="excelImport">
+      <h3>Paste Excel Data</h3>
+      <textarea id="excelData" placeholder="Paste tab-separated data from Excel here..."></textarea><br>
+      <button onclick="importExcelData()">Import Excel Data</button>
+    </div>
+    
+    <table id="dataTable">
+      <thead>
+        <tr id="headerRow">
+          <th>No.</th>
+          <!-- Variable headers will be inserted here -->
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Observations (rows) will be added here -->
+      </tbody>
+    </table>
+    <div id="results" class="results"></div>
+  </div>
+
+  <!-- Regression Section -->
+  <div class="container" id="regressionContainer">
+    <h1>Multiple Regression Analysis</h1>
+    <p>
+      Select the <strong>Dependent Variable</strong> from the dropdown below.
+      All other variables will be used as <strong>Independent Variables</strong> for predicting the outcome.
+      After calculating the regression, the results (including coefficients, standard errors, t‑statistics, p‑values, and the overall <span class="tooltip" data-tooltip="R² (Coefficient of Determination): Proportion of variance in the dependent variable explained by the model.">R²</span>) will be displayed.
+      Variables with <span class="tooltip" data-tooltip="p‑Value: The probability that the coefficient is zero, indicating the predictor's significance.">p‑values</span> &gt; 0.15 are flagged for potential exclusion.
+    </p>
+    <div id="regressionSelectors">
+      <label for="yVarSelect">Dependent Variable:</label>
+      <select id="yVarSelect"></select>
+      <button onclick="updateRegressionSelectors()">Refresh Variable List</button>
+    </div>
+    <div>
+      <button onclick="calculateMultipleRegression()">Calculate Regression</button>
+    </div>
+    <div id="regressionResults" class="results"></div>
+    <div id="chartContainer">
+      <canvas id="regChart"></canvas>
+    </div>
+    <div id="predictionSection">
+      <h2>Prediction</h2>
+      <div id="predictionInputs"></div>
+      <button onclick="makePrediction()">Predict</button>
+      <div id="predictionOutput"></div>
+    </div>
+  </div>
+
+  <script>
+    /**********************
+     * Global Variables and Utility Functions
+     **********************/
+    let regChart;
+    let regressionModel = null; // will hold the regression model details
+
+    // Descriptive statistics functions.
+    function calculateMean(values) {
+      const sum = values.reduce((acc, val) => acc + val, 0);
+      return sum / values.length;
+    }
+    function calculateMedian(values) {
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return (sorted.length % 2 === 0) ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    }
+    function calculateMode(values) {
+      const frequency = {};
+      let maxFreq = 0;
+      values.forEach(val => {
+        frequency[val] = (frequency[val] || 0) + 1;
+        if (frequency[val] > maxFreq) maxFreq = frequency[val];
+      });
+      const modes = [];
+      for (let key in frequency) {
+        if (frequency[key] === maxFreq && maxFreq > 1) {
+          modes.push(Number(key));
+        }
+      }
+      return modes.length ? modes.join(", ") : "No mode";
+    }
+    function calculateVariance(values, mean) {
+      if(values.length < 2) return 0;
+      const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+      return squaredDiffs.reduce((acc, val) => acc + val, 0) / (values.length - 1);
+    }
+    function calculateStdDev(variance) {
+      return Math.sqrt(variance);
+    }
+    function calculateConfidenceInterval(stdDev, n) {
+      const z = 1.96;
+      return z * (stdDev / Math.sqrt(n));
+    }
+    function calculateCorrelation(xValues, yValues) {
+      if (xValues.length !== yValues.length || xValues.length < 2) return null;
+      const n = xValues.length;
+      const meanX = calculateMean(xValues);
+      const meanY = calculateMean(yValues);
+      let cov = 0, varX = 0, varY = 0;
+      for (let i = 0; i < n; i++) {
+        const dx = xValues[i] - meanX;
+        const dy = yValues[i] - meanY;
+        cov += dx * dy;
+        varX += dx * dx;
+        varY += dy * dy;
+      }
+      cov = cov / (n - 1);
+      varX = varX / (n - 1);
+      varY = varY / (n - 1);
+      return cov / (Math.sqrt(varX) * Math.sqrt(varY));
+    }
+    function calculateSkewness(values, mean, stdDev) {
+      const n = values.length;
+      if(n < 3 || stdDev === 0) return 0;
+      let sumCubedDiff = 0;
+      values.forEach(val => { sumCubedDiff += Math.pow(val - mean, 3); });
+      return (n / ((n - 1) * (n - 2))) * (sumCubedDiff / Math.pow(stdDev, 3));
+    }
+    function calculateKurtosis(values, mean, stdDev) {
+      const n = values.length;
+      if(n < 4 || stdDev === 0) return 0;
+      let sumFourthDiff = 0;
+      values.forEach(val => { sumFourthDiff += Math.pow(val - mean, 4); });
+      return (n * (n + 1) / ((n - 1) * (n - 2) * (n - 3))) * (sumFourthDiff / Math.pow(stdDev, 4)) - (3 * Math.pow(n - 1, 2) / ((n - 2) * (n - 3)));
+    }
+    function getDistributionFit(data, mean, stdDev, min, max, modeStr) {
+      const n = data.length;
+      if(n < 5) return "Insufficient data for distribution analysis";
+      const skew = calculateSkewness(data, mean, stdDev);
+      const kurt = calculateKurtosis(data, mean, stdDev);
+      let distribution = "";
+      if (Math.abs(skew) < 0.5 && Math.abs(kurt) < 0.5) {
+        distribution = "Normal Distribution";
+      } else if (Math.abs(skew) < 0.5 && kurt < -0.8) {
+        distribution = "Uniform Distribution";
+      } else if (modeStr !== "No mode") {
+        const modeVal = parseFloat(modeStr.split(",")[0]);
+        const pos = (modeVal - min) / (max - min);
+        distribution = (pos < 0.3 || pos > 0.7) ? "Triangular Distribution" : "PERT Distribution";
+      } else {
+        distribution = "Other / Unclear Distribution";
+      }
+      return distribution + ` (Skew: ${skew.toFixed(2)}, Kurtosis: ${kurt.toFixed(2)})`;
+    }
+
+    /**********************
+     * Table Management: Adding/Removing Variables and Observations
+     **********************/
+    document.addEventListener("DOMContentLoaded", () => {
+      // Initialize with two default variables and one observation.
+      addVariable("Variable 1");
+      addVariable("Variable 2");
+      addObservation();
+      updateRegressionSelectors();
+    });
+
+    function addVariable(defaultName = "") {
+      const headerRow = document.getElementById("headerRow");
+      const th = document.createElement("th");
+      // Create input for variable name
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Variable Name";
+      if(defaultName) input.value = defaultName;
+      th.appendChild(input);
+      // Add remove button for variable
+      const removeBtn = document.createElement("button");
+      removeBtn.innerText = "Remove";
+      removeBtn.style.marginLeft = "5px";
+      removeBtn.onclick = function() { removeVariable(this); };
+      th.appendChild(removeBtn);
+      // Insert before the last header cell (which is "Actions")
+      headerRow.insertBefore(th, headerRow.lastElementChild);
+      // Add a new cell for each existing observation in tbody
+      const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+      const rows = tbody.getElementsByTagName("tr");
+      for (let row of rows) {
+        const td = document.createElement("td");
+        const obsInput = document.createElement("input");
+        obsInput.type = "number";
+        obsInput.placeholder = "Value";
+        td.appendChild(obsInput);
+        row.insertBefore(td, row.lastElementChild);
+      }
+      updateRegressionSelectors();
+    }
+
+    function removeVariable(button) {
+      const th = button.parentElement;
+      const headerRow = th.parentElement;
+      // Determine index of the variable column (skip first "No." column)
+      let index = Array.from(headerRow.children).indexOf(th);
+      headerRow.removeChild(th);
+      // Remove corresponding cell from each row in tbody
+      const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+      for (let row of tbody.rows) {
+        row.removeChild(row.children[index]);
+      }
+      updateRegressionSelectors();
+    }
+
+    function addObservation() {
+      const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+      const headerRow = document.getElementById("headerRow");
+      const variableCount = headerRow.children.length - 2; // excluding "No." and "Actions"
+      const tr = document.createElement("tr");
+      // First cell: row number
+      const tdNum = document.createElement("td");
+      tdNum.innerText = tbody.rows.length + 1;
+      tr.appendChild(tdNum);
+      // Add cells for each variable
+      for (let i = 0; i < variableCount; i++) {
+        const td = document.createElement("td");
+        const input = document.createElement("input");
+        input.type = "number";
+        input.placeholder = "Value";
+        td.appendChild(input);
+        tr.appendChild(td);
+      }
+      // Add actions cell with remove observation button
+      const tdAction = document.createElement("td");
+      const removeBtn = document.createElement("button");
+      removeBtn.innerText = "Remove";
+      removeBtn.onclick = function() { removeObservation(this); };
+      tdAction.appendChild(removeBtn);
+      tr.appendChild(tdAction);
+      tbody.appendChild(tr);
+    }
+
+    function removeObservation(button) {
+      const tr = button.parentElement.parentElement;
+      tr.parentElement.removeChild(tr);
+      // Update row numbers
+      const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+      let i = 1;
+      for (let row of tbody.rows) {
+        row.children[0].innerText = i++;
+      }
+    }
+
+    function importExcelData() {
+      const data = document.getElementById("excelData").value;
+      if (!data.trim()) return;
+      const rows = data.split(/\r?\n/);
+      const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+      tbody.innerHTML = "";
+      const headerRow = document.getElementById("headerRow");
+      const variableCount = headerRow.children.length - 2; // excluding "No." and "Actions"
+      rows.forEach(function(rowData) {
+        if (!rowData.trim()) return;
+        const cellsData = rowData.split("\t");
+        const tr = document.createElement("tr");
+        const tdNum = document.createElement("td");
+        tdNum.innerText = tbody.rows.length + 1;
+        tr.appendChild(tdNum);
+        for (let i = 0; i < variableCount; i++) {
+          const td = document.createElement("td");
+          const input = document.createElement("input");
+          input.type = "number";
+          input.placeholder = "Value";
+          input.value = cellsData[i] ? cellsData[i].trim() : "";
+          td.appendChild(input);
+          tr.appendChild(td);
+        }
+        const tdAction = document.createElement("td");
+        const removeBtn = document.createElement("button");
+        removeBtn.innerText = "Remove";
+        removeBtn.onclick = function() { removeObservation(this); };
+        tdAction.appendChild(removeBtn);
+        tr.appendChild(tdAction);
+        tbody.appendChild(tr);
+      });
+      updateRegressionSelectors();
+    }
+
+    /**********************
+     * Multiple Regression Functions
+     **********************/
+    function updateRegressionSelectors() {
+      const headerRow = document.getElementById("headerRow");
+      const selectY = document.getElementById("yVarSelect");
+      selectY.innerHTML = "";
+      // Variable header cells are from index 1 to (length - 1) (first cell is "No." and last is "Actions")
+      for (let i = 1; i < headerRow.children.length - 1; i++) {
+        let varName = headerRow.children[i].getElementsByTagName("input")[0].value;
+        if (!varName.trim()) {
+          varName = "Variable " + i;
+        }
+        let option = document.createElement("option");
+        option.value = i;
+        option.text = varName;
+        selectY.appendChild(option);
+      }
+      updatePredictionInputs();
+    }
+
+    // Gather data for multiple regression:
+    // The selected dependent variable is used as y and all other variables as predictors.
+    function getMultipleRegressionData() {
+      const headerRow = document.getElementById("headerRow");
+      const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
+      const independentIndices = [];
+      for (let i = 1; i < headerRow.children.length - 1; i++) {
+        if (i !== dependentIndex) {
+          independentIndices.push(i);
+        }
+      }
+      const independentNames = independentIndices.map(i => {
+        let name = headerRow.children[i].getElementsByTagName("input")[0].value;
+        return name.trim() || ("Variable " + i);
+      });
+      // Build design matrix X (with intercept) and response vector y.
+      const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+      const X = [];
+      const y = [];
+      for (let row of tbody.rows) {
+        const cells = row.getElementsByTagName("td");
+        const depValue = parseFloat(cells[dependentIndex].getElementsByTagName("input")[0].value);
+        if (isNaN(depValue)) continue;
+        let valid = true;
+        let rowX = [1]; // intercept term
+        for (let idx of independentIndices) {
+          const val = parseFloat(cells[idx].getElementsByTagName("input")[0].value);
+          if (isNaN(val)) { valid = false; break; }
+          rowX.push(val);
+        }
+        if (!valid) continue;
+        X.push(rowX);
+        y.push(depValue);
+      }
+      return { X, y, independentNames };
+    }
+
+    // Matrix operations
+    function transpose(matrix) {
+      return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
+    }
+    function multiplyMatrices(A, B) {
+      const result = [];
+      for (let i = 0; i < A.length; i++) {
+        result[i] = [];
+        for (let j = 0; j < B[0].length; j++) {
+          let sum = 0;
+          for (let k = 0; k < A[0].length; k++) {
+            sum += A[i][k] * B[k][j];
+          }
+          result[i][j] = sum;
+        }
+      }
+      return result;
+    }
+    // Inverse using Gauss-Jordan elimination
+    function invertMatrix(matrix) {
+      const n = matrix.length;
+      const identity = [];
+      for (let i = 0; i < n; i++) {
+        identity[i] = [];
+        for (let j = 0; j < n; j++) {
+          identity[i][j] = (i === j) ? 1 : 0;
+        }
+      }
+      const M = matrix.map(row => row.slice());
+      for (let i = 0; i < n; i++) {
+        let pivot = M[i][i];
+        if (pivot === 0) {
+          for (let j = i + 1; j < n; j++) {
+            if (M[j][i] !== 0) {
+              [M[i], M[j]] = [M[j], M[i]];
+              [identity[i], identity[j]] = [identity[j], identity[i]];
+              pivot = M[i][i];
+              break;
+            }
+          }
+          if (pivot === 0) return null;
+        }
+        for (let j = 0; j < n; j++) {
+          M[i][j] /= pivot;
+          identity[i][j] /= pivot;
+        }
+        for (let k = 0; k < n; k++) {
+          if (k === i) continue;
+          const factor = M[k][i];
+          for (let j = 0; j < n; j++) {
+            M[k][j] -= factor * M[i][j];
+            identity[k][j] -= factor * identity[i][j];
+          }
+        }
+      }
+      return identity;
+    }
+
+    function calculateMultipleRegression() {
+      const { X, y, independentNames } = getMultipleRegressionData();
+      const n = X.length;
+      const p = X[0].length; // intercept + predictors
+      if (n <= p) {
+        alert("Not enough observations for regression analysis.");
+        return;
+      }
+      // Compute X^T X and its inverse.
+      const Xt = transpose(X);
+      const XtX = multiplyMatrices(Xt, X);
+      const XtX_inv = invertMatrix(XtX);
+      if (!XtX_inv) {
+        alert("Matrix inversion failed. Check your data.");
+        return;
+      }
+      // Compute X^T y.
+      const Xt_y_matrix = multiplyMatrices(Xt, y.map(val => [val]));
+      const Xt_y = Xt_y_matrix.map(row => row[0]);
+      // Compute regression coefficients: beta = (X^T X)^(-1) * (X^T y)
+      const beta = [];
+      for (let i = 0; i < XtX_inv.length; i++) {
+        let sum = 0;
+        for (let j = 0; j < XtX_inv[0].length; j++) {
+          sum += XtX_inv[i][j] * Xt_y[j];
+        }
+        beta.push(sum);
+      }
+      // Calculate predictions and residuals.
+      const yhat = X.map(row => row.reduce((sum, val, i) => sum + beta[i] * val, 0));
+      const residuals = y.map((val, i) => val - yhat[i]);
+      const SSE = residuals.reduce((sum, e) => sum + e * e, 0);
+      const sigma2 = SSE / (n - p);
+      // Covariance matrix = sigma2 * (X^T X)^(-1)
+      const covMatrix = XtX_inv.map(row => row.map(val => val * sigma2));
+      const se = covMatrix.map((row, i) => Math.sqrt(row[i]));
+      const tStats = beta.map((b, i) => b / se[i]);
+      const df = n - p;
+      const pValues = tStats.map(t => 2 * (1 - tCDF(Math.abs(t), df)));
+      // Calculate R² (coefficient of determination)
+      let meanY = y.reduce((a, b) => a + b, 0) / y.length;
+      let ssTot = y.reduce((sum, val) => sum + Math.pow(val - meanY, 2), 0);
+      let rSquared = 1 - (SSE / ssTot);
+      // Save model for predictions.
+      regressionModel = { beta, se, tStats, pValues, df, independentNames, rSquared };
+      // Build results table.
+      let resultsHTML = "<div class='result-section'><h2>Regression Results</h2>";
+      resultsHTML += "<table border='1' cellpadding='5'><tr>" +
+        "<th>Variable</th>" +
+        "<th><span class='tooltip' data-tooltip='Regression coefficient: Change in outcome for one unit change in predictor.'>Coefficient</span></th>" +
+        "<th><span class='tooltip' data-tooltip='Standard Error: Estimated variability of the coefficient.'>Std Error</span></th>" +
+        "<th><span class='tooltip' data-tooltip='t-Statistic: Coefficient divided by its standard error.'>t-Statistic</span></th>" +
+        "<th><span class='tooltip' data-tooltip='p-Value: Probability that the coefficient is zero.'>p-Value</span></th>" +
+        "<th>Recommendation</th>" +
+        "</tr>";
+      resultsHTML += `<tr>
+        <td>Intercept</td>
+        <td>${beta[0].toFixed(4)}</td>
+        <td>${se[0].toFixed(4)}</td>
+        <td>${tStats[0].toFixed(4)}</td>
+        <td>${pValues[0].toFixed(4)}</td>
+        <td>-</td>
+      </tr>`;
+      for (let i = 1; i < beta.length; i++) {
+        const rec = (pValues[i] > 0.15) ? "Consider excluding" : "Keep";
+        resultsHTML += `<tr>
+          <td>${independentNames[i-1]}</td>
+          <td>${beta[i].toFixed(4)}</td>
+          <td>${se[i].toFixed(4)}</td>
+          <td>${tStats[i].toFixed(4)}</td>
+          <td>${pValues[i].toFixed(4)}</td>
+          <td>${rec}</td>
+        </tr>`;
+      }
+      resultsHTML += `<tr><td colspan="6"><strong>Model <span class="tooltip" data-tooltip="R² (Coefficient of Determination): Proportion of variance in the dependent variable explained by the model.">R²</span>: ${(rSquared * 100).toFixed(2)}%</strong></td></tr>`;
+      resultsHTML += "</table></div>";
+      document.getElementById("regressionResults").innerHTML = resultsHTML;
+      plotRegressionChart(X, y, beta, independentNames);
+      updatePredictionInputs();
+    }
+
+    // --- t-Distribution Functions for p-value Calculation ---
+    function tCDF(t, df) {
+      const x = df / (t * t + df);
+      return 1 - 0.5 * incBeta(df / 2, 0.5, x);
+    }
+    function incBeta(a, b, x) {
+      const bt = (x === 0 || x === 1) ? 0 :
+        Math.exp(gammaln(a + b) - gammaln(a) - gammaln(b) + a * Math.log(x) + b * Math.log(1 - x));
+      if (x < (a + 1) / (a + b + 2)) {
+        return bt * betacf(a, b, x) / a;
+      } else {
+        return 1 - bt * betacf(b, a, 1 - x) / b;
+      }
+    }
+    function betacf(a, b, x) {
+      const MAXIT = 100, EPS = 1e-8;
+      let qab = a + b, qap = a + 1, qam = a - 1;
+      let c = 1, d = 1 - qab * x / qap;
+      if (Math.abs(d) < EPS) d = EPS;
+      d = 1 / d;
+      let h = d;
+      for (let m = 1, m2 = 2; m <= MAXIT; m++, m2 += 2) {
+        let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+        d = 1 + aa * d;
+        if (Math.abs(d) < EPS) d = EPS;
+        c = 1 + aa / c;
+        if (Math.abs(c) < EPS) c = EPS;
+        d = 1 / d;
+        h *= d * c;
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+        d = 1 + aa * d;
+        if (Math.abs(d) < EPS) d = EPS;
+        c = 1 + aa / c;
+        if (Math.abs(c) < EPS) c = EPS;
+        d = 1 / d;
+        let del = d * c;
+        h *= del;
+        if (Math.abs(del - 1) < EPS) break;
+      }
+      return h;
+    }
+    function gammaln(x) {
+      const cof = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+                   -1.231739572450155, 0.001208650973866179, -0.000005395239384953];
+      let ser = 1.000000000190015, y = x, tmp = x + 5.5;
+      tmp -= (x + 0.5) * Math.log(tmp);
+      for (let j = 0; j < cof.length; j++) {
+        y += 1;
+        ser += cof[j] / y;
+      }
+      return -tmp + Math.log(2.5066282746310005 * ser / x);
+    }
+
+    function plotRegressionChart(X, y, beta, independentNames) {
+      const ctx = document.getElementById('regChart').getContext('2d');
+      if (regChart) { regChart.destroy(); }
+      let datasets = [];
+      // If only one predictor, plot data points vs. regression line.
+      if (beta.length - 1 === 1) {
+        const xValues = X.map(row => row[1]);
+        const scatterData = xValues.map((x, i) => ({ x: x, y: y[i] }));
+        const minX = Math.min(...xValues);
+        const maxX = Math.max(...xValues);
+        const regLineData = [];
+        const steps = 100;
+        const stepSize = (maxX - minX) / (steps - 1);
+        for (let i = 0; i < steps; i++) {
+          let x = minX + i * stepSize;
+          let yPred = beta[0] + beta[1] * x;
+          regLineData.push({ x: x, y: yPred });
+        }
+        datasets.push({
+          label: "Data Points",
+          data: scatterData,
+          backgroundColor: "rgba(40,167,69,0.8)",
+          pointRadius: 4,
+          type: "scatter"
+        });
+        datasets.push({
+          label: "Regression Line",
+          data: regLineData,
+          borderColor: "rgba(220,53,69,0.8)",
+          borderWidth: 2,
+          fill: false,
+          type: "line",
+          pointRadius: 0
+        });
+        var options = {
+          responsive: true,
+          scales: {
+            x: { type: 'linear', position: 'bottom', title: { display: true, text: independentNames[0] } },
+            y: { title: { display: true, text: "Dependent Variable" } }
+          }
+        };
+        regChart = new Chart(ctx, {
+          type: 'scatter',
+          data: { datasets: datasets },
+          options: options
+        });
+      } else {
+        // For multiple predictors, plot actual y vs. predicted y.
+        const predictions = X.map(row => row.reduce((sum, val, i) => sum + beta[i] * val, 0));
+        const scatterData = predictions.map((pred, i) => ({ x: pred, y: y[i] }));
+        datasets.push({
+          label: "Actual vs Predicted",
+          data: scatterData,
+          backgroundColor: "rgba(23,162,184,0.8)",
+          pointRadius: 4,
+          type: "scatter"
+        });
+        const minVal = Math.min(...predictions, ...y);
+        const maxVal = Math.max(...predictions, ...y);
+        const refLineData = [{ x: minVal, y: minVal }, { x: maxVal, y: maxVal }];
+        datasets.push({
+          label: "y = x",
+          data: refLineData,
+          borderColor: "rgba(108,117,125,0.8)",
+          borderWidth: 2,
+          fill: false,
+          type: "line",
+          pointRadius: 0
+        });
+        var options = {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: "Predicted" } },
+            y: { title: { display: true, text: "Actual" } }
+          }
+        };
+        regChart = new Chart(ctx, {
+          type: 'scatter',
+          data: { datasets: datasets },
+          options: options
+        });
+      }
+    }
+
+    function updatePredictionInputs() {
+      // Create an input field for each independent variable (i.e. those not selected as dependent).
+      const headerRow = document.getElementById("headerRow");
+      const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
+      const predictionDiv = document.getElementById("predictionInputs");
+      predictionDiv.innerHTML = "";
+      for (let i = 1; i < headerRow.children.length - 1; i++) {
+        if (i === dependentIndex) continue;
+        let varName = headerRow.children[i].getElementsByTagName("input")[0].value;
+        if (!varName.trim()) varName = "Variable " + i;
+        const label = document.createElement("label");
+        label.innerText = varName + ": ";
+        const input = document.createElement("input");
+        input.type = "number";
+        input.id = "pred_input_" + i;
+        // Optionally, set default value as the mean from that column.
+        const values = [];
+        const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+        for (let row of tbody.rows) {
+          const val = parseFloat(row.children[i].getElementsByTagName("input")[0].value);
+          if (!isNaN(val)) values.push(val);
+        }
+        if (values.length > 0) {
+          const meanVal = values.reduce((a, b) => a + b, 0) / values.length;
+          input.value = meanVal.toFixed(2);
+        }
+        predictionDiv.appendChild(label);
+        predictionDiv.appendChild(input);
+        predictionDiv.appendChild(document.createElement("br"));
+      }
+    }
+
+    function makePrediction() {
+      if (!regressionModel) {
+        alert("Please calculate the regression model first.");
+        return;
+      }
+      const headerRow = document.getElementById("headerRow");
+      const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
+      let inputValues = [1]; // intercept
+      for (let i = 1; i < headerRow.children.length - 1; i++) {
+        if (i === dependentIndex) continue;
+        const input = document.getElementById("pred_input_" + i);
+        const val = parseFloat(input.value);
+        if (isNaN(val)) {
+          alert("Invalid input for " + headerRow.children[i].getElementsByTagName("input")[0].value);
+          return;
+        }
+        inputValues.push(val);
+      }
+      const predY = regressionModel.beta.reduce((sum, b, i) => sum + b * inputValues[i], 0);
+      document.getElementById("predictionOutput").innerHTML = 
+        "<h3>Predicted Value: " + predY.toFixed(4) + "</h3>" +
+        "<p>Model <span class='tooltip' data-tooltip='R² (Coefficient of Determination): Proportion of variance explained by the model.'>R²</span>: " + (regressionModel.rSquared * 100).toFixed(2) + "%</p>";
+    }
+  </script>
+</body>
+</html>
