@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
   <meta charset="UTF-8">
-  <title>Multi-variable Statistics, Regression & Distribution Fit Calculator</title>
+  <title>Distribution Fit & Simultaneous Simple Regression</title>
   <meta name="description" content="Input multiple variables and observations (or paste from Excel) to compute descriptive statistics, correlation coefficients, distribution fit, and run multi-regression (linear or polynomial) with predictions and error metrics displayed along with chart output based on your dataset." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Chart.js CDN -->
@@ -105,18 +106,11 @@
     #predictionSection {
       margin: 10px 0;
     }
-    /* Back button fixed to top left */
-    #backButton {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 1000;
-    }
+  
   </style>
 </head>
 <body>
-  <!-- Back Button -->
-  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+  
 
   <!-- Multi-variable Statistics, Correlation & Distribution Fit Section -->
   <div class="container" id="statisticsContainer">
@@ -833,5 +827,5 @@
     }
   </script>
 </body>
-<button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+
 </html>
