@@ -32,7 +32,6 @@
     }
 
     /* Navigation Bar with Horizontal Scrolling */
-    /* (Navigation HTML has been modified to include dropdown menus) */
     .topnav {
       background-color: #333;
       overflow-x: auto;
@@ -47,7 +46,6 @@
     }
     .topnav ul li {
       flex: none;
-      position: relative; /* needed for dropdown positioning initially */
     }
     .topnav ul li a {
       display: block;
@@ -60,7 +58,6 @@
       background-color: #ddd;
       color: #333;
     }
-    /* (No dropdown z-index rules here because JS will handle portaling) */
 
     /* Feature Slider */
     .feature-slider {
@@ -126,6 +123,7 @@
     .next {
       right: 10px;
     }
+
     /* Final Slide: Continuous Scroll When Visible */
     .final-slide {
       background-color: #222;
@@ -280,12 +278,13 @@
   </div>
 </header>
 
-<!-- Navigation Bar with Dropdown Menus -->
+<!-- Navigation Bar (with dropdown menus portaled via JS) -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
     <li class="dropdown">
       <a href="#tools">Tools</a>
+      <!-- Actual dropdown menu is hidden by default, shown by JS on hover -->
       <ul class="dropdown-menu">
         <li><a href="network-diagram/">Network Diagram Tool</a></li>
         <li><a href="WSB-generator/">WBS Generator</a></li>
@@ -457,80 +456,90 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
-<!-- JavaScript for Slide Navigation & Dropdown Portaling -->
+<!-- JavaScript for Slide Navigation & Scrolling Animation -->
 <script>
-  // Slide navigation (unchanged)
-  let currentSlide = 0;
-  const slides = document.querySelectorAll(".slide");
-  const totalSlides = slides.length;
-  const creditsList = document.getElementById("creditsList");
-  function moveSlide(direction) {
-    currentSlide += direction;
-    if (currentSlide < 0) currentSlide = 0;
-    if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-    document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
-    if (slides[currentSlide].classList.contains("final-slide")) {
-      startScrollingCredits();
-    } else {
-      stopScrollingCredits();
-    }
+let currentSlide = 0;
+const slides = document.querySelectorAll(".slide");
+const totalSlides = slides.length;
+const creditsList = document.getElementById("creditsList");
+
+// Move slides left or right
+function moveSlide(direction) {
+  currentSlide += direction;
+  if (currentSlide < 0) currentSlide = 0;
+  if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+  document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
+
+  // Trigger scrolling immediately if final slide is reached
+  if (slides[currentSlide].classList.contains("final-slide")) {
+    startScrollingCredits();
+  } else {
+    stopScrollingCredits();
   }
-  function startScrollingCredits() {
-    creditsList.style.visibility = "visible";
-    creditsList.style.animation = "none";
-    requestAnimationFrame(() => {
-      creditsList.style.animation = "creditsScroll 30s linear infinite";
-      creditsList.style.animationDelay = "0s";
-    });
-  }
-  function stopScrollingCredits() {
-    creditsList.style.animation = "none";
-    creditsList.style.visibility = "hidden";
-  }
+}
+
+// Function to start scrolling
+function startScrollingCredits() {
+  creditsList.style.visibility = "visible";
+  creditsList.style.animation = "none";
+  requestAnimationFrame(() => {
+    creditsList.style.animation = "creditsScroll 30s linear infinite";
+    creditsList.style.animationDelay = "0s";
+  });
+}
+
+// Function to stop scrolling
+function stopScrollingCredits() {
+  creditsList.style.animation = "none";
+  creditsList.style.visibility = "hidden";
+}
 </script>
+
+<!-- Dropdown "Portal" JavaScript -->
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // Set playback speed for all videos
-    const allVideos = document.querySelectorAll("video");
-    allVideos.forEach(video => {
-      video.playbackRate = 1.2;
+document.addEventListener("DOMContentLoaded", () => {
+  // Find all video elements and set playback speed
+  const allVideos = document.querySelectorAll("video");
+  allVideos.forEach(video => {
+    video.playbackRate = 1.2;
+  });
+
+  // Portal approach for dropdown menus
+  document.querySelectorAll('.dropdown').forEach(function(drop) {
+    const dropdownMenu = drop.querySelector('.dropdown-menu');
+    drop.addEventListener('mouseenter', function() {
+      const rect = drop.getBoundingClientRect();
+      document.body.appendChild(dropdownMenu);
+      dropdownMenu.style.position = 'fixed';
+      dropdownMenu.style.top = rect.bottom + 'px';
+      dropdownMenu.style.left = rect.left + 'px';
+      dropdownMenu.style.display = 'block';
+      dropdownMenu.style.zIndex = '10000000';
     });
-    // Dropdown Portaling: detach dropdown menu to body on hover
-    document.querySelectorAll('.dropdown').forEach(function(drop) {
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      drop.addEventListener('mouseenter', function() {
-        const rect = drop.getBoundingClientRect();
-        document.body.appendChild(dropdownMenu);
-        dropdownMenu.style.position = 'fixed';
-        dropdownMenu.style.top = rect.bottom + 'px';
-        dropdownMenu.style.left = rect.left + 'px';
-        dropdownMenu.style.display = 'block';
-        dropdownMenu.style.zIndex = '10000000';
-      });
-      drop.addEventListener('mouseleave', function() {
-        setTimeout(function() {
-          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-            drop.appendChild(dropdownMenu);
-            dropdownMenu.style.position = '';
-            dropdownMenu.style.top = '';
-            dropdownMenu.style.left = '';
-            dropdownMenu.style.display = 'none';
-          }
-        }, 150);
-      });
-      dropdownMenu.addEventListener('mouseleave', function() {
-        setTimeout(function() {
-          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-            drop.appendChild(dropdownMenu);
-            dropdownMenu.style.position = '';
-            dropdownMenu.style.top = '';
-            dropdownMenu.style.left = '';
-            dropdownMenu.style.display = 'none';
-          }
-        }, 150);
-      });
+    drop.addEventListener('mouseleave', function() {
+      setTimeout(function() {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      }, 150);
+    });
+    dropdownMenu.addEventListener('mouseleave', function() {
+      setTimeout(function() {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      }, 150);
     });
   });
+});
 </script>
 </body>
 </html>
