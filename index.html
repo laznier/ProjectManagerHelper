@@ -32,6 +32,7 @@
     }
 
     /* Navigation Bar with Horizontal Scrolling */
+    /* (Navigation HTML has been modified to include dropdown menus) */
     .topnav {
       background-color: #333;
       overflow-x: auto;
@@ -46,6 +47,7 @@
     }
     .topnav ul li {
       flex: none;
+      position: relative; /* needed for dropdown positioning initially */
     }
     .topnav ul li a {
       display: block;
@@ -58,6 +60,7 @@
       background-color: #ddd;
       color: #333;
     }
+    /* (No dropdown z-index rules here because JS will handle portaling) */
 
     /* Feature Slider */
     .feature-slider {
@@ -82,7 +85,6 @@
       padding: 2rem;
       position: relative;
     }
-
     /* Video Background for Slides */
     .slide-video {
       position: absolute;
@@ -100,7 +102,6 @@
       padding: 2rem;
       border-radius: 10px;
     }
-
     /* Slider Arrows */
     .slider-arrow {
       position: absolute;
@@ -125,7 +126,6 @@
     .next {
       right: 10px;
     }
-
     /* Final Slide: Continuous Scroll When Visible */
     .final-slide {
       background-color: #222;
@@ -138,7 +138,6 @@
       position: relative;
       text-align: center;
     }
-
     /* Wrapper for the scrolling area */
     .credits-scroll-wrapper {
       width: 90%;
@@ -148,7 +147,6 @@
       position: relative;
       margin: 0 auto;
     }
-
     /* The list that scrolls upward */
     .credits-list {
       list-style: none;
@@ -158,14 +156,11 @@
       visibility: hidden; /* Preload and hide until visible */
       animation: none;
     }
-
     .credits-list li {
       margin: 1rem 0;
       font-size: 1rem;
       line-height: 1.6;
     }
-
-    /* Modified Scroll Animation: starts immediately from a visible position */
     @keyframes creditsScroll {
       0% { transform: translateY(0); }
       100% { transform: translateY(-100%); }
@@ -285,13 +280,39 @@
   </div>
 </header>
 
-<!-- Navigation Bar -->
+<!-- Navigation Bar with Dropdown Menus -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
-    <li><a href="#tools">Tools</a></li>
-    <li><a href="/templates/">Templates</a></li>
-    <li><a href="/tutorials/">Tutorials</a></li>
+    <li class="dropdown">
+      <a href="#tools">Tools</a>
+      <ul class="dropdown-menu">
+        <li><a href="network-diagram/">Network Diagram Tool</a></li>
+        <li><a href="WSB-generator/">WBS Generator</a></li>
+        <li><a href="statistics/">Statistical Analysis</a></li>
+        <li><a href="evc/">Earned Value Calculator</a></li>
+        <li><a href="risk-register/">Risk Register &amp; Assessment</a></li>
+        <li><a href="monte-carlo/">Monte Carlo Simulation</a></li>
+        <li><a href="calculators/">PM Financial Calculator</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/templates/">Templates</a>
+      <ul class="dropdown-menu">
+        <li><a href="/templates/template1.html">Project Schedule Template</a></li>
+        <li><a href="/templates/template2.html">Risk Management Template</a></li>
+        <li><a href="/templates/template3.html">Budget Template</a></li>
+        <li><a href="/templates/template4.html">Resource Allocation Template</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/tutorials/">Tutorials</a>
+      <ul class="dropdown-menu">
+        <li><a href="/tutorials/getting-started.html">Getting Started</a></li>
+        <li><a href="/tutorials/advanced-techniques.html">Advanced Techniques</a></li>
+        <li><a href="/tutorials/expert-tips.html">Expert Tips</a></li>
+      </ul>
+    </li>
   </ul>
 </nav>
 
@@ -343,14 +364,13 @@
       </div>
     </div>
     
-
     <!-- Final Slide: Scrolling Questions -->
     <div class="slide final-slide">
       <div class="credits-scroll-wrapper">
         <ul class="credits-list" id="creditsList">
           <li>Use Project Manager Helper to answer questions like</li>
           <li>...</li>
-          <Li>When will the project break even based on learning curve analysis?</Li>
+          <li>When will the project break even based on learning curve analysis?</li>
           <li>What is the probability our final project cost will exceed the budget?</li>
           <li>How can we estimate staffing levels using regression?</li>
           <li>When will the project break even using learning curves?</li>
@@ -404,7 +424,7 @@
 
     <div class="tool-card">
       <img src="images/risk_assessment.png" alt="Risk Register" />
-      <h2>Risk Register & Assessment</h2>
+      <h2>Risk Register &amp; Assessment</h2>
       <p>Identify, prioritize, and manage project risks efficiently.</p>
       <a href="risk-register/" class="tool-button">Open Tool</a>
     </div>
@@ -437,55 +457,80 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
-<!-- JavaScript for Slide Navigation & Scrolling Animation -->
+<!-- JavaScript for Slide Navigation & Dropdown Portaling -->
 <script>
-let currentSlide = 0;
-const slides = document.querySelectorAll(".slide");
-const totalSlides = slides.length;
-const creditsList = document.getElementById("creditsList");
-
-// Move slides left or right
-function moveSlide(direction) {
-  currentSlide += direction;
-  if (currentSlide < 0) currentSlide = 0;
-  if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-  document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
-
-  // Trigger scrolling immediately if final slide is reached
-  if (slides[currentSlide].classList.contains("final-slide")) {
-    startScrollingCredits();
-  } else {
-    stopScrollingCredits();
+  // Slide navigation (unchanged)
+  let currentSlide = 0;
+  const slides = document.querySelectorAll(".slide");
+  const totalSlides = slides.length;
+  const creditsList = document.getElementById("creditsList");
+  function moveSlide(direction) {
+    currentSlide += direction;
+    if (currentSlide < 0) currentSlide = 0;
+    if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+    document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
+    if (slides[currentSlide].classList.contains("final-slide")) {
+      startScrollingCredits();
+    } else {
+      stopScrollingCredits();
+    }
   }
-}
-
-// Function to start scrolling
-function startScrollingCredits() {
-  creditsList.style.visibility = "visible";
-  creditsList.style.animation = "none";
-  requestAnimationFrame(() => {
-    creditsList.style.animation = "creditsScroll 30s linear infinite";
-    creditsList.style.animationDelay = "0s";
-  });
-}
-
-// Function to stop scrolling
-function stopScrollingCredits() {
-  creditsList.style.animation = "none";
-  creditsList.style.visibility = "hidden";
-}
+  function startScrollingCredits() {
+    creditsList.style.visibility = "visible";
+    creditsList.style.animation = "none";
+    requestAnimationFrame(() => {
+      creditsList.style.animation = "creditsScroll 30s linear infinite";
+      creditsList.style.animationDelay = "0s";
+    });
+  }
+  function stopScrollingCredits() {
+    creditsList.style.animation = "none";
+    creditsList.style.visibility = "hidden";
+  }
 </script>
-
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  // Find all video elements
-  const allVideos = document.querySelectorAll("video");
-  // Set playback speed to 1.2x for each video
-  allVideos.forEach(video => {
-    video.playbackRate = 1.2;
+  document.addEventListener("DOMContentLoaded", () => {
+    // Set playback speed for all videos
+    const allVideos = document.querySelectorAll("video");
+    allVideos.forEach(video => {
+      video.playbackRate = 1.2;
+    });
+    // Dropdown Portaling: detach dropdown menu to body on hover
+    document.querySelectorAll('.dropdown').forEach(function(drop) {
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      drop.addEventListener('mouseenter', function() {
+        const rect = drop.getBoundingClientRect();
+        document.body.appendChild(dropdownMenu);
+        dropdownMenu.style.position = 'fixed';
+        dropdownMenu.style.top = rect.bottom + 'px';
+        dropdownMenu.style.left = rect.left + 'px';
+        dropdownMenu.style.display = 'block';
+        dropdownMenu.style.zIndex = '10000000';
+      });
+      drop.addEventListener('mouseleave', function() {
+        setTimeout(function() {
+          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+            drop.appendChild(dropdownMenu);
+            dropdownMenu.style.position = '';
+            dropdownMenu.style.top = '';
+            dropdownMenu.style.left = '';
+            dropdownMenu.style.display = 'none';
+          }
+        }, 150);
+      });
+      dropdownMenu.addEventListener('mouseleave', function() {
+        setTimeout(function() {
+          if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+            drop.appendChild(dropdownMenu);
+            dropdownMenu.style.position = '';
+            dropdownMenu.style.top = '';
+            dropdownMenu.style.left = '';
+            dropdownMenu.style.display = 'none';
+          }
+        }, 150);
+      });
+    });
   });
-});
 </script>
-
 </body>
 </html>
