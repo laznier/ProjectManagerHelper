@@ -88,7 +88,7 @@
         <th>Risk Name</th>
         <th>Probability (%)</th>
         <th>Impact (1–10)</th>
-        <th></th>
+        <th>Calculate Risk</th>
       </tr>
     </thead>
     <tbody>
@@ -162,29 +162,24 @@
 
     // --- Event Listeners ---
 
-    // Add Risk button adds a new row.
     addRiskBtn.addEventListener("click", createRiskRow);
 
-    // Plot Risks button: update risks and redraw chart.
     plotBtn.addEventListener("click", () => {
       gatherRisks();
       drawChart(risks);
     });
 
-    // Export Excel button: create an Excel file with table data and the chart image.
     exportExcelBtn.addEventListener("click", async () => {
-      gatherRisks(); // Update risks from the table.
+      gatherRisks();
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Risk Data");
 
-      // Set up worksheet columns.
       worksheet.columns = [
         { header: "Risk Name", key: "name", width: 30 },
         { header: "Probability (%)", key: "probability", width: 20 },
         { header: "Impact (1–10)", key: "impact", width: 15 }
       ];
 
-      // Add each risk as a row.
       risks.forEach(risk => {
         worksheet.addRow({
           name: risk.name,
@@ -193,38 +188,31 @@
         });
       });
 
-      // Convert canvas to image.
       const imgData = canvas.toDataURL("image/png");
       const imageId = workbook.addImage({
         base64: imgData,
         extension: "png",
       });
 
-      // Place the image below the risk table.
       worksheet.addImage(imageId, {
         tl: { col: 0, row: risks.length + 3 },
         ext: { width: 400, height: 250 }
       });
 
-      // Generate Excel file and trigger download.
       const buffer = await workbook.xlsx.writeBuffer();
       saveAs(new Blob([buffer]), "Risk_Assessment.xlsx");
     });
 
-    // Update threshold display and redraw chart when slider moves.
     riskThresholdSlider.addEventListener("input", () => {
       thresholdValueSpan.textContent = riskThresholdSlider.value;
       drawChart(risks);
     });
 
-    // Trap Highest Risks button: filter risks above the threshold and show mitigation inputs.
     trapRisksBtn.addEventListener("click", () => {
       gatherRisks();
       const threshold = parseFloat(riskThresholdSlider.value);
-      // Compute risk score as normalized probability plus normalized impact.
       const highRisks = risks.filter(risk => getRiskScore(risk) >= threshold);
 
-      // Clear previous mitigation inputs.
       mitigationList.innerHTML = "";
       if (highRisks.length === 0) {
         mitigationList.innerHTML = "<p>No risks meet the threshold.</p>";
@@ -236,7 +224,7 @@
           div.style.paddingBottom = "0.5em";
           div.innerHTML = `<strong>${risk.name}</strong> (Probability: ${risk.probability}%, Impact: ${risk.impact})`;
 
-          // Dropdown for mitigation type based on PMBOK principles.
+          // Dropdown for mitigation type with capitalized values.
           const select = document.createElement("select");
           select.innerHTML = `
             <option value="Avoid">Avoid</option>
@@ -246,7 +234,7 @@
           `;
           select.style.marginLeft = "1em";
 
-          // Input for entering mitigation details.
+          // Input for mitigation details.
           const input = document.createElement("input");
           input.type = "text";
           input.placeholder = "Enter mitigation details";
@@ -259,11 +247,9 @@
           mitigationList.appendChild(div);
         });
       }
-      // Reveal the mitigation section.
       mitigationSection.style.display = "block";
     });
 
-    // Generate Risk Report button: compile chart, risk list, and mitigation plan.
     generateReportBtn.addEventListener("click", () => {
       const report = {
         risks,
@@ -271,7 +257,6 @@
         chartImage: canvas.toDataURL("image/png")
       };
 
-      // Gather mitigation details.
       const mitigationDivs = mitigationList.querySelectorAll("div[data-risk-index]");
       mitigationDivs.forEach(div => {
         const riskName = div.querySelector("strong").textContent;
@@ -284,7 +269,6 @@
         });
       });
 
-      // Create a simple HTML report.
       let reportHTML = `
         <html>
           <head>
@@ -322,7 +306,6 @@
 
     // --- Functions ---
 
-    // Create a new risk row in the table.
     function createRiskRow() {
       const tr = document.createElement("tr");
 
@@ -348,15 +331,27 @@
       inputImpact.max = "10";
       tdImpact.appendChild(inputImpact);
 
-      // Button to calculate probability (opens a Monte Carlo simulation page)
       const tdCalc = document.createElement("td");
-      const calcBtn = document.createElement("button");
-      calcBtn.textContent = "Calculate Probability";
-      calcBtn.className = "calc-btn";
-      calcBtn.addEventListener("click", () => {
+
+      // Button for Monte Carlo Sequential simulation.
+      const seqBtn = document.createElement("button");
+      seqBtn.textContent = "MC Sequential";
+      seqBtn.className = "calc-btn";
+      seqBtn.title = "Run a Monte Carlo simulation for sequential processes, ideal for cost forecasting, waterfall scheduling, and traditional project timelines.";
+      seqBtn.addEventListener("click", () => {
         window.open("../monte-carlo/index.html", "_blank");
       });
-      tdCalc.appendChild(calcBtn);
+      tdCalc.appendChild(seqBtn);
+
+      // Button for Monte Carlo Parallel simulation.
+      const parBtn = document.createElement("button");
+      parBtn.textContent = "MC Parallel";
+      parBtn.className = "calc-btn";
+      parBtn.title = "Run a Monte Carlo simulation for parallel processes, suited for projects with concurrent activities and advanced scheduling challenges.";
+      parBtn.addEventListener("click", () => {
+        window.open("../advanced-scheduling/index.html", "_blank");
+      });
+      tdCalc.appendChild(parBtn);
 
       tr.appendChild(tdName);
       tr.appendChild(tdProb);
@@ -366,7 +361,6 @@
       riskTableBody.appendChild(tr);
     }
 
-    // Gather risk data from the table.
     function gatherRisks() {
       risks = [];
       const rows = riskTableBody.querySelectorAll("tr");
@@ -383,17 +377,13 @@
       });
     }
 
-    // Compute a normalized risk score: (probability/100) + (impact/10)
     function getRiskScore(risk) {
       return (risk.probability / MAX_PROB) + (risk.impact / MAX_IMPACT);
     }
 
-    // Draw the risk chart with the gradient, axes, risk points, and threshold line.
     function drawChart(risksArray) {
-      // Clear the canvas.
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Draw title.
       ctx.save();
       ctx.font = "bold 20px sans-serif";
       ctx.textAlign = "center";
@@ -401,12 +391,10 @@
       ctx.fillText("Risk Assessment", CANVAS_WIDTH / 2, TOP_MARGIN - 15);
       ctx.restore();
 
-      // Draw bounding box.
       ctx.strokeStyle = "#666";
       ctx.lineWidth = 1;
       ctx.strokeRect(LEFT_MARGIN, TOP_MARGIN, plotWidth, plotHeight);
 
-      // Draw gradient background.
       const gradX1 = LEFT_MARGIN;
       const gradY1 = TOP_MARGIN + plotHeight;
       const gradX2 = LEFT_MARGIN + plotWidth;
@@ -421,7 +409,6 @@
       ctx.fillRect(LEFT_MARGIN, TOP_MARGIN, plotWidth, plotHeight);
       ctx.restore();
 
-      // X-axis.
       ctx.save();
       ctx.strokeStyle = "#999";
       ctx.fillStyle = "#000";
@@ -440,7 +427,6 @@
       ctx.fillText("Probability (0–100%)", LEFT_MARGIN + plotWidth / 2, TOP_MARGIN + plotHeight + 40);
       ctx.restore();
 
-      // Y-axis.
       ctx.save();
       ctx.strokeStyle = "#999";
       ctx.fillStyle = "#000";
@@ -455,7 +441,6 @@
         ctx.stroke();
         ctx.fillText(i, LEFT_MARGIN - 8, y);
       }
-      // Label Y-axis.
       ctx.save();
       ctx.translate(LEFT_MARGIN - 35, TOP_MARGIN + plotHeight / 2);
       ctx.rotate(-Math.PI / 2);
@@ -465,7 +450,6 @@
       ctx.restore();
       ctx.restore();
 
-      // Plot each risk.
       risksArray.forEach(risk => {
         const x = LEFT_MARGIN + (risk.probability / MAX_PROB) * plotWidth;
         const y = TOP_MARGIN + plotHeight - (risk.impact / MAX_IMPACT) * plotHeight;
@@ -482,7 +466,6 @@
         ctx.restore();
       });
 
-      // Draw the diagonal threshold line.
       const T = parseFloat(riskThresholdSlider.value);
       const xNormStart = Math.max(0, T - 1);
       const xNormEnd = Math.min(1, T);
