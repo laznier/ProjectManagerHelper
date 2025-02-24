@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
   <meta charset="UTF-8">
   <title>Distribution Fit & Simultaneous Simple Regression</title>
   <meta name="description" content="Input multiple variables and observations (or paste from Excel) to compute descriptive statistics, correlation coefficients, distribution fit, and run multi-regression (linear or polynomial) with predictions and error metrics displayed along with chart output based on your dataset." />
@@ -106,12 +106,9 @@
     #predictionSection {
       margin: 10px 0;
     }
-  
   </style>
 </head>
 <body>
-  
-
   <!-- Multi-variable Statistics, Correlation & Distribution Fit Section -->
   <div class="container" id="statisticsContainer">
     <h1>Multi-variable Statistics, Correlation & Distribution Fit Calculator</h1>
@@ -257,58 +254,146 @@
       values.forEach(val => { sumFourthDiff += Math.pow(val - mean, 4); });
       return (n * (n + 1) / ((n - 1) * (n - 2) * (n - 3))) * (sumFourthDiff / Math.pow(stdDev, 4)) - (3 * Math.pow(n - 1, 2) / ((n - 2) * (n - 3)));
     }
-    // Updated distribution fit function.
-    // This function now “searches” for:
-    // • Triangular, Normal, Uniform, PERT, Exponential, Lognormal, Weibull, Gamma, Poisson, Binomial.
-    // For discrete data, it suggests Poisson or Binomial. Otherwise, it compares skew, kurtosis, and other measures.
+
+    // Updated distribution fit function that computes and returns parameters.
     function getDistributionFit(data, mean, stdDev, min, max, modeStr) {
       const n = data.length;
       if(n < 5) return "Insufficient data for distribution analysis";
       
-      // Determine if data are discrete (all integers)
+      // Compute variance from the standard deviation.
+      const variance = stdDev * stdDev;
+      
+      // Check if data are discrete (all integers)
       const allIntegers = data.every(val => Number.isInteger(val));
       const skew = calculateSkewness(data, mean, stdDev);
       const kurt = calculateKurtosis(data, mean, stdDev);
       
       if(allIntegers) {
-        if(Math.abs((stdDev*stdDev)-mean)/mean < 0.2) {
+        // Poisson distribution: variance ~ mean.
+        if(Math.abs(variance - mean)/mean < 0.2) {
           return `Poisson Distribution (λ ≈ ${mean.toFixed(2)})`;
         }
+        // Binomial distribution: use max as n and mean/max as p.
         if(mean < max) {
           return `Binomial Distribution (n ≈ ${max.toFixed(0)}, p ≈ ${(mean/max).toFixed(2)})`;
         }
       }
       
-      // For continuous data:
+      // Continuous data:
       if(Math.abs(skew) < 0.5 && Math.abs(kurt) < 0.5) {
-        return "Normal Distribution (mean, stdDev)";
+        return `Normal Distribution (mean: ${mean.toFixed(2)}, stdDev: ${stdDev.toFixed(2)})`;
       } else if(Math.abs(skew) < 0.5 && kurt < -0.8) {
-        return "Uniform Distribution (min, max)";
+        return `Uniform Distribution (min: ${min}, max: ${max})`;
       } else if(modeStr !== "No mode") {
         const modeVal = parseFloat(modeStr.split(",")[0]);
         const pos = (modeVal - min) / (max - min);
         if(pos < 0.3 || pos > 0.7) {
-          return "Triangular Distribution (min, mode, max)";
+          return `Triangular Distribution (min: ${min}, mode: ${modeVal}, max: ${max})`;
         } else {
           return `PERT Distribution (optimistic: ${min.toFixed(2)}, most likely: ${modeVal.toFixed(2)}, pessimistic: ${max.toFixed(2)})`;
         }
       }
-      // Check for exponential: high skew and high kurtosis
+      
+      // Exponential distribution: high skew and high kurtosis.
       if(skew > 1.5 && kurt > 5) {
         return `Exponential Distribution (λ ≈ ${(1/mean).toFixed(2)})`;
       }
-      // Check for lognormal: moderate-to-high skew, positive values
+      
+      // Lognormal distribution: moderate-to-high skew.
       if(skew > 1 && skew < 2 && mean > 0) {
-        return "Lognormal Distribution (mu, sigma)";
+        const sigma = Math.sqrt(Math.log(1 + variance / (mean * mean)));
+        const mu = Math.log(mean) - 0.5 * sigma * sigma;
+        return `Lognormal Distribution (mu: ${mu.toFixed(2)}, sigma: ${sigma.toFixed(2)})`;
       }
-      // For moderately skewed data, decide between Weibull and Gamma using CV.
-      const cv = stdDev/mean;
+      
+      // For moderately skewed data, decide between Weibull and Gamma using the coefficient of variation.
+      const cv = stdDev / mean;
       if(cv > 1) {
+        // Here you might fit a Weibull distribution if desired.
         return "Weibull Distribution (shape, scale)";
       } else {
-        return "Gamma Distribution (shape, scale)";
+        // Gamma Distribution: calculate shape and scale.
+        const shape = (mean * mean) / variance;
+        const scale = variance / mean;
+        return `Gamma Distribution (shape: ${shape.toFixed(2)}, scale: ${scale.toFixed(3)})`;
       }
+      
       return "Random/Unclear Distribution";
+    }
+
+    /***********************
+     * Histogram Chart Helper
+     ***********************/
+    /**
+     * Creates a simple histogram using a bar chart in Chart.js
+     * @param {Array} data - raw numeric data
+     * @param {string} chartId - id of the canvas element
+     * @param {string} varName - name of the variable (for labeling)
+     */
+    function createHistogramChart(data, chartId, varName) {
+      // Number of bins (you can adjust this)
+      const bins = 10;
+      const minVal = Math.min(...data);
+      const maxVal = Math.max(...data);
+      const range = maxVal - minVal;
+      if(range === 0) {
+        // If all values are identical, just show a single bin
+        new Chart(document.getElementById(chartId), {
+          type: 'bar',
+          data: {
+            labels: [`All = ${minVal}`],
+            datasets: [{
+              label: varName,
+              data: [data.length],
+              backgroundColor: 'rgba(54,162,235,0.5)'
+            }]
+          },
+          options: {
+            scales: {
+              x: { title: { display: true, text: "Value" }},
+              y: { title: { display: true, text: "Frequency" }, beginAtZero: true }
+            }
+          }
+        });
+        return;
+      }
+
+      const binSize = range / bins;
+      // Initialize bins
+      let binCounts = new Array(bins).fill(0);
+      data.forEach(value => {
+        let idx = Math.floor((value - minVal) / binSize);
+        if(idx === bins) idx = bins - 1; // edge case for max value
+        binCounts[idx]++;
+      });
+
+      // Create bin labels
+      let labels = [];
+      for(let i = 0; i < bins; i++) {
+        const start = minVal + i * binSize;
+        const end = start + binSize;
+        labels.push(`${start.toFixed(1)} - ${end.toFixed(1)}`);
+      }
+
+      new Chart(document.getElementById(chartId), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: varName,
+            data: binCounts,
+            backgroundColor: 'rgba(54,162,235,0.5)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: "Bins" }},
+            y: { title: { display: true, text: "Frequency" }, beginAtZero: true }
+          }
+        }
+      });
     }
 
     /***********************
@@ -321,6 +406,7 @@
       addObservation();
       updateRegressionSelectors();
     });
+
     function addVariable(defaultName = "") {
       const headerRow = document.getElementById("headerRow");
       const th = document.createElement("th");
@@ -341,6 +427,7 @@
         row.appendChild(td);
       }
     }
+
     function addObservation() {
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       const headerRow = document.getElementById("headerRow");
@@ -359,6 +446,7 @@
       }
       tbody.appendChild(tr);
     }
+
     function importExcelData() {
       const data = document.getElementById("excelData").value;
       if (!data.trim()) return;
@@ -387,6 +475,7 @@
       });
       updateRegressionSelectors();
     }
+
     function calculateStats() {
       const headerRow = document.getElementById("headerRow");
       const variableCount = headerRow.getElementsByTagName("th").length - 1;
@@ -413,12 +502,14 @@
           }
         }
       }
+
       let resultsHTML = "<div class='result-section'><h2>Descriptive Statistics & Distribution Fit</h2>";
       const descriptiveStats = [];
+
       for (let i = 0; i < variableCount; i++) {
         const data = variablesData[i];
         if (data.length === 0) {
-          descriptiveStats.push({ name: variableNames[i], count: 0 });
+          descriptiveStats.push({ name: variableNames[i], count: 0, rawData: [] });
           continue;
         }
         const count = data.length;
@@ -434,49 +525,78 @@
         const margin = calculateConfidenceInterval(stdDev, count);
         const ciLower = mean - margin;
         const ciUpper = mean + margin;
-        const distributionFit = (count >= 5) ? getDistributionFit(data, mean, stdDev, min, max, mode) : "Insufficient data for distribution analysis";
+        const distributionFit = (count >= 5)
+          ? getDistributionFit(data, mean, stdDev, min, max, mode)
+          : "Insufficient data for distribution analysis";
+
+        // Store data for histogram creation
         descriptiveStats.push({
           name: variableNames[i],
-          count, sum, mean, median, mode, min, max, range, variance, stdDev, ciLower, ciUpper, distributionFit
+          count, sum, mean, median, mode, min, max, range, variance, stdDev, ciLower, ciUpper, distributionFit,
+          rawData: data  // keep the actual data array for plotting
         });
       }
-      descriptiveStats.forEach(stat => {
-        resultsHTML += `<div class="result-line"><strong>${stat.name}</strong> (n=${stat.count})<br>`;
+
+      // Build the HTML for each variable's stats + a canvas for the histogram
+      descriptiveStats.forEach((stat, i) => {
         if(stat.count === 0) {
-          resultsHTML += "No data available.</div>";
+          // No data
+          resultsHTML += `
+            <div style="display: flex; align-items: flex-start; margin-bottom: 20px;">
+              <div style="flex: 1; margin-right: 20px;">
+                <strong>${stat.name}</strong> (n=0)<br>
+                No data available.
+              </div>
+              <div style="flex: 1;">
+                <!-- No chart for empty data -->
+              </div>
+            </div>`;
         } else {
-          resultsHTML += `Sum: ${stat.sum.toFixed(2)}<br>
-            Mean: ${stat.mean.toFixed(2)}<br>
-            Median: ${stat.median.toFixed(2)}<br>
-            Mode: ${stat.mode}<br>
-            Min: ${stat.min}<br>
-            Max: ${stat.max}<br>
-            Range: ${stat.range.toFixed(2)}<br>
-            Variance: ${stat.variance.toFixed(2)}<br>
-            Std Dev: ${stat.stdDev.toFixed(2)}<br>
-            95% CI: [${stat.ciLower.toFixed(2)}, ${stat.ciUpper.toFixed(2)}]<br>
-            <em>Distribution Fit:</em> ${stat.distributionFit}
-          </div>`;
+          // Show stats + chart canvas
+          resultsHTML += `
+            <div style="display: flex; align-items: flex-start; margin-bottom: 20px;">
+              <div style="flex: 1; margin-right: 20px;">
+                <strong>${stat.name}</strong> (n=${stat.count})<br>
+                Sum: ${stat.sum.toFixed(2)}<br>
+                Mean: ${stat.mean.toFixed(2)}<br>
+                Median: ${stat.median.toFixed(2)}<br>
+                Mode: ${stat.mode}<br>
+                Min: ${stat.min}<br>
+                Max: ${stat.max}<br>
+                Range: ${stat.range.toFixed(2)}<br>
+                Variance: ${stat.variance.toFixed(2)}<br>
+                Std Dev: ${stat.stdDev.toFixed(2)}<br>
+                95% CI: [${stat.ciLower.toFixed(2)}, ${stat.ciUpper.toFixed(2)}]<br>
+                <em>Distribution Fit:</em> ${stat.distributionFit}
+              </div>
+              <div style="flex: 1;">
+                <!-- Canvas for histogram -->
+                <canvas id="chartVar${i}" style="width: 100%; height: 250px;"></canvas>
+              </div>
+            </div>`;
         }
       });
+
+      // Close the main result-section container
       resultsHTML += "</div>";
+
       // Correlation Matrix:
       const variablesWithData = descriptiveStats.filter(stat => stat.count > 1);
       if (variablesWithData.length >= 2) {
         resultsHTML += "<div class='result-section'><h2>Correlation Matrix</h2><table class='correlation-table'><tr><th></th>";
         for (let i = 0; i < variableCount; i++) {
-          resultsHTML += `<th>${variableNames[i]}</th>`;
+          resultsHTML += `<th>${descriptiveStats[i].name}</th>`;
         }
         resultsHTML += "</tr>";
         for (let i = 0; i < variableCount; i++) {
-          resultsHTML += `<tr><th>${variableNames[i]}</th>`;
+          resultsHTML += `<tr><th>${descriptiveStats[i].name}</th>`;
           for (let j = 0; j < variableCount; j++) {
             let corr = "";
             if (i === j) {
               corr = "1.00";
             } else {
-              if (variablesData[i].length > 1 && variablesData[j].length > 1) {
-                const corrVal = calculateCorrelation(variablesData[i], variablesData[j]);
+              if (descriptiveStats[i].count > 1 && descriptiveStats[j].count > 1) {
+                const corrVal = calculateCorrelation(descriptiveStats[i].rawData, descriptiveStats[j].rawData);
                 corr = (corrVal !== null) ? corrVal.toFixed(2) : "N/A";
               } else {
                 corr = "N/A";
@@ -490,7 +610,15 @@
       } else {
         resultsHTML += "<div class='result-section'><h2>Correlation Matrix</h2><p>Not enough data for correlation analysis (need at least 2 variables with 2+ observations each).</p></div>";
       }
+
       document.getElementById("results").innerHTML = resultsHTML;
+
+      // Now create histograms for each variable that has data
+      descriptiveStats.forEach((stat, i) => {
+        if(stat.count > 0) {
+          createHistogramChart(stat.rawData, `chartVar${i}`, stat.name);
+        }
+      });
     }
 
     /***********************
@@ -513,6 +641,7 @@
         selectX.appendChild(option);
       }
     }
+
     // Get regression data: independent from selected column and dependent for all other columns.
     function getMultiRegressionData() {
       const headerRow = document.getElementById("headerRow");
@@ -554,6 +683,7 @@
       }
       return { xData, depData, variableNames, xColIndex };
     }
+
     // Linear Regression: returns {slope, intercept}
     function linearRegression(xVals, yVals) {
       const n = xVals.length;
@@ -568,6 +698,7 @@
       const intercept = (sumY - slope * sumX) / n;
       return { slope, intercept };
     }
+
     function calculateMultiLinearRegression() {
       const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
       multiRegModels = [];
@@ -604,6 +735,7 @@
       document.getElementById("regressionResults").innerHTML = resultsHTML;
       plotMultiRegressionModels("linear");
     }
+
     function polynomialRegression(xVals, yVals, degree) {
       const n = xVals.length;
       let X = [];
@@ -634,6 +766,7 @@
       const coeffs = gaussianElimination(A, B);
       return coeffs;
     }
+
     function calculateMultiPolynomialRegression() {
       const degree = parseInt(document.getElementById("polyDegree").value);
       if (isNaN(degree) || degree < 1) {
@@ -695,6 +828,7 @@
       document.getElementById("regressionResults").innerHTML = resultsHTML;
       plotMultiRegressionModels("polynomial");
     }
+
     // Gaussian elimination for solving linear systems.
     function gaussianElimination(A, b) {
       const n = A.length;
@@ -727,6 +861,7 @@
       }
       return x;
     }
+
     // Plot all regression models on one chart.
     function plotMultiRegressionModels(modelType) {
       const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
@@ -802,6 +937,7 @@
         }
       });
     }
+
     // Predictions: use stored models to predict Y for a new X value.
     function makePredictions() {
       const predX = parseFloat(document.getElementById("predX").value);
@@ -827,5 +963,4 @@
     }
   </script>
 </body>
-
 </html>
