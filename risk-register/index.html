@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -33,29 +33,6 @@
       padding: 0.4em 0.8em;
       cursor: pointer;
     }
-    #riskTable {
-      width: 600px;
-      max-width: 100%;
-      margin-bottom: 1em;
-    }
-    /* Make the container just as wide as its content,
-       but never overflowing the screen width. */
-    #heatmapContainer {
-      margin-top: 1em;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      display: block; 
-      width: fit-content;   /* shrink-wrap to content */
-      max-width: 100%;      /* but don't overflow the page */
-      margin-bottom: 1em;
-    }
-    /* Let the canvas shrink if the container is forced narrower */
-    #heatmap {
-      display: block;
-      max-width: 100%; 
-      height: auto;   /* preserve aspect ratio when scaled */
-    }
     .risk-btn {
       background: #0066cc;
       color: #fff;
@@ -74,242 +51,455 @@
     .calc-btn:hover {
       background: #cc7a00;
     }
+    #riskTable {
+      width: 600px;
+      max-width: 100%;
+      margin-bottom: 1em;
+    }
+    /* Container for the heatmap: shrink-wrap but never overflow */
+    #heatmapContainer {
+      margin-top: 1em;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      display: block; 
+      width: fit-content;
+      max-width: 100%;
+      margin-bottom: 1em;
+    }
+    /* Let the canvas shrink while preserving aspect ratio */
+    #heatmap {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
   </style>
 </head>
 <body>
 
-<button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
 
-<h1>Risk Register & Assessment</h1>
+  <h1>Risk Register & Assessment</h1>
 
-<!-- 1) The Risk Register Table -->
-<table id="riskTable">
-  <thead>
-    <tr>
-      <th>Risk Name</th>
-      <th>Probability (%)</th>
-      <th>Impact (1–10)</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- Rows dynamically inserted -->
-  </tbody>
-</table>
+  <!-- 1) Risk Register Table -->
+  <table id="riskTable">
+    <thead>
+      <tr>
+        <th>Risk Name</th>
+        <th>Probability (%)</th>
+        <th>Impact (1–10)</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Rows inserted dynamically -->
+    </tbody>
+  </table>
 
-<!-- 2) Buttons below the table -->
-<button id="addRiskBtn" class="risk-btn">Add Risk</button>
-<button id="plotBtn" class="risk-btn">Plot Risks</button>
+  <!-- 2) Control Buttons -->
+  <button id="addRiskBtn" class="risk-btn">Add Risk</button>
+  <button id="plotBtn" class="risk-btn">Plot Risks</button>
+  <button id="exportExcelBtn" class="risk-btn">Export Excel</button>
+  <br>
+  <!-- Slider to set the risk threshold for trapping high risks -->
+  <label for="riskThreshold">Risk Threshold: </label>
+  <input type="range" id="riskThreshold" min="1" max="2" step="0.01" value="1.5">
+  <span id="thresholdValue">1.5</span>
+  <br>
+  <!-- Button to trap (isolate) highest risks -->
+  <button id="trapRisksBtn" class="risk-btn">Trap Highest Risks</button>
 
-<!-- 3) The Heatmap/Chart container -->
-<div id="heatmapContainer">
-  <!-- Important: keep width/height for internal resolution, 
-       but let CSS control the displayed size. -->
-  <canvas id="heatmap" width="800" height="500"></canvas>
-</div>
+  <!-- 3) Mitigation Section (hidden by default) -->
+  <div id="mitigationSection" style="display:none; border:1px solid #ccc; padding: 1em; margin-top:1em;">
+    <h2>Mitigation Plan for High Risks</h2>
+    <div id="mitigationList">
+      <!-- Mitigation inputs inserted dynamically -->
+    </div>
+    <button id="generateReportBtn" class="risk-btn">Generate Risk Report</button>
+  </div>
 
-<script>
-  let risks = [];
+  <!-- 4) Heatmap/Chart Container -->
+  <div id="heatmapContainer">
+    <canvas id="heatmap" width="800" height="500"></canvas>
+  </div>
 
-  const riskTableBody = document.querySelector("#riskTable tbody");
-  const addRiskBtn = document.getElementById("addRiskBtn");
-  const plotBtn = document.getElementById("plotBtn");
-  const canvas = document.getElementById("heatmap");
-  const ctx = canvas.getContext("2d");
+  <!-- Include libraries for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-  // Internal resolution (matching <canvas width="800" height="500">)
-  const CANVAS_WIDTH = canvas.width;
-  const CANVAS_HEIGHT = canvas.height;
+  <script>
+    // Global variables
+    let risks = [];
 
-  // Ranges
-  const MAX_IMPACT = 10;
-  const MAX_PROB = 100;
+    const riskTableBody = document.querySelector("#riskTable tbody");
+    const addRiskBtn = document.getElementById("addRiskBtn");
+    const plotBtn = document.getElementById("plotBtn");
+    const exportExcelBtn = document.getElementById("exportExcelBtn");
+    const trapRisksBtn = document.getElementById("trapRisksBtn");
+    const riskThresholdSlider = document.getElementById("riskThreshold");
+    const thresholdValueSpan = document.getElementById("thresholdValue");
+    const mitigationSection = document.getElementById("mitigationSection");
+    const mitigationList = document.getElementById("mitigationList");
+    const generateReportBtn = document.getElementById("generateReportBtn");
 
-  // Margins
-  const LEFT_MARGIN   = 50;
-  const RIGHT_MARGIN  = 90;
-  const TOP_MARGIN    = 60;
-  const BOTTOM_MARGIN = 50;
+    const canvas = document.getElementById("heatmap");
+    const ctx = canvas.getContext("2d");
 
-  // Plot area inside margins
-  const plotWidth  = CANVAS_WIDTH  - LEFT_MARGIN - RIGHT_MARGIN;
-  const plotHeight = CANVAS_HEIGHT - TOP_MARGIN  - BOTTOM_MARGIN;
+    // Canvas dimensions & margins
+    const CANVAS_WIDTH = canvas.width;
+    const CANVAS_HEIGHT = canvas.height;
+    const MAX_IMPACT = 10;
+    const MAX_PROB = 100;
+    const LEFT_MARGIN   = 50;
+    const RIGHT_MARGIN  = 90;
+    const TOP_MARGIN    = 60;
+    const BOTTOM_MARGIN = 50;
+    const plotWidth  = CANVAS_WIDTH  - LEFT_MARGIN - RIGHT_MARGIN;
+    const plotHeight = CANVAS_HEIGHT - TOP_MARGIN  - BOTTOM_MARGIN;
 
-  // Create one row on load
-  createRiskRow();
+    // Create one initial risk row on load
+    createRiskRow();
 
-  // "Add Risk" button
-  addRiskBtn.addEventListener("click", createRiskRow);
+    // --- Event Listeners ---
 
-  // "Plot Risks" button
-  plotBtn.addEventListener("click", () => {
-    gatherRisks();
-    drawChart(risks);
-  });
+    // Add Risk button adds a new row.
+    addRiskBtn.addEventListener("click", createRiskRow);
 
-  function createRiskRow() {
-    const tr = document.createElement("tr");
-
-    const tdName = document.createElement("td");
-    const inputName = document.createElement("input");
-    inputName.type = "text";
-    inputName.placeholder = "e.g. Data breach";
-    tdName.appendChild(inputName);
-
-    const tdProb = document.createElement("td");
-    const inputProb = document.createElement("input");
-    inputProb.type = "number";
-    inputProb.placeholder = "0–100";
-    inputProb.min = "0";
-    inputProb.max = "100";
-    tdProb.appendChild(inputProb);
-
-    const tdImpact = document.createElement("td");
-    const inputImpact = document.createElement("input");
-    inputImpact.type = "number";
-    inputImpact.placeholder = "1–10";
-    inputImpact.min = "1";
-    inputImpact.max = "10";
-    tdImpact.appendChild(inputImpact);
-
-    // "Calculate Probability" button
-    const tdCalc = document.createElement("td");
-    const calcBtn = document.createElement("button");
-    calcBtn.textContent = "Calculate Probability";
-    calcBtn.className = "calc-btn";
-    calcBtn.addEventListener("click", () => {
-    
-window.open("../monte-carlo/index.html", "_blank");
-
+    // Plot Risks button: update risks and redraw chart.
+    plotBtn.addEventListener("click", () => {
+      gatherRisks();
+      drawChart(risks);
     });
-    tdCalc.appendChild(calcBtn);
 
-    tr.appendChild(tdName);
-    tr.appendChild(tdProb);
-    tr.appendChild(tdImpact);
-    tr.appendChild(tdCalc);
+    // Export Excel button: create an Excel file with table data and the chart image.
+    exportExcelBtn.addEventListener("click", async () => {
+      gatherRisks(); // Update risks from the table.
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Risk Data");
 
-    riskTableBody.appendChild(tr);
-  }
+      // Set up worksheet columns.
+      worksheet.columns = [
+        { header: "Risk Name", key: "name", width: 30 },
+        { header: "Probability (%)", key: "probability", width: 20 },
+        { header: "Impact (1–10)", key: "impact", width: 15 }
+      ];
 
-  function gatherRisks() {
-    risks = [];
-    const rows = riskTableBody.querySelectorAll("tr");
-    rows.forEach(row => {
-      const inputs = row.querySelectorAll("input");
-      if (inputs.length === 3) {
-        const name = inputs[0].value.trim();
-        const probability = parseFloat(inputs[1].value) || 0;
-        const impact = parseFloat(inputs[2].value) || 0;
-        if (name && probability >= 0 && probability <= 100 && impact >= 1 && impact <= 10) {
-          risks.push({ name, probability, impact });
-        }
+      // Add each risk as a row.
+      risks.forEach(risk => {
+        worksheet.addRow({
+          name: risk.name,
+          probability: risk.probability,
+          impact: risk.impact
+        });
+      });
+
+      // Convert canvas to image.
+      const imgData = canvas.toDataURL("image/png");
+      const imageId = workbook.addImage({
+        base64: imgData,
+        extension: "png",
+      });
+
+      // Place the image below the risk table.
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: risks.length + 3 },
+        ext: { width: 400, height: 250 }
+      });
+
+      // Generate Excel file and trigger download.
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer]), "Risk_Assessment.xlsx");
+    });
+
+    // Update threshold display and redraw chart when slider moves.
+    riskThresholdSlider.addEventListener("input", () => {
+      thresholdValueSpan.textContent = riskThresholdSlider.value;
+      drawChart(risks);
+    });
+
+    // Trap Highest Risks button: filter risks above the threshold and show mitigation inputs.
+    trapRisksBtn.addEventListener("click", () => {
+      gatherRisks();
+      const threshold = parseFloat(riskThresholdSlider.value);
+      // Compute risk score as normalized probability plus normalized impact.
+      const highRisks = risks.filter(risk => getRiskScore(risk) >= threshold);
+
+      // Clear previous mitigation inputs.
+      mitigationList.innerHTML = "";
+      if (highRisks.length === 0) {
+        mitigationList.innerHTML = "<p>No risks meet the threshold.</p>";
+      } else {
+        highRisks.forEach((risk, idx) => {
+          const div = document.createElement("div");
+          div.style.borderBottom = "1px solid #eee";
+          div.style.marginBottom = "0.5em";
+          div.style.paddingBottom = "0.5em";
+          div.innerHTML = `<strong>${risk.name}</strong> (Probability: ${risk.probability}%, Impact: ${risk.impact})`;
+
+          // Dropdown for mitigation type based on PMBOK principles.
+          const select = document.createElement("select");
+          select.innerHTML = `
+            <option value="avoid">Avoid</option>
+            <option value="mitigate">Mitigate</option>
+            <option value="transfer">Transfer</option>
+            <option value="accept">Accept</option>
+          `;
+          select.style.marginLeft = "1em";
+
+          // Input for entering mitigation details.
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Enter mitigation details";
+          input.style.width = "60%";
+          input.style.marginLeft = "1em";
+
+          div.appendChild(select);
+          div.appendChild(input);
+          div.setAttribute("data-risk-index", idx);
+          mitigationList.appendChild(div);
+        });
       }
+      // Reveal the mitigation section.
+      mitigationSection.style.display = "block";
     });
-  }
 
-  function drawChart(risksArray) {
-    // Clear canvas (at internal resolution 800×500)
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Generate Risk Report button: compile chart, risk list, and mitigation plan.
+    generateReportBtn.addEventListener("click", () => {
+      const report = {
+        risks,
+        mitigationPlan: [],
+        chartImage: canvas.toDataURL("image/png")
+      };
 
-    // 1) Title
-    ctx.save();
-    ctx.font = "bold 20px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#000";
-    ctx.fillText("Risk Assessment", CANVAS_WIDTH / 2, TOP_MARGIN - 15);
-    ctx.restore();
+      // Gather mitigation details.
+      const mitigationDivs = mitigationList.querySelectorAll("div[data-risk-index]");
+      mitigationDivs.forEach(div => {
+        const riskName = div.querySelector("strong").textContent;
+        const mitigationType = div.querySelector("select").value;
+        const details = div.querySelector("input").value;
+        report.mitigationPlan.push({
+          risk: riskName,
+          mitigationType,
+          details
+        });
+      });
 
-    // 2) Bounding box
-    ctx.strokeStyle = "#666";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(LEFT_MARGIN, TOP_MARGIN, plotWidth, plotHeight);
+      // Create a simple HTML report.
+      let reportHTML = `
+        <html>
+          <head>
+            <title>Risk Report</title>
+            <style>
+              body { font-family: sans-serif; margin: 20px; }
+              h1, h2 { color: #333; }
+              ul { list-style-type: disc; margin-left: 20px; }
+            </style>
+          </head>
+          <body>
+            <h1>Risk Report</h1>
+            <h2>Chart</h2>
+            <img src="${report.chartImage}" style="max-width:100%;height:auto;"/>
+            <h2>Risk Register</h2>
+            <ul>`;
+      report.risks.forEach(risk => {
+        reportHTML += `<li>${risk.name} (Probability: ${risk.probability}%, Impact: ${risk.impact})</li>`;
+      });
+      reportHTML += `</ul>
+            <h2>Mitigation Plan</h2>
+            <ul>`;
+      report.mitigationPlan.forEach(plan => {
+        reportHTML += `<li><strong>${plan.risk}</strong> – Strategy: ${plan.mitigationType} – Details: ${plan.details}</li>`;
+      });
+      reportHTML += `
+            </ul>
+          </body>
+        </html>
+      `;
+      const reportWindow = window.open("", "_blank");
+      reportWindow.document.write(reportHTML);
+      reportWindow.document.close();
+    });
 
-    // 3) Gradient background
-    const gradX1 = LEFT_MARGIN;
-    const gradY1 = TOP_MARGIN + plotHeight;
-    const gradX2 = LEFT_MARGIN + plotWidth;
-    const gradY2 = TOP_MARGIN;
+    // --- Functions ---
 
-    const gradient = ctx.createLinearGradient(gradX1, gradY1, gradX2, gradY2);
-    gradient.addColorStop(0, "green");
-    gradient.addColorStop(0.2, "yellow");
-    gradient.addColorStop(0.5, "orange");
-    gradient.addColorStop(1, "red");
+    // Create a new risk row in the table.
+    function createRiskRow() {
+      const tr = document.createElement("tr");
 
-    ctx.save();
-    ctx.fillStyle = gradient;
-    ctx.fillRect(LEFT_MARGIN, TOP_MARGIN, plotWidth, plotHeight);
-    ctx.restore();
+      const tdName = document.createElement("td");
+      const inputName = document.createElement("input");
+      inputName.type = "text";
+      inputName.placeholder = "e.g. Data breach";
+      tdName.appendChild(inputName);
 
-    // 4) X-axis
-    ctx.save();
-    ctx.strokeStyle = "#999";
-    ctx.fillStyle = "#000";
-    ctx.textAlign = "center";
-    ctx.font = "12px sans-serif";
+      const tdProb = document.createElement("td");
+      const inputProb = document.createElement("input");
+      inputProb.type = "number";
+      inputProb.placeholder = "0–100";
+      inputProb.min = "0";
+      inputProb.max = "100";
+      tdProb.appendChild(inputProb);
 
-    for (let p = 0; p <= MAX_PROB; p += 10) {
-      const x = LEFT_MARGIN + (p / MAX_PROB) * plotWidth;
-      const y = TOP_MARGIN + plotHeight;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x, y + 5);
-      ctx.stroke();
-      ctx.fillText(p + "%", x, y + 18);
+      const tdImpact = document.createElement("td");
+      const inputImpact = document.createElement("input");
+      inputImpact.type = "number";
+      inputImpact.placeholder = "1–10";
+      inputImpact.min = "1";
+      inputImpact.max = "10";
+      tdImpact.appendChild(inputImpact);
+
+      // Button to calculate probability (opens a Monte Carlo simulation page)
+      const tdCalc = document.createElement("td");
+      const calcBtn = document.createElement("button");
+      calcBtn.textContent = "Calculate Probability";
+      calcBtn.className = "calc-btn";
+      calcBtn.addEventListener("click", () => {
+        window.open("../monte-carlo/index.html", "_blank");
+      });
+      tdCalc.appendChild(calcBtn);
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdProb);
+      tr.appendChild(tdImpact);
+      tr.appendChild(tdCalc);
+
+      riskTableBody.appendChild(tr);
     }
-    ctx.font = "14px sans-serif";
-    ctx.fillText("Probability (0–100%)", LEFT_MARGIN + plotWidth / 2, TOP_MARGIN + plotHeight + 40);
-    ctx.restore();
 
-    // 5) Y-axis
-    ctx.save();
-    ctx.strokeStyle = "#999";
-    ctx.fillStyle = "#000";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    ctx.font = "12px sans-serif";
-
-    for (let i = 0; i <= MAX_IMPACT; i++) {
-      const y = TOP_MARGIN + plotHeight - (i / MAX_IMPACT) * plotHeight;
-      ctx.beginPath();
-      ctx.moveTo(LEFT_MARGIN, y);
-      ctx.lineTo(LEFT_MARGIN - 5, y);
-      ctx.stroke();
-      ctx.fillText(i, LEFT_MARGIN - 8, y);
+    // Gather risk data from the table.
+    function gatherRisks() {
+      risks = [];
+      const rows = riskTableBody.querySelectorAll("tr");
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll("input");
+        if (inputs.length === 3) {
+          const name = inputs[0].value.trim();
+          const probability = parseFloat(inputs[1].value) || 0;
+          const impact = parseFloat(inputs[2].value) || 0;
+          if (name && probability >= 0 && probability <= 100 && impact >= 1 && impact <= 10) {
+            risks.push({ name, probability, impact });
+          }
+        }
+      });
     }
 
-    // Label Y-axis
-    ctx.save();
-    ctx.translate(LEFT_MARGIN - 35, TOP_MARGIN + plotHeight / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = "center";
-    ctx.font = "14px sans-serif";
-    ctx.fillText("Impact (0–10)", 0, 0);
-    ctx.restore();
-    ctx.restore();
+    // Compute a normalized risk score: (probability/100) + (impact/10)
+    function getRiskScore(risk) {
+      return (risk.probability / MAX_PROB) + (risk.impact / MAX_IMPACT);
+    }
 
-    // 6) Plot each risk
-    risksArray.forEach(risk => {
-      const x = LEFT_MARGIN + (risk.probability / MAX_PROB) * plotWidth;
-      const y = TOP_MARGIN + plotHeight - (risk.impact / MAX_IMPACT) * plotHeight;
+    // Draw the risk chart with the gradient, axes, risk points, and threshold line.
+    function drawChart(risksArray) {
+      // Clear the canvas.
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Dot
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fillStyle = "#1e90ff";
-      ctx.fill();
-
-      // Angled label
+      // Draw title.
       ctx.save();
-      ctx.translate(x + 6, y - 4);
-      ctx.rotate(-Math.PI / 6);
+      ctx.font = "bold 20px sans-serif";
+      ctx.textAlign = "center";
       ctx.fillStyle = "#000";
-      ctx.font = "12px sans-serif";
-      ctx.fillText(risk.name, 0, 0);
+      ctx.fillText("Risk Assessment", CANVAS_WIDTH / 2, TOP_MARGIN - 15);
       ctx.restore();
-    });
-  }
-</script>
+
+      // Draw bounding box.
+      ctx.strokeStyle = "#666";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(LEFT_MARGIN, TOP_MARGIN, plotWidth, plotHeight);
+
+      // Draw gradient background.
+      const gradX1 = LEFT_MARGIN;
+      const gradY1 = TOP_MARGIN + plotHeight;
+      const gradX2 = LEFT_MARGIN + plotWidth;
+      const gradY2 = TOP_MARGIN;
+      const gradient = ctx.createLinearGradient(gradX1, gradY1, gradX2, gradY2);
+      gradient.addColorStop(0, "green");
+      gradient.addColorStop(0.2, "yellow");
+      gradient.addColorStop(0.5, "orange");
+      gradient.addColorStop(1, "red");
+      ctx.save();
+      ctx.fillStyle = gradient;
+      ctx.fillRect(LEFT_MARGIN, TOP_MARGIN, plotWidth, plotHeight);
+      ctx.restore();
+
+      // X-axis.
+      ctx.save();
+      ctx.strokeStyle = "#999";
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "center";
+      ctx.font = "12px sans-serif";
+      for (let p = 0; p <= MAX_PROB; p += 10) {
+        const x = LEFT_MARGIN + (p / MAX_PROB) * plotWidth;
+        const y = TOP_MARGIN + plotHeight;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y + 5);
+        ctx.stroke();
+        ctx.fillText(p + "%", x, y + 18);
+      }
+      ctx.font = "14px sans-serif";
+      ctx.fillText("Probability (0–100%)", LEFT_MARGIN + plotWidth / 2, TOP_MARGIN + plotHeight + 40);
+      ctx.restore();
+
+      // Y-axis.
+      ctx.save();
+      ctx.strokeStyle = "#999";
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.font = "12px sans-serif";
+      for (let i = 0; i <= MAX_IMPACT; i++) {
+        const y = TOP_MARGIN + plotHeight - (i / MAX_IMPACT) * plotHeight;
+        ctx.beginPath();
+        ctx.moveTo(LEFT_MARGIN, y);
+        ctx.lineTo(LEFT_MARGIN - 5, y);
+        ctx.stroke();
+        ctx.fillText(i, LEFT_MARGIN - 8, y);
+      }
+      // Label Y-axis.
+      ctx.save();
+      ctx.translate(LEFT_MARGIN - 35, TOP_MARGIN + plotHeight / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = "center";
+      ctx.font = "14px sans-serif";
+      ctx.fillText("Impact (0–10)", 0, 0);
+      ctx.restore();
+      ctx.restore();
+
+      // Plot each risk.
+      risksArray.forEach(risk => {
+        const x = LEFT_MARGIN + (risk.probability / MAX_PROB) * plotWidth;
+        const y = TOP_MARGIN + plotHeight - (risk.impact / MAX_IMPACT) * plotHeight;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = "#1e90ff";
+        ctx.fill();
+        ctx.save();
+        ctx.translate(x + 6, y - 4);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillStyle = "#000";
+        ctx.font = "12px sans-serif";
+        ctx.fillText(risk.name, 0, 0);
+        ctx.restore();
+      });
+
+      // Draw the diagonal threshold line.
+      const T = parseFloat(riskThresholdSlider.value);
+      const xNormStart = Math.max(0, T - 1);
+      const xNormEnd = Math.min(1, T);
+      const xStart = LEFT_MARGIN + xNormStart * plotWidth;
+      const yStart = TOP_MARGIN + plotHeight - (T - xNormStart) * plotHeight;
+      const xEnd = LEFT_MARGIN + xNormEnd * plotWidth;
+      const yEnd = TOP_MARGIN + plotHeight - (T - xNormEnd) * plotHeight;
+      ctx.save();
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(xStart, yStart);
+      ctx.lineTo(xEnd, yEnd);
+      ctx.stroke();
+      ctx.restore();
+    }
+  </script>
 </body>
 </html>
