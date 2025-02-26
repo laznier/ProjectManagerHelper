@@ -791,6 +791,8 @@
       resultsHTML += `<p><strong><span class="tooltip" data-tooltip="McFadden's R²: A pseudo R² for logistic regression. Values between 0.2 and 0.4 are considered excellent.">McFadden's R²</span>:</strong> ${(mcfaddenR2 * 100).toFixed(2)}%</p>`;
       resultsHTML += `<div class="interpretation"><strong>Interpretation:</strong> ${fitInterpretation}</div></div>`;
       document.getElementById("regressionResults").innerHTML = resultsHTML;
+      // Now update the chart for logistic regression as well.
+      plotRegressionChart(X, y, beta, independentNames);
       updatePredictionInputs();
     }
 
@@ -934,85 +936,176 @@
       return -tmp + Math.log(2.5066282746310005 * ser / x);
     }
 
+    // Modified plotRegressionChart function.
     function plotRegressionChart(X, y, beta, independentNames) {
       const ctx = document.getElementById('regChart').getContext('2d');
       if (regChart) { regChart.destroy(); }
       let datasets = [];
-      if (beta.length - 1 === 1) {
-        const xValues = X.map(row => row[1]);
-        const scatterData = xValues.map((x, i) => ({ x: x, y: y[i] }));
-        const minX = Math.min(...xValues);
-        const maxX = Math.max(...xValues);
-        const regLineData = [];
-        const steps = 100;
-        const stepSize = (maxX - minX) / (steps - 1);
-        for (let i = 0; i < steps; i++) {
-          let x = minX + i * stepSize;
-          let yPred = beta[0] + beta[1] * x;
-          regLineData.push({ x: x, y: yPred });
-        }
-        datasets.push({
-          label: "Data Points",
-          data: scatterData,
-          backgroundColor: "rgba(40,167,69,0.8)",
-          pointRadius: 4,
-          type: "scatter"
-        });
-        datasets.push({
-          label: "Regression Line",
-          data: regLineData,
-          borderColor: "rgba(220,53,69,0.8)",
-          borderWidth: 2,
-          fill: false,
-          type: "line",
-          pointRadius: 0
-        });
-        var options = {
-          responsive: true,
-          scales: {
-            x: { type: 'linear', position: 'bottom', title: { display: true, text: independentNames[0] } },
-            y: { title: { display: true, text: "Dependent Variable" } }
-          }
-        };
-        regChart = new Chart(ctx, {
-          type: 'scatter',
-          data: { datasets: datasets },
-          options: options
-        });
+      
+      // For logistic regression with one independent variable, plot the sigmoid curve.
+      if (regressionModel && regressionModel.type === "logistic" && beta.length - 1 === 1) {
+         const xValues = X.map(row => row[1]);
+         const scatterData = xValues.map((x, i) => ({ x: x, y: y[i] }));
+         const minX = Math.min(...xValues);
+         const maxX = Math.max(...xValues);
+         const sigmoid = z => 1 / (1 + Math.exp(-z));
+         const regLineData = [];
+         const steps = 100;
+         const stepSize = (maxX - minX) / (steps - 1);
+         // Use original x-values but standardize them using the model's means and stds.
+         const mean = regressionModel.means[1];
+         const std = regressionModel.stds[1];
+         for (let i = 0; i < steps; i++) {
+           let x = minX + i * stepSize;
+           let standardized_x = (x - mean) / std;
+           let z = beta[0] + beta[1] * standardized_x;
+           let yPred = sigmoid(z);
+           regLineData.push({ x: x, y: yPred });
+         }
+         datasets.push({
+            label: "Data Points",
+            data: scatterData,
+            backgroundColor: "rgba(40,167,69,0.8)",
+            pointRadius: 4,
+            type: "scatter"
+         });
+         datasets.push({
+            label: "Logistic Regression Curve",
+            data: regLineData,
+            borderColor: "rgba(220,53,69,0.8)",
+            borderWidth: 2,
+            fill: false,
+            type: "line",
+            pointRadius: 0
+         });
+         var options = {
+           responsive: true,
+           scales: {
+             x: { type: 'linear', position: 'bottom', title: { display: true, text: independentNames[0] } },
+             y: { title: { display: true, text: "Probability" }, min: 0, max: 1 }
+           }
+         };
+         regChart = new Chart(ctx, {
+           type: 'scatter',
+           data: { datasets: datasets },
+           options: options
+         });
       } else {
-        const predictions = X.map(row => row.reduce((sum, val, i) => sum + beta[i] * val, 0));
-        const scatterData = predictions.map((pred, i) => ({ x: pred, y: y[i] }));
-        datasets.push({
-          label: "Actual vs Predicted",
-          data: scatterData,
-          backgroundColor: "rgba(23,162,184,0.8)",
-          pointRadius: 4,
-          type: "scatter"
-        });
-        const minVal = Math.min(...predictions, ...y);
-        const maxVal = Math.max(...predictions, ...y);
-        const refLineData = [{ x: minVal, y: minVal }, { x: maxVal, y: maxVal }];
-        datasets.push({
-          label: "y = x",
-          data: refLineData,
-          borderColor: "rgba(108,117,125,0.8)",
-          borderWidth: 2,
-          fill: false,
-          type: "line",
-          pointRadius: 0
-        });
-        var options = {
-          responsive: true,
-          scales: {
-            x: { title: { display: true, text: "Predicted" } },
-            y: { title: { display: true, text: "Actual" } }
-          }
-        };
-        regChart = new Chart(ctx, {
-          type: 'scatter',
-          data: { datasets: datasets },
-          options: options
-        });
+         // For other cases: linear, ridge, or logistic with multiple predictors.
+         if (regressionModel && regressionModel.type === "logistic") {
+            // For logistic regression with multiple predictors, use the precomputed predictions.
+            const scatterData = regressionModel.predictions.map((pred, i) => ({ x: pred, y: y[i] }));
+            datasets.push({
+              label: "Predicted vs Actual",
+              data: scatterData,
+              backgroundColor: "rgba(23,162,184,0.8)",
+              pointRadius: 4,
+              type: "scatter"
+            });
+            // Add a horizontal line at 0.5 as a reference threshold.
+            const minPred = Math.min(...regressionModel.predictions);
+            const maxPred = Math.max(...regressionModel.predictions);
+            const refLineData = [{ x: minPred, y: 0.5 }, { x: maxPred, y: 0.5 }];
+            datasets.push({
+              label: "Threshold 0.5",
+              data: refLineData,
+              borderColor: "rgba(108,117,125,0.8)",
+              borderWidth: 2,
+              fill: false,
+              type: "line",
+              pointRadius: 0
+            });
+            var options = {
+              responsive: true,
+              scales: {
+                x: { title: { display: true, text: "Predicted Probability" } },
+                y: { title: { display: true, text: "Actual Outcome" }, min: 0, max: 1 }
+              }
+            };
+            regChart = new Chart(ctx, {
+              type: 'scatter',
+              data: { datasets: datasets },
+              options: options
+            });
+         } else {
+            // For linear or ridge regression.
+            if (beta.length - 1 === 1) {
+                const xValues = X.map(row => row[1]);
+                const scatterData = xValues.map((x, i) => ({ x: x, y: y[i] }));
+                const minX = Math.min(...xValues);
+                const maxX = Math.max(...xValues);
+                const regLineData = [];
+                const steps = 100;
+                const stepSize = (maxX - minX) / (steps - 1);
+                for (let i = 0; i < steps; i++) {
+                  let x = minX + i * stepSize;
+                  let yPred = beta[0] + beta[1] * x;
+                  regLineData.push({ x: x, y: yPred });
+                }
+                datasets.push({
+                  label: "Data Points",
+                  data: scatterData,
+                  backgroundColor: "rgba(40,167,69,0.8)",
+                  pointRadius: 4,
+                  type: "scatter"
+                });
+                datasets.push({
+                  label: "Regression Line",
+                  data: regLineData,
+                  borderColor: "rgba(220,53,69,0.8)",
+                  borderWidth: 2,
+                  fill: false,
+                  type: "line",
+                  pointRadius: 0
+                });
+                var options = {
+                  responsive: true,
+                  scales: {
+                    x: { type: 'linear', position: 'bottom', title: { display: true, text: independentNames[0] } },
+                    y: { title: { display: true, text: "Dependent Variable" } }
+                  }
+                };
+                regChart = new Chart(ctx, {
+                  type: 'scatter',
+                  data: { datasets: datasets },
+                  options: options
+                });
+            } else {
+                const predictions = X.map(row => row.reduce((sum, val, i) => sum + beta[i] * val, 0));
+                const scatterData = predictions.map((pred, i) => ({ x: pred, y: y[i] }));
+                datasets.push({
+                  label: "Actual vs Predicted",
+                  data: scatterData,
+                  backgroundColor: "rgba(23,162,184,0.8)",
+                  pointRadius: 4,
+                  type: "scatter"
+                });
+                const minVal = Math.min(...predictions, ...y);
+                const maxVal = Math.max(...predictions, ...y);
+                const refLineData = [{ x: minVal, y: minVal }, { x: maxVal, y: maxVal }];
+                datasets.push({
+                  label: "y = x",
+                  data: refLineData,
+                  borderColor: "rgba(108,117,125,0.8)",
+                  borderWidth: 2,
+                  fill: false,
+                  type: "line",
+                  pointRadius: 0
+                });
+                var options = {
+                  responsive: true,
+                  scales: {
+                    x: { title: { display: true, text: "Predicted" } },
+                    y: { title: { display: true, text: "Actual" } }
+                  }
+                };
+                regChart = new Chart(ctx, {
+                  type: 'scatter',
+                  data: { datasets: datasets },
+                  options: options
+                });
+            }
+         }
       }
     }
 
