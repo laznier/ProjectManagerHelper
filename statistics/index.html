@@ -176,6 +176,7 @@
     </div>
     <div id="regressionResults" class="results"></div>
     <canvas id="regChart"></canvas>
+    <button onclick="generateReport()">Generate Report</button>
   </div>
 
   <script>
@@ -269,17 +270,14 @@
       const kurt = calculateKurtosis(data, mean, stdDev);
       
       if(allIntegers) {
-        // Poisson distribution: variance ~ mean.
         if(Math.abs(variance - mean)/mean < 0.2) {
           return `Poisson Distribution (λ ≈ ${mean.toFixed(2)})`;
         }
-        // Binomial distribution: use max as n and mean/max as p.
         if(mean < max) {
           return `Binomial Distribution (n ≈ ${max.toFixed(0)}, p ≈ ${(mean/max).toFixed(2)})`;
         }
       }
       
-      // Continuous data:
       if(Math.abs(skew) < 0.5 && Math.abs(kurt) < 0.5) {
         return `Normal Distribution (mean: ${mean.toFixed(2)}, stdDev: ${stdDev.toFixed(2)})`;
       } else if(Math.abs(skew) < 0.5 && kurt < -0.8) {
@@ -294,25 +292,20 @@
         }
       }
       
-      // Exponential distribution: high skew and high kurtosis.
       if(skew > 1.5 && kurt > 5) {
         return `Exponential Distribution (λ ≈ ${(1/mean).toFixed(2)})`;
       }
       
-      // Lognormal distribution: moderate-to-high skew.
       if(skew > 1 && skew < 2 && mean > 0) {
         const sigma = Math.sqrt(Math.log(1 + variance / (mean * mean)));
         const mu = Math.log(mean) - 0.5 * sigma * sigma;
         return `Lognormal Distribution (mu: ${mu.toFixed(2)}, sigma: ${sigma.toFixed(2)})`;
       }
       
-      // For moderately skewed data, decide between Weibull and Gamma using the coefficient of variation.
       const cv = stdDev / mean;
       if(cv > 1) {
-        // Here you might fit a Weibull distribution if desired.
         return "Weibull Distribution (shape, scale)";
       } else {
-        // Gamma Distribution: calculate shape and scale.
         const shape = (mean * mean) / variance;
         const scale = variance / mean;
         return `Gamma Distribution (shape: ${shape.toFixed(2)}, scale: ${scale.toFixed(3)})`;
@@ -324,20 +317,12 @@
     /***********************
      * Histogram Chart Helper
      ***********************/
-    /**
-     * Creates a simple histogram using a bar chart in Chart.js
-     * @param {Array} data - raw numeric data
-     * @param {string} chartId - id of the canvas element
-     * @param {string} varName - name of the variable (for labeling)
-     */
     function createHistogramChart(data, chartId, varName) {
-      // Number of bins (you can adjust this)
       const bins = 10;
       const minVal = Math.min(...data);
       const maxVal = Math.max(...data);
       const range = maxVal - minVal;
       if(range === 0) {
-        // If all values are identical, just show a single bin
         new Chart(document.getElementById(chartId), {
           type: 'bar',
           data: {
@@ -357,24 +342,19 @@
         });
         return;
       }
-
       const binSize = range / bins;
-      // Initialize bins
       let binCounts = new Array(bins).fill(0);
       data.forEach(value => {
         let idx = Math.floor((value - minVal) / binSize);
-        if(idx === bins) idx = bins - 1; // edge case for max value
+        if(idx === bins) idx = bins - 1;
         binCounts[idx]++;
       });
-
-      // Create bin labels
       let labels = [];
       for(let i = 0; i < bins; i++) {
         const start = minVal + i * binSize;
         const end = start + binSize;
         labels.push(`${start.toFixed(1)} - ${end.toFixed(1)}`);
       }
-
       new Chart(document.getElementById(chartId), {
         type: 'bar',
         data: {
@@ -400,7 +380,6 @@
      * Multi-variable Statistics Section
      ***********************/
     document.addEventListener("DOMContentLoaded", () => {
-      // Initialize with two default variables and one observation.
       addVariable("Variable 1");
       addVariable("Variable 2");
       addObservation();
@@ -450,21 +429,49 @@
     function importExcelData() {
       const data = document.getElementById("excelData").value;
       if (!data.trim()) return;
-      const rows = data.split(/\r?\n/);
+      const rows = data.split(/\r?\n/).filter(row => row.trim() !== "");
+      const headerRow = document.getElementById("headerRow");
+      while (headerRow.children.length > 1) {
+        headerRow.removeChild(headerRow.lastChild);
+      }
+      const firstRowCells = rows[0].split("\t");
+      let headerPresent = false;
+      for (let cell of firstRowCells) {
+        if (isNaN(parseFloat(cell))) {
+          headerPresent = true;
+          break;
+        }
+      }
+      let variableLabels = [];
+      let startRow = 0;
+      if (headerPresent) {
+        variableLabels = firstRowCells;
+        startRow = 1;
+      } else {
+        variableLabels = firstRowCells.map((_, i) => "Variable " + (i + 1));
+      }
+      variableLabels.forEach(label => {
+        let th = document.createElement("th");
+        let input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Variable Name";
+        input.value = label.trim();
+        th.appendChild(input);
+        headerRow.appendChild(th);
+      });
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       tbody.innerHTML = "";
-      const headerRow = document.getElementById("headerRow");
-      const variableCount = headerRow.getElementsByTagName("th").length - 1;
-      rows.forEach(function(rowData) {
-        if (!rowData.trim()) return;
-        const cellsData = rowData.split("\t");
-        const tr = document.createElement("tr");
-        const tdNum = document.createElement("td");
+      for (let r = startRow; r < rows.length; r++) {
+        let rowData = rows[r];
+        if (!rowData.trim()) continue;
+        let cellsData = rowData.split("\t");
+        let tr = document.createElement("tr");
+        let tdNum = document.createElement("td");
         tdNum.innerText = tbody.getElementsByTagName("tr").length + 1;
         tr.appendChild(tdNum);
-        for (let i = 0; i < variableCount; i++) {
-          const td = document.createElement("td");
-          const input = document.createElement("input");
+        for (let i = 0; i < variableLabels.length; i++) {
+          let td = document.createElement("td");
+          let input = document.createElement("input");
           input.type = "number";
           input.placeholder = "Value";
           input.value = cellsData[i] ? cellsData[i].trim() : "";
@@ -472,7 +479,7 @@
           tr.appendChild(td);
         }
         tbody.appendChild(tr);
-      });
+      }
       updateRegressionSelectors();
     }
 
@@ -529,18 +536,15 @@
           ? getDistributionFit(data, mean, stdDev, min, max, mode)
           : "Insufficient data for distribution analysis";
 
-        // Store data for histogram creation
         descriptiveStats.push({
           name: variableNames[i],
           count, sum, mean, median, mode, min, max, range, variance, stdDev, ciLower, ciUpper, distributionFit,
-          rawData: data  // keep the actual data array for plotting
+          rawData: data
         });
       }
 
-      // Build the HTML for each variable's stats + a canvas for the histogram
       descriptiveStats.forEach((stat, i) => {
         if(stat.count === 0) {
-          // No data
           resultsHTML += `
             <div style="display: flex; align-items: flex-start; margin-bottom: 20px;">
               <div style="flex: 1; margin-right: 20px;">
@@ -548,11 +552,9 @@
                 No data available.
               </div>
               <div style="flex: 1;">
-                <!-- No chart for empty data -->
               </div>
             </div>`;
         } else {
-          // Show stats + chart canvas
           resultsHTML += `
             <div style="display: flex; align-items: flex-start; margin-bottom: 20px;">
               <div style="flex: 1; margin-right: 20px;">
@@ -570,19 +572,15 @@
                 <em>Distribution Fit:</em> ${stat.distributionFit}
               </div>
               <div style="flex: 1;">
-                <!-- Canvas for histogram -->
                 <canvas id="chartVar${i}" style="width: 100%; height: 250px;"></canvas>
               </div>
             </div>`;
         }
       });
 
-      // Close the main result-section container
       resultsHTML += "</div>";
 
-      // Correlation Matrix:
-      const variablesWithData = descriptiveStats.filter(stat => stat.count > 1);
-      if (variablesWithData.length >= 2) {
+      if (descriptiveStats.filter(stat => stat.count > 1).length >= 2) {
         resultsHTML += "<div class='result-section'><h2>Correlation Matrix</h2><table class='correlation-table'><tr><th></th>";
         for (let i = 0; i < variableCount; i++) {
           resultsHTML += `<th>${descriptiveStats[i].name}</th>`;
@@ -613,7 +611,6 @@
 
       document.getElementById("results").innerHTML = resultsHTML;
 
-      // Now create histograms for each variable that has data
       descriptiveStats.forEach((stat, i) => {
         if(stat.count > 0) {
           createHistogramChart(stat.rawData, `chartVar${i}`, stat.name);
@@ -624,7 +621,6 @@
     /***********************
      * Regression Calculator Section (Multi-Regression with Error Metrics)
      ***********************/
-    // Update the independent variable dropdown from dataset headers.
     function updateRegressionSelectors() {
       const headerRow = document.getElementById("headerRow");
       const selectX = document.getElementById("xVarSelect");
@@ -636,13 +632,12 @@
           varName = "Variable " + i;
         }
         let option = document.createElement("option");
-        option.value = i; // column index (1-based)
+        option.value = i;
         option.text = varName;
         selectX.appendChild(option);
       }
     }
 
-    // Get regression data: independent from selected column and dependent for all other columns.
     function getMultiRegressionData() {
       const headerRow = document.getElementById("headerRow");
       const variableCount = headerRow.getElementsByTagName("th").length - 1;
@@ -684,7 +679,6 @@
       return { xData, depData, variableNames, xColIndex };
     }
 
-    // Linear Regression: returns {slope, intercept}
     function linearRegression(xVals, yVals) {
       const n = xVals.length;
       let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -707,7 +701,6 @@
         let yData = depData[depIndex].filter(val => val !== null);
         if (xData.length < 2 || yData.length < 2) continue;
         const { slope, intercept } = linearRegression(xData, yData);
-        // Compute predictions, RMSE, and R².
         let predictions = xData.map(x => slope * x + intercept);
         let sumSquaredError = 0;
         for (let i = 0; i < predictions.length; i++) {
@@ -780,7 +773,6 @@
         let yData = depData[depIndex].filter(val => val !== null);
         if (xData.length < 2 || yData.length < 2) continue;
         const coeffs = polynomialRegression(xData, yData, degree);
-        // Compute predictions, RMSE, and R².
         let predictions = xData.map(x => {
           let yPred = 0;
           for (let j = 0; j < coeffs.length; j++){
@@ -800,6 +792,10 @@
           ssTot += Math.pow(yData[i] - meanY, 2);
         }
         let rSquared = 1 - (sumSquaredError / ssTot);
+        let overfitWarning = "";
+        if (rSquared > 0.99 && degree > 1) {
+          overfitWarning = " Warning: The model may be overfitted. Consider using a lower polynomial degree.";
+        }
         multiRegModels.push({
           depIndex: parseInt(depIndex),
           depName: variableNames[parseInt(depIndex) - 1],
@@ -807,7 +803,8 @@
           type: "polynomial",
           degree,
           xData, yData,
-          rmse, rSquared
+          rmse, rSquared,
+          overfitWarning
         });
         let eqStr = "y = ";
         for (let i = 0; i < coeffs.length; i++) {
@@ -822,14 +819,13 @@
             eqStr += term;
           }
         }
-        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: ${eqStr} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}</div>`;
+        resultsHTML += `<div class="result-line"><strong>${variableNames[depIndex - 1]}</strong>: ${eqStr} | RMSE: ${rmse.toFixed(2)} | R²: ${rSquared.toFixed(2)}${overfitWarning}</div>`;
       }
       resultsHTML += "</div>";
       document.getElementById("regressionResults").innerHTML = resultsHTML;
       plotMultiRegressionModels("polynomial");
     }
 
-    // Gaussian elimination for solving linear systems.
     function gaussianElimination(A, b) {
       const n = A.length;
       for (let i = 0; i < n; i++) {
@@ -862,7 +858,6 @@
       return x;
     }
 
-    // Plot all regression models on one chart.
     function plotMultiRegressionModels(modelType) {
       const { xData, depData, variableNames, xColIndex } = getMultiRegressionData();
       let datasets = [];
@@ -893,7 +888,7 @@
           let y;
           if (modelType === "linear") {
             y = model.slope * x + model.intercept;
-          } else { // polynomial
+          } else {
             y = 0;
             for (let j = 0; j < model.polyCoeffs.length; j++) {
               y += model.polyCoeffs[j] * Math.pow(x, j);
@@ -938,7 +933,6 @@
       });
     }
 
-    // Predictions: use stored models to predict Y for a new X value.
     function makePredictions() {
       const predX = parseFloat(document.getElementById("predX").value);
       if (isNaN(predX)) {
@@ -960,6 +954,58 @@
       });
       predictionHTML += "</div>";
       document.getElementById("regressionResults").innerHTML += predictionHTML;
+    }
+
+    // Report generation now also replaces each distribution-fit canvas with its image.
+    function generateReport() {
+      // Get statistics section HTML.
+      let statsHTML = document.getElementById("results").innerHTML;
+      // Create a temporary container so we can replace canvases with images.
+      let tempDiv = document.createElement("div");
+      tempDiv.innerHTML = statsHTML;
+      let canvases = tempDiv.querySelectorAll("canvas[id^='chartVar']");
+      canvases.forEach(canvas => {
+        let img = document.createElement("img");
+        img.src = canvas.toDataURL();
+        img.style = canvas.getAttribute("style");
+        canvas.parentNode.replaceChild(img, canvas);
+      });
+      let updatedStatsHTML = tempDiv.innerHTML;
+      
+      // Get regression section HTML.
+      let regressionHTML = document.getElementById("regressionResults").innerHTML;
+      let chartImage = "";
+      if(regChart) {
+         chartImage = regChart.toBase64Image();
+      }
+      
+      let reportHTML = `
+      <html>
+      <head>
+         <title>Report - Distribution Fit & Regression</title>
+         <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2, h3 { color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            table, th, td { border: 1px solid #ccc; }
+            th, td { padding: 8px; text-align: center; }
+            .result-section { margin-bottom: 20px; padding: 10px; border: 1px solid #ccd; background: #eef; }
+         </style>
+      </head>
+      <body>
+         <h1>Distribution Fit & Regression Analysis Report</h1>
+         <h2>Descriptive Statistics and Distribution Fit</h2>
+         ${updatedStatsHTML}
+         <h2>Regression Analysis</h2>
+         ${regressionHTML}
+         <h2>Regression Chart</h2>
+         ${ chartImage ? `<img src="${chartImage}" style="max-width:100%;">` : "" }
+      </body>
+      </html>
+      `;
+      let reportWindow = window.open("", "Report", "width=800,height=1000,scrollbars=yes");
+      reportWindow.document.write(reportHTML);
+      reportWindow.document.close();
     }
   </script>
 </body>
