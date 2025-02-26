@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Multi-variable Statistics, Regression & Distribution Fit Calculator</title>
-  <meta name="description" content="Input multiple variables and observations (or paste from Excel) to compute descriptive statistics, correlation coefficients, distribution fit, and run multiple regression with predictions and error metrics displayed along with chart output based on your dataset." />
+  <title>Multi-variable Statistics, Linear, Ridge, and Logistic Regression</title>
+  <meta name="description" content="Input your dataset (variables as columns and observations as rows) to perform multiple regression analysis using linear, ridge, and logistic methods. Generate predictions and a full scientific report summary of your findings." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -69,8 +69,13 @@
     .result-section {
       margin-bottom: 20px;
     }
-    .result-line {
-      margin: 4px 0;
+    .interpretation {
+      margin-top: 5px;
+      padding: 5px;
+      background: #e0ffe0;
+      border: 1px solid #b3ffb3;
+      border-radius: 4px;
+      font-size: 0.9em;
     }
     .correlation-table {
       margin-top: 10px;
@@ -119,6 +124,14 @@
       font-size: 0.8em;
       z-index: 10;
     }
+    /* Best Fit Recommendation styling */
+    #bestFitRecommendation {
+      margin-top: 10px;
+      padding: 5px;
+      background: #fffbea;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -127,14 +140,9 @@
 
   <!-- Statistics Section -->
   <div class="container" id="statisticsContainer">
-    <h1>Multi-variable Statistics, Correlation & Distribution Fit Calculator</h1>
+    <h1>Multi-variable Statistics, Linear, Ridge, and Logistic Regression</h1>
     <p>
-      Input your variables (as columns) and observations (as rows). Use the buttons below to add variables or observations.
-      When you click "Calculate Statistics," the tool computes for each variable:
-      <br>
-      <strong>Count, Sum, Mean, Median, Mode, Variance, Standard Deviation, 95% Confidence Interval, and a guess for the best-fit distribution.</strong>
-      <br>
-      It also generates a correlation matrix for all variables.
+      This tool allows you to load your dataset (variables as columns, observations as rows) and perform regression analysis using linear, ridge, or logistic methods. It will generate predictions and allow you to output a full scientific report summarizing your analysis.
     </p>
     <div>
       <button onclick="addVariable()">Add Variable</button>
@@ -143,7 +151,7 @@
     
     <!-- Excel Import Section -->
     <div id="excelImport">
-      <h3>Paste Excel Data</h3>
+      <h3>Paste Excel Data (include header row if available)</h3>
       <textarea id="excelData" placeholder="Paste tab-separated data from Excel here..."></textarea><br>
       <button onclick="importExcelData()">Import Excel Data</button>
     </div>
@@ -165,20 +173,31 @@
 
   <!-- Regression Section -->
   <div class="container" id="regressionContainer">
-    <h1>Multiple Regression Analysis</h1>
+    <h1>Regression Analysis</h1>
     <p>
-      Select the <strong>Dependent Variable</strong> from the dropdown below.
-      All other variables will be used as <strong>Independent Variables</strong> for predicting the outcome.
-      After calculating the regression, the results (including coefficients, standard errors, t‑statistics, p‑values, and the overall <span class="tooltip" data-tooltip="R² (Coefficient of Determination): Proportion of variance in the dependent variable explained by the model.">R²</span>) will be displayed.
-      Variables with <span class="tooltip" data-tooltip="p‑Value: The probability that the coefficient is zero, indicating the predictor's significance.">p‑values</span> &gt; 0.15 are flagged for potential exclusion.
+      Select the <strong>Dependent Variable</strong> below. All other variables will be used as <strong>Independent Variables</strong> for prediction. Choose from Multiple Linear, Ridge, or Logistic Regression. The results (including coefficients, error metrics, and
+      <span class="tooltip" data-tooltip="R² (Coefficient of Determination): Proportion of variance in the dependent variable explained by the model.">R²</span> or 
+      <span class="tooltip" data-tooltip="McFadden's R²: A pseudo R² for logistic regression. Values between 0.2 and 0.4 are considered excellent.">McFadden's R²</span>) are shown along with an interpretation of model fit.
     </p>
     <div id="regressionSelectors">
       <label for="yVarSelect">Dependent Variable:</label>
-      <select id="yVarSelect"></select>
+      <select id="yVarSelect" onchange="updateDependentVariableRecommendation(); updatePredictionInputs();"></select>
       <button onclick="updateRegressionSelectors()">Refresh Variable List</button>
     </div>
     <div>
-      <button onclick="calculateMultipleRegression()">Calculate Regression</button>
+      <label for="modelTypeSelect">Regression Model Type:</label>
+      <select id="modelTypeSelect">
+        <option value="Multiple Linear Regression">Multiple Linear Regression</option>
+        <option value="Logistic Regression">Logistic Regression</option>
+        <option value="Ridge Regression">Ridge Regression</option>
+      </select>
+    </div>
+    <!-- Best Fit Recommendation Section -->
+    <div id="bestFitRecommendation">
+      <strong>Recommendation:</strong> Select a dependent variable to see which regression model is best suited.
+    </div>
+    <div>
+      <button onclick="calculateSelectedRegression()">Calculate Regression</button>
     </div>
     <div id="regressionResults" class="results"></div>
     <div id="chartContainer">
@@ -189,6 +208,8 @@
       <div id="predictionInputs"></div>
       <button onclick="makePrediction()">Predict</button>
       <div id="predictionOutput"></div>
+      <!-- Report button moved to the bottom of the prediction section -->
+      <button onclick="generateReport()">Output Report</button>
     </div>
   </div>
 
@@ -302,21 +323,17 @@
     function addVariable(defaultName = "") {
       const headerRow = document.getElementById("headerRow");
       const th = document.createElement("th");
-      // Create input for variable name
       const input = document.createElement("input");
       input.type = "text";
       input.placeholder = "Variable Name";
       if(defaultName) input.value = defaultName;
       th.appendChild(input);
-      // Add remove button for variable
       const removeBtn = document.createElement("button");
       removeBtn.innerText = "Remove";
       removeBtn.style.marginLeft = "5px";
       removeBtn.onclick = function() { removeVariable(this); };
       th.appendChild(removeBtn);
-      // Insert before the last header cell (which is "Actions")
       headerRow.insertBefore(th, headerRow.lastElementChild);
-      // Add a new cell for each existing observation in tbody
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       const rows = tbody.getElementsByTagName("tr");
       for (let row of rows) {
@@ -333,10 +350,8 @@
     function removeVariable(button) {
       const th = button.parentElement;
       const headerRow = th.parentElement;
-      // Determine index of the variable column (skip first "No." column)
       let index = Array.from(headerRow.children).indexOf(th);
       headerRow.removeChild(th);
-      // Remove corresponding cell from each row in tbody
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       for (let row of tbody.rows) {
         row.removeChild(row.children[index]);
@@ -347,13 +362,11 @@
     function addObservation() {
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       const headerRow = document.getElementById("headerRow");
-      const variableCount = headerRow.children.length - 2; // excluding "No." and "Actions"
+      const variableCount = headerRow.children.length - 2;
       const tr = document.createElement("tr");
-      // First cell: row number
       const tdNum = document.createElement("td");
       tdNum.innerText = tbody.rows.length + 1;
       tr.appendChild(tdNum);
-      // Add cells for each variable
       for (let i = 0; i < variableCount; i++) {
         const td = document.createElement("td");
         const input = document.createElement("input");
@@ -362,7 +375,6 @@
         td.appendChild(input);
         tr.appendChild(td);
       }
-      // Add actions cell with remove observation button
       const tdAction = document.createElement("td");
       const removeBtn = document.createElement("button");
       removeBtn.innerText = "Remove";
@@ -375,7 +387,6 @@
     function removeObservation(button) {
       const tr = button.parentElement.parentElement;
       tr.parentElement.removeChild(tr);
-      // Update row numbers
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       let i = 1;
       for (let row of tbody.rows) {
@@ -383,22 +394,56 @@
       }
     }
 
+    // Updated Excel Import Function – supports header labels.
     function importExcelData() {
       const data = document.getElementById("excelData").value;
       if (!data.trim()) return;
-      const rows = data.split(/\r?\n/);
+      const rows = data.split(/\r?\n/).filter(r => r.trim() !== "");
+      const headerRowEl = document.getElementById("headerRow");
+      // Remove existing variable header cells (between "No." and "Actions")
+      while (headerRowEl.children.length > 2) {
+        headerRowEl.removeChild(headerRowEl.children[1]);
+      }
+      let startRow = 0;
+      const firstRowCells = rows[0].split("\t");
+      let headerPresent = false;
+      for (let cell of firstRowCells) {
+          if (isNaN(parseFloat(cell))) { headerPresent = true; break; }
+      }
+      let variableLabels = [];
+      if (headerPresent) {
+          variableLabels = firstRowCells;
+          startRow = 1;
+      } else {
+          variableLabels = firstRowCells.map((_, i) => "Variable " + (i + 1));
+      }
+      // Add header cells for each variable.
+      for (let label of variableLabels) {
+          let th = document.createElement("th");
+          let input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Variable Name";
+          input.value = label.trim();
+          th.appendChild(input);
+          let removeBtn = document.createElement("button");
+          removeBtn.innerText = "Remove";
+          removeBtn.style.marginLeft = "5px";
+          removeBtn.onclick = function() { removeVariable(this); };
+          th.appendChild(removeBtn);
+          headerRowEl.insertBefore(th, headerRowEl.lastElementChild);
+      }
+      // Import remaining rows as observations.
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       tbody.innerHTML = "";
-      const headerRow = document.getElementById("headerRow");
-      const variableCount = headerRow.children.length - 2; // excluding "No." and "Actions"
-      rows.forEach(function(rowData) {
-        if (!rowData.trim()) return;
+      for (let r = startRow; r < rows.length; r++) {
+        const rowData = rows[r];
+        if (!rowData.trim()) continue;
         const cellsData = rowData.split("\t");
         const tr = document.createElement("tr");
         const tdNum = document.createElement("td");
         tdNum.innerText = tbody.rows.length + 1;
         tr.appendChild(tdNum);
-        for (let i = 0; i < variableCount; i++) {
+        for (let i = 0; i < variableLabels.length; i++) {
           const td = document.createElement("td");
           const input = document.createElement("input");
           input.type = "number";
@@ -414,18 +459,17 @@
         tdAction.appendChild(removeBtn);
         tr.appendChild(tdAction);
         tbody.appendChild(tr);
-      });
+      }
       updateRegressionSelectors();
     }
 
     /**********************
-     * Multiple Regression Functions
+     * Regression and Model Selection Functions
      **********************/
     function updateRegressionSelectors() {
       const headerRow = document.getElementById("headerRow");
       const selectY = document.getElementById("yVarSelect");
       selectY.innerHTML = "";
-      // Variable header cells are from index 1 to (length - 1) (first cell is "No." and last is "Actions")
       for (let i = 1; i < headerRow.children.length - 1; i++) {
         let varName = headerRow.children[i].getElementsByTagName("input")[0].value;
         if (!varName.trim()) {
@@ -437,10 +481,32 @@
         selectY.appendChild(option);
       }
       updatePredictionInputs();
+      updateDependentVariableRecommendation();
     }
 
-    // Gather data for multiple regression:
-    // The selected dependent variable is used as y and all other variables as predictors.
+    function updateDependentVariableRecommendation() {
+      const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
+      const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
+      let allBinary = true;
+      let allContinuous = true;
+      for (let row of tbody.rows) {
+        const val = parseFloat(row.children[dependentIndex].getElementsByTagName("input")[0].value);
+        if (!isNaN(val)) {
+          if (val !== 0 && val !== 1) {
+            allBinary = false;
+          } else {
+            allContinuous = false;
+          }
+        }
+      }
+      const recDiv = document.getElementById("bestFitRecommendation");
+      if (allBinary) {
+        recDiv.innerHTML = "<strong>Recommendation:</strong> Logistic Regression is best suited for a binary dependent variable.";
+      } else {
+        recDiv.innerHTML = "<strong>Recommendation:</strong> For continuous outcomes, Multiple Linear Regression is standard. If you suspect multicollinearity or wish to regularize, consider using Ridge Regression.";
+      }
+    }
+
     function getMultipleRegressionData() {
       const headerRow = document.getElementById("headerRow");
       const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
@@ -454,7 +520,6 @@
         let name = headerRow.children[i].getElementsByTagName("input")[0].value;
         return name.trim() || ("Variable " + i);
       });
-      // Build design matrix X (with intercept) and response vector y.
       const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
       const X = [];
       const y = [];
@@ -463,7 +528,7 @@
         const depValue = parseFloat(cells[dependentIndex].getElementsByTagName("input")[0].value);
         if (isNaN(depValue)) continue;
         let valid = true;
-        let rowX = [1]; // intercept term
+        let rowX = [1];
         for (let idx of independentIndices) {
           const val = parseFloat(cells[idx].getElementsByTagName("input")[0].value);
           if (isNaN(val)) { valid = false; break; }
@@ -494,7 +559,6 @@
       }
       return result;
     }
-    // Inverse using Gauss-Jordan elimination
     function invertMatrix(matrix) {
       const n = matrix.length;
       const identity = [];
@@ -534,15 +598,43 @@
       return identity;
     }
 
+    /**********************
+     * Regression Calculation Functions
+     **********************/
+    function calculateSelectedRegression() {
+      const modelType = document.getElementById("modelTypeSelect").value;
+      if(modelType === "Multiple Linear Regression") {
+        calculateMultipleRegression();
+      } else if(modelType === "Logistic Regression") {
+        calculateLogisticRegression();
+      } else if(modelType === "Ridge Regression") {
+        calculateRidgeRegression();
+      }
+    }
+
+    function interpretFit(value, type) {
+      if(type === "linear" || type === "ridge") {
+        if(value >= 0.8) return "Excellent fit: most variance is explained.";
+        else if(value >= 0.5) return "Good fit: a substantial portion of variance is explained.";
+        else if(value >= 0.3) return "Moderate fit: modest explanatory power.";
+        else return "Poor fit: limited explanatory power.";
+      } else if(type === "logistic") {
+        if(value >= 0.4) return "Excellent fit: the model strongly distinguishes between outcomes.";
+        else if(value >= 0.2) return "Good fit: a strong signal is present.";
+        else return "Poor fit: the model does not explain much of the variation.";
+      }
+      return "";
+    }
+
+    // Multiple Linear Regression Function
     function calculateMultipleRegression() {
       const { X, y, independentNames } = getMultipleRegressionData();
       const n = X.length;
-      const p = X[0].length; // intercept + predictors
+      const p = X[0].length;
       if (n <= p) {
         alert("Not enough observations for regression analysis.");
         return;
       }
-      // Compute X^T X and its inverse.
       const Xt = transpose(X);
       const XtX = multiplyMatrices(Xt, X);
       const XtX_inv = invertMatrix(XtX);
@@ -550,10 +642,8 @@
         alert("Matrix inversion failed. Check your data.");
         return;
       }
-      // Compute X^T y.
       const Xt_y_matrix = multiplyMatrices(Xt, y.map(val => [val]));
       const Xt_y = Xt_y_matrix.map(row => row[0]);
-      // Compute regression coefficients: beta = (X^T X)^(-1) * (X^T y)
       const beta = [];
       for (let i = 0; i < XtX_inv.length; i++) {
         let sum = 0;
@@ -562,31 +652,27 @@
         }
         beta.push(sum);
       }
-      // Calculate predictions and residuals.
       const yhat = X.map(row => row.reduce((sum, val, i) => sum + beta[i] * val, 0));
       const residuals = y.map((val, i) => val - yhat[i]);
       const SSE = residuals.reduce((sum, e) => sum + e * e, 0);
       const sigma2 = SSE / (n - p);
-      // Covariance matrix = sigma2 * (X^T X)^(-1)
       const covMatrix = XtX_inv.map(row => row.map(val => val * sigma2));
       const se = covMatrix.map((row, i) => Math.sqrt(row[i]));
       const tStats = beta.map((b, i) => b / se[i]);
       const df = n - p;
       const pValues = tStats.map(t => 2 * (1 - tCDF(Math.abs(t), df)));
-      // Calculate R² (coefficient of determination)
       let meanY = y.reduce((a, b) => a + b, 0) / y.length;
       let ssTot = y.reduce((sum, val) => sum + Math.pow(val - meanY, 2), 0);
       let rSquared = 1 - (SSE / ssTot);
-      // Save model for predictions.
-      regressionModel = { beta, se, tStats, pValues, df, independentNames, rSquared };
-      // Build results table.
-      let resultsHTML = "<div class='result-section'><h2>Regression Results</h2>";
+      regressionModel = { beta, se, tStats, pValues, df, independentNames, rSquared, type: "linear" };
+      let fitInterpretation = interpretFit(rSquared, "linear");
+      let resultsHTML = "<div class='result-section'><h2>Multiple Linear Regression Results</h2>";
       resultsHTML += "<table border='1' cellpadding='5'><tr>" +
         "<th>Variable</th>" +
-        "<th><span class='tooltip' data-tooltip='Regression coefficient: Change in outcome for one unit change in predictor.'>Coefficient</span></th>" +
-        "<th><span class='tooltip' data-tooltip='Standard Error: Estimated variability of the coefficient.'>Std Error</span></th>" +
-        "<th><span class='tooltip' data-tooltip='t-Statistic: Coefficient divided by its standard error.'>t-Statistic</span></th>" +
-        "<th><span class='tooltip' data-tooltip='p-Value: Probability that the coefficient is zero.'>p-Value</span></th>" +
+        "<th>Coefficient</th>" +
+        "<th>Std Error</th>" +
+        "<th>t-Statistic</th>" +
+        "<th>p-Value</th>" +
         "<th>Recommendation</th>" +
         "</tr>";
       resultsHTML += `<tr>
@@ -608,7 +694,187 @@
           <td>${rec}</td>
         </tr>`;
       }
-      resultsHTML += `<tr><td colspan="6"><strong>Model <span class="tooltip" data-tooltip="R² (Coefficient of Determination): Proportion of variance in the dependent variable explained by the model.">R²</span>: ${(rSquared * 100).toFixed(2)}%</strong></td></tr>`;
+      resultsHTML += `<tr><td colspan="6"><strong>Model <span class="tooltip" data-tooltip="R² (Coefficient of Determination): Proportion of variance explained by the model.">R²</span>: ${(rSquared * 100).toFixed(2)}%</strong></td></tr>`;
+      resultsHTML += "</table>";
+      resultsHTML += `<div class="interpretation"><strong>Interpretation:</strong> ${fitInterpretation}</div></div>`;
+      document.getElementById("regressionResults").innerHTML = resultsHTML;
+      plotRegressionChart(X, y, beta, independentNames);
+      updatePredictionInputs();
+    }
+
+    // Logistic Regression Function with McFadden's R² and feature scaling.
+    function calculateLogisticRegression() {
+      const { X, y, independentNames } = getMultipleRegressionData();
+      if (!y.every(val => val === 0 || val === 1)) {
+        alert("For logistic regression, the dependent variable must be binary (0/1).");
+        return;
+      }
+      const p = X[0].length;
+      let means = Array(p).fill(0);
+      let stds = Array(p).fill(1);
+      for (let j = 1; j < p; j++) {
+        let sum = 0;
+        for (let i = 0; i < X.length; i++) {
+          sum += X[i][j];
+        }
+        means[j] = sum / X.length;
+        let sqSum = 0;
+        for (let i = 0; i < X.length; i++) {
+          sqSum += Math.pow(X[i][j] - means[j], 2);
+        }
+        stds[j] = Math.sqrt(sqSum / X.length);
+        if (stds[j] === 0) stds[j] = 1;
+      }
+      let X_std = X.map(row => {
+        let newRow = [1];
+        for (let j = 1; j < p; j++) {
+          newRow.push((row[j] - means[j]) / stds[j]);
+        }
+        return newRow;
+      });
+      
+      let beta = Array(p).fill(0);
+      const learningRate = 0.01;
+      const maxIter = 10000;
+      const tolerance = 1e-6;
+      const epsilon = 1e-15;
+      function sigmoid(z) {
+        return 1 / (1 + Math.exp(-z));
+      }
+      for (let iter = 0; iter < maxIter; iter++) {
+        let gradient = Array(p).fill(0);
+        let maxChange = 0;
+        for (let i = 0; i < X_std.length; i++) {
+          const xi = X_std[i];
+          const linear = xi.reduce((sum, val, j) => sum + beta[j] * val, 0);
+          const prediction = sigmoid(linear);
+          const error = prediction - y[i];
+          for (let j = 0; j < p; j++) {
+            gradient[j] += error * xi[j];
+          }
+        }
+        for (let j = 0; j < p; j++) {
+          const change = learningRate * gradient[j];
+          beta[j] -= change;
+          if (Math.abs(change) > maxChange) maxChange = Math.abs(change);
+        }
+        if (iter % 1000 === 0) {
+          console.log("Iteration " + iter + " max change: " + maxChange);
+        }
+        if (maxChange < tolerance) {
+          console.log("Converged at iteration " + iter);
+          break;
+        }
+      }
+      const predictions = X_std.map(xi => sigmoid(xi.reduce((sum, val, j) => sum + beta[j] * val, 0)));
+      let logLikelihood = 0;
+      for (let i = 0; i < y.length; i++) {
+        logLikelihood += y[i] * Math.log(Math.max(predictions[i], epsilon)) +
+                         (1 - y[i]) * Math.log(Math.max(1 - predictions[i], epsilon));
+      }
+      const p_null = y.reduce((sum, val) => sum + val, 0) / y.length;
+      let logLikelihoodNull = 0;
+      for (let i = 0; i < y.length; i++) {
+        logLikelihoodNull += y[i] * Math.log(Math.max(p_null, epsilon)) +
+                             (1 - y[i]) * Math.log(Math.max(1 - p_null, epsilon));
+      }
+      const mcfaddenR2 = 1 - (logLikelihood / logLikelihoodNull);
+      regressionModel = { beta, predictions, type: "logistic", mcfaddenR2, means, stds, independentNames };
+      let fitInterpretation = interpretFit(mcfaddenR2, "logistic");
+      let resultsHTML = "<div class='result-section'><h2>Logistic Regression Results</h2>";
+      resultsHTML += "<table border='1' cellpadding='5'><tr><th>Variable</th><th>Coefficient (Standardized)</th></tr>";
+      resultsHTML += `<tr><td>Intercept</td><td>${beta[0].toFixed(4)}</td></tr>`;
+      for (let j = 1; j < p; j++) {
+        resultsHTML += `<tr><td>${independentNames[j-1]}</td><td>${beta[j].toFixed(4)}</td></tr>`;
+      }
+      resultsHTML += "</table>";
+      resultsHTML += `<p><strong><span class="tooltip" data-tooltip="McFadden's R²: A pseudo R² for logistic regression. Values between 0.2 and 0.4 are considered excellent.">McFadden's R²</span>:</strong> ${(mcfaddenR2 * 100).toFixed(2)}%</p>`;
+      resultsHTML += `<div class="interpretation"><strong>Interpretation:</strong> ${fitInterpretation}</div></div>`;
+      document.getElementById("regressionResults").innerHTML = resultsHTML;
+      updatePredictionInputs();
+    }
+
+    // Ridge Regression Function (basic implementation with lambda=1.0)
+    function calculateRidgeRegression() {
+      const { X, y, independentNames } = getMultipleRegressionData();
+      const n = X.length;
+      const p = X[0].length;
+      if(n <= p) {
+        alert("Not enough observations for regression analysis.");
+        return;
+      }
+      const lambda = 1.0;
+      const Xt = transpose(X);
+      let I = [];
+      for (let i = 0; i < p; i++) {
+        I[i] = [];
+        for (let j = 0; j < p; j++) {
+          I[i][j] = (i === j) ? 1 : 0;
+        }
+      }
+      I[0][0] = 0;
+      const XtX = multiplyMatrices(Xt, X);
+      for (let i = 0; i < p; i++) {
+        XtX[i][i] += lambda * I[i][i];
+      }
+      const XtX_inv = invertMatrix(XtX);
+      if (!XtX_inv) {
+        alert("Matrix inversion failed. Check your data.");
+        return;
+      }
+      const Xt_y_matrix = multiplyMatrices(Xt, y.map(val => [val]));
+      const Xt_y = Xt_y_matrix.map(row => row[0]);
+      const beta = [];
+      for (let i = 0; i < XtX_inv.length; i++) {
+        let sum = 0;
+        for (let j = 0; j < XtX_inv[0].length; j++) {
+          sum += XtX_inv[i][j] * Xt_y[j];
+        }
+        beta.push(sum);
+      }
+      const yhat = X.map(row => row.reduce((sum, val, i) => sum + beta[i] * val, 0));
+      const residuals = y.map((val, i) => val - yhat[i]);
+      const SSE = residuals.reduce((sum, e) => sum + e * e, 0);
+      const sigma2 = SSE / (n - p);
+      const covMatrix = XtX_inv.map(row => row.map(val => val * sigma2));
+      const se = covMatrix.map((row, i) => Math.sqrt(row[i]));
+      const tStats = beta.map((b, i) => b / se[i]);
+      const df = n - p;
+      const pValues = tStats.map(t => 2 * (1 - tCDF(Math.abs(t), df)));
+      let meanY = y.reduce((a, b) => a + b, 0) / y.length;
+      let ssTot = y.reduce((sum, val) => sum + Math.pow(val - meanY, 2), 0);
+      let rSquared = 1 - (SSE / ssTot);
+      regressionModel = { beta, se, tStats, pValues, df, independentNames, rSquared, type: "ridge" };
+      let fitInterpretation = interpretFit(rSquared, "ridge");
+      let resultsHTML = "<div class='result-section'><h2>Ridge Regression Results (λ = " + lambda + ")</h2>";
+      resultsHTML += "<table border='1' cellpadding='5'><tr>" +
+        "<th>Variable</th>" +
+        "<th>Coefficient</th>" +
+        "<th>Std Error</th>" +
+        "<th>t-Statistic</th>" +
+        "<th>p-Value</th>" +
+        "<th>Recommendation</th>" +
+        "</tr>";
+      resultsHTML += `<tr>
+        <td>Intercept</td>
+        <td>${beta[0].toFixed(4)}</td>
+        <td>${se[0].toFixed(4)}</td>
+        <td>${tStats[0].toFixed(4)}</td>
+        <td>${pValues[0].toFixed(4)}</td>
+        <td>-</td>
+      </tr>`;
+      for (let i = 1; i < beta.length; i++) {
+        const rec = (pValues[i] > 0.15) ? "Consider excluding" : "Keep";
+        resultsHTML += `<tr>
+          <td>${independentNames[i-1]}</td>
+          <td>${beta[i].toFixed(4)}</td>
+          <td>${se[i].toFixed(4)}</td>
+          <td>${tStats[i].toFixed(4)}</td>
+          <td>${pValues[i].toFixed(4)}</td>
+          <td>${rec}</td>
+        </tr>`;
+      }
+      resultsHTML += `<tr><td colspan="6"><strong>Model R²: ${(rSquared * 100).toFixed(2)}%</strong></td></tr>`;
       resultsHTML += "</table></div>";
       document.getElementById("regressionResults").innerHTML = resultsHTML;
       plotRegressionChart(X, y, beta, independentNames);
@@ -672,7 +938,6 @@
       const ctx = document.getElementById('regChart').getContext('2d');
       if (regChart) { regChart.destroy(); }
       let datasets = [];
-      // If only one predictor, plot data points vs. regression line.
       if (beta.length - 1 === 1) {
         const xValues = X.map(row => row[1]);
         const scatterData = xValues.map((x, i) => ({ x: x, y: y[i] }));
@@ -715,7 +980,6 @@
           options: options
         });
       } else {
-        // For multiple predictors, plot actual y vs. predicted y.
         const predictions = X.map(row => row.reduce((sum, val, i) => sum + beta[i] * val, 0));
         const scatterData = predictions.map((pred, i) => ({ x: pred, y: y[i] }));
         datasets.push({
@@ -753,7 +1017,6 @@
     }
 
     function updatePredictionInputs() {
-      // Create an input field for each independent variable (i.e. those not selected as dependent).
       const headerRow = document.getElementById("headerRow");
       const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
       const predictionDiv = document.getElementById("predictionInputs");
@@ -767,7 +1030,6 @@
         const input = document.createElement("input");
         input.type = "number";
         input.id = "pred_input_" + i;
-        // Optionally, set default value as the mean from that column.
         const values = [];
         const tbody = document.getElementById("dataTable").getElementsByTagName("tbody")[0];
         for (let row of tbody.rows) {
@@ -791,7 +1053,7 @@
       }
       const headerRow = document.getElementById("headerRow");
       const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
-      let inputValues = [1]; // intercept
+      let inputValues = [1];
       for (let i = 1; i < headerRow.children.length - 1; i++) {
         if (i === dependentIndex) continue;
         const input = document.getElementById("pred_input_" + i);
@@ -800,12 +1062,94 @@
           alert("Invalid input for " + headerRow.children[i].getElementsByTagName("input")[0].value);
           return;
         }
-        inputValues.push(val);
+        if (regressionModel.type === "logistic" && regressionModel.means && regressionModel.stds) {
+          let standardizedVal = (val - regressionModel.means[i]) / regressionModel.stds[i];
+          inputValues.push(standardizedVal);
+        } else {
+          inputValues.push(val);
+        }
       }
-      const predY = regressionModel.beta.reduce((sum, b, i) => sum + b * inputValues[i], 0);
+      let predY;
+      if (regressionModel.type === "logistic") {
+        const sigmoid = z => 1 / (1 + Math.exp(-z));
+        predY = sigmoid(regressionModel.beta.reduce((sum, b, i) => sum + b * inputValues[i], 0));
+      } else {
+        predY = regressionModel.beta.reduce((sum, b, i) => sum + b * inputValues[i], 0);
+      }
       document.getElementById("predictionOutput").innerHTML = 
         "<h3>Predicted Value: " + predY.toFixed(4) + "</h3>" +
-        "<p>Model <span class='tooltip' data-tooltip='R² (Coefficient of Determination): Proportion of variance explained by the model.'>R²</span>: " + (regressionModel.rSquared * 100).toFixed(2) + "%</p>";
+        "<p>" + (regressionModel.rSquared ? "<strong>Model <span class='tooltip' data-tooltip='R² (Coefficient of Determination): Proportion of variance explained by the model.'>R²</span>:</strong> " + (regressionModel.rSquared * 100).toFixed(2) + "%" : (regressionModel.mcfaddenR2 ? "<strong><span class='tooltip' data-tooltip=\"McFadden's R²: A pseudo R² for logistic regression. Values between 0.2 and 0.4 are considered excellent.\">McFadden's R²</span>:</strong> " + (regressionModel.mcfaddenR2 * 100).toFixed(2) + "%" : "R²: N/A")) + "</p>";
+    }
+
+    // Generate a scientific report summary in a new window.
+    function generateReport() {
+      if (!regressionModel) {
+        alert("Please run a regression analysis first.");
+        return;
+      }
+      const { X, y, independentNames } = getMultipleRegressionData();
+      const sampleSize = X.length;
+      const dependentIndex = parseInt(document.getElementById("yVarSelect").value);
+      const depVarName = document.getElementById("headerRow").children[dependentIndex].getElementsByTagName("input")[0].value || ("Variable " + dependentIndex);
+      const modelType = document.getElementById("modelTypeSelect").value;
+      let reportHTML = `
+        <html>
+        <head>
+          <title>Regression Analysis Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2, h3 { color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            table, th, td { border: 1px solid #ccc; }
+            th, td { padding: 8px; text-align: center; }
+            .interpretation { margin-top: 5px; padding: 5px; background: #e0ffe0; border: 1px solid #b3ffb3; border-radius: 4px; font-size: 0.9em; }
+          </style>
+        </head>
+        <body>
+          <h1>Regression Analysis Report</h1>
+          <h2>Overview</h2>
+          <p>This report summarizes a regression analysis conducted using the <strong>${modelType}</strong> method on a sample of <strong>${sampleSize}</strong> observations.</p>
+          <h2>Variables</h2>
+          <p><strong>Dependent Variable:</strong> ${depVarName}</p>
+          <p><strong>Independent Variables:</strong> ${independentNames.join(", ")}</p>
+          <h2>Model Results</h2>
+      `;
+      if (regressionModel.type === "linear" || regressionModel.type === "ridge") {
+        reportHTML += `<p><strong>Model R²:</strong> ${(regressionModel.rSquared * 100).toFixed(2)}%</p>`;
+        reportHTML += `<div class="interpretation"><strong>Interpretation:</strong> ${interpretFit(regressionModel.rSquared, regressionModel.type)}</div>`;
+      } else if (regressionModel.type === "logistic") {
+        reportHTML += `<p><strong>McFadden's R²:</strong> ${(regressionModel.mcfaddenR2 * 100).toFixed(2)}%</p>`;
+        reportHTML += `<div class="interpretation"><strong>Interpretation:</strong> ${interpretFit(regressionModel.mcfaddenR2, "logistic")}</div>`;
+      }
+      reportHTML += `<h2>Regression Coefficients</h2>
+          <table>
+            <tr><th>Variable</th><th>Coefficient</th></tr>`;
+      reportHTML += `<tr><td>Intercept</td><td>${regressionModel.beta[0].toFixed(4)}</td></tr>`;
+      for (let i = 1; i < regressionModel.beta.length; i++) {
+        reportHTML += `<tr><td>${independentNames[i-1]}</td><td>${regressionModel.beta[i].toFixed(4)}</td></tr>`;
+      }
+      reportHTML += `</table>`;
+      // Include prediction summary if available.
+      const predictionText = document.getElementById("predictionOutput").innerHTML;
+      if(predictionText.trim() !== "") {
+        reportHTML += `<h2>Prediction</h2>
+                       <p>${predictionText}</p>`;
+      }
+      reportHTML += `<h2>Chart</h2>`;
+      if (regChart) {
+        const chartImage = regChart.toBase64Image();
+        reportHTML += `<img src="${chartImage}" alt="Regression Chart" style="max-width:100%;height:auto;">`;
+      }
+      reportHTML += `
+          <h2>Summary</h2>
+          <p>The regression analysis indicates that the selected model explains ${regressionModel.type === "logistic" ? "the separation between outcomes" : "a substantial portion of the variance"} in the dependent variable. The above coefficients, along with the reported R² (or McFadden's R²) and their interpretations, conform with methodologies seen in contemporary scientific research. Further validation and diagnostic testing are recommended for publication‑quality analysis.</p>
+          <p><em>Note: This report is based solely on the data currently loaded in the tool and the computed regression model.</em></p>
+        </body>
+        </html>
+      `;
+      const reportWindow = window.open("", "Report", "width=800,height=1000,scrollbars=yes");
+      reportWindow.document.write(reportHTML);
+      reportWindow.document.close();
     }
   </script>
 </body>
