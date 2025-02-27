@@ -73,6 +73,17 @@
       max-width: 100%;
       height: auto;
     }
+    /* Styling for the JSON input area */
+    #riskJsonInput {
+      width: 600px;
+      max-width: 100%;
+      height: 100px;
+      box-sizing: border-box;
+      font-family: monospace;
+      margin-bottom: 1em;
+      padding: 8px;
+      border: 1px solid #ccc;
+    }
   </style>
 </head>
 <body>
@@ -80,6 +91,12 @@
   <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
 
   <h1>Risk Register & Assessment</h1>
+
+  <!-- JSON Input for loading network diagram output -->
+  <label for="riskJsonInput">Paste Network JSON Output:</label>
+  <textarea id="riskJsonInput" placeholder="Paste JSON output from network diagram here..."></textarea>
+  <br>
+  <button id="loadRiskJsonBtn" class="risk-btn">Load Risk JSON</button>
 
   <!-- 1) Risk Register Table -->
   <table id="riskTable">
@@ -128,9 +145,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <script>
-    // Global variables
+    // Global variables for risk register
     let risks = [];
-
     const riskTableBody = document.querySelector("#riskTable tbody");
     const addRiskBtn = document.getElementById("addRiskBtn");
     const plotBtn = document.getElementById("plotBtn");
@@ -141,7 +157,6 @@
     const mitigationSection = document.getElementById("mitigationSection");
     const mitigationList = document.getElementById("mitigationList");
     const generateReportBtn = document.getElementById("generateReportBtn");
-
     const canvas = document.getElementById("heatmap");
     const ctx = canvas.getContext("2d");
 
@@ -150,9 +165,9 @@
     const CANVAS_HEIGHT = canvas.height;
     const MAX_IMPACT = 10;
     const MAX_PROB = 100;
-    const LEFT_MARGIN   = 50;
-    const RIGHT_MARGIN  = 90;
-    const TOP_MARGIN    = 60;
+    const LEFT_MARGIN = 50;
+    const RIGHT_MARGIN = 90;
+    const TOP_MARGIN = 60;
     const BOTTOM_MARGIN = 50;
     const plotWidth  = CANVAS_WIDTH  - LEFT_MARGIN - RIGHT_MARGIN;
     const plotHeight = CANVAS_HEIGHT - TOP_MARGIN  - BOTTOM_MARGIN;
@@ -163,6 +178,75 @@
     // --- Event Listeners ---
 
     addRiskBtn.addEventListener("click", createRiskRow);
+
+    // New: Load Risk JSON from network diagram output
+    document.getElementById("loadRiskJsonBtn").addEventListener("click", loadRiskJSON);
+    function loadRiskJSON() {
+      const jsonText = document.getElementById("riskJsonInput").value;
+      let activities;
+      try {
+        activities = JSON.parse(jsonText);
+      } catch(e) {
+        alert("Invalid JSON. Please check your input.");
+        return;
+      }
+      if (!Array.isArray(activities)) {
+        alert("JSON must be an array of activities.");
+        return;
+      }
+      // Clear current risk table rows
+      riskTableBody.innerHTML = "";
+      // For each activity, create a risk row with:
+      // - Risk Name: from act.riskName (or default to "Delay in [activity name]")
+      // - Probability: empty
+      // - Impact: act.suggestedRisk
+      // - Calculate Risk buttons (MC Sequential and MC Parallel)
+      activities.forEach(act => {
+        const tr = document.createElement("tr");
+        // Risk Name
+        const tdName = document.createElement("td");
+        const inputName = document.createElement("input");
+        inputName.type = "text";
+        inputName.value = act.riskName || ("Delay in " + act.name);
+        tdName.appendChild(inputName);
+        tr.appendChild(tdName);
+        // Probability (empty)
+        const tdProb = document.createElement("td");
+        const inputProb = document.createElement("input");
+        inputProb.type = "number";
+        inputProb.placeholder = "0–100";
+        inputProb.min = "0";
+        inputProb.max = "100";
+        tdProb.appendChild(inputProb);
+        tr.appendChild(tdProb);
+        // Impact (from suggestedRisk)
+        const tdImpact = document.createElement("td");
+        const inputImpact = document.createElement("input");
+        inputImpact.type = "number";
+        inputImpact.placeholder = "1–10";
+        inputImpact.min = "1";
+        inputImpact.max = "10";
+        inputImpact.value = act.suggestedRisk || "";
+        tdImpact.appendChild(inputImpact);
+        tr.appendChild(tdImpact);
+        // Calculate Risk buttons
+        const tdCalc = document.createElement("td");
+        const seqBtn = document.createElement("button");
+        seqBtn.textContent = "MC Sequential";
+        seqBtn.className = "calc-btn";
+        seqBtn.title = "Run a Monte Carlo simulation for sequential processes.";
+        seqBtn.addEventListener("click", () => { window.open("../monte-carlo/index.html", "_blank"); });
+        tdCalc.appendChild(seqBtn);
+        const parBtn = document.createElement("button");
+        parBtn.textContent = "MC Parallel";
+        parBtn.className = "calc-btn";
+        parBtn.title = "Run a Monte Carlo simulation for parallel processes.";
+        parBtn.addEventListener("click", () => { window.open("../advanced-scheduling/index.html", "_blank"); });
+        tdCalc.appendChild(parBtn);
+        tr.appendChild(tdCalc);
+        riskTableBody.appendChild(tr);
+      });
+    }
 
     plotBtn.addEventListener("click", () => {
       gatherRisks();
@@ -224,7 +308,6 @@
           div.style.paddingBottom = "0.5em";
           div.innerHTML = `<strong>${risk.name}</strong> (Probability: ${risk.probability}%, Impact: ${risk.impact})`;
 
-          // Dropdown for mitigation type with capitalized values.
           const select = document.createElement("select");
           select.innerHTML = `
             <option value="Avoid">Avoid</option>
@@ -234,7 +317,6 @@
           `;
           select.style.marginLeft = "1em";
 
-          // Input for mitigation details.
           const input = document.createElement("input");
           input.type = "text";
           input.placeholder = "Enter mitigation details";
@@ -333,24 +415,18 @@
 
       const tdCalc = document.createElement("td");
 
-      // Button for Monte Carlo Sequential simulation.
       const seqBtn = document.createElement("button");
       seqBtn.textContent = "MC Sequential";
       seqBtn.className = "calc-btn";
-      seqBtn.title = "Run a Monte Carlo simulation for sequential processes, ideal for cost forecasting, waterfall scheduling, and traditional project timelines.";
-      seqBtn.addEventListener("click", () => {
-        window.open("../monte-carlo/index.html", "_blank");
-      });
+      seqBtn.title = "Run a Monte Carlo simulation for sequential processes.";
+      seqBtn.addEventListener("click", () => { window.open("../monte-carlo/index.html", "_blank"); });
       tdCalc.appendChild(seqBtn);
 
-      // Button for Monte Carlo Parallel simulation.
       const parBtn = document.createElement("button");
       parBtn.textContent = "MC Parallel";
       parBtn.className = "calc-btn";
-      parBtn.title = "Run a Monte Carlo simulation for parallel processes, suited for projects with concurrent activities and advanced scheduling challenges.";
-      parBtn.addEventListener("click", () => {
-        window.open("../advanced-scheduling/index.html", "_blank");
-      });
+      parBtn.title = "Run a Monte Carlo simulation for parallel processes.";
+      parBtn.addEventListener("click", () => { window.open("../advanced-scheduling/index.html", "_blank"); });
       tdCalc.appendChild(parBtn);
 
       tr.appendChild(tdName);
