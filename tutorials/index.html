@@ -10,10 +10,10 @@
   <link rel="stylesheet" href="../style.css" />
 
   <style>
-    /* Top navigation bar with dropdown logic */
+    /* Navigation Bar (from main index page) */
     .topnav {
       background-color: #333;
-      overflow-x: auto;
+      overflow-x: auto; 
       white-space: nowrap;
       -webkit-overflow-scrolling: touch;
     }
@@ -25,7 +25,7 @@
     }
     .topnav ul li {
       flex: none;
-      position: relative; /* for dropdown portal logic */
+      position: relative;
     }
     .topnav ul li a {
       display: block;
@@ -38,13 +38,11 @@
       background-color: #ddd;
       color: #333;
     }
-
-    /* Dropdown menu styling */
     .dropdown-menu {
-      display: none;
       position: absolute;
       top: 100%;
       left: 0;
+      display: none;
       background-color: #333;
       min-width: 150px;
       list-style: none;
@@ -55,7 +53,7 @@
     .dropdown-menu li a {
       display: block;
       padding: 10px 20px;
-      color: white;
+      color: #fff;
       text-decoration: none;
       transition: background-color 0.3s ease;
     }
@@ -64,7 +62,7 @@
       color: #333;
     }
 
-    /* Hero Section */
+    /* Hero Section for Tutorials Page */
     .hero {
       position: relative;
       background: url('../images/hero-background.jpg') center/cover no-repeat;
@@ -84,7 +82,7 @@
       z-index: 1;
     }
     
-    /* Responsive video container */
+    /* Responsive Video Container for Tutorial Videos */
     .video-container {
       position: relative;
       padding-bottom: 56.25%; /* 16:9 aspect ratio */
@@ -112,20 +110,14 @@
   </div>
 </header>
 
-<!-- Navigation Bar with Dropdowns -->
+<!-- Navigation Bar with Dropdown Menus (Updated for correct paths) -->
 <nav class="topnav">
   <ul>
+    <li><a href="/">Home</a></li>
     <li class="dropdown">
-      <a href="/">Home</a>
+      <a href="#tools" class="parent-link">Tools</a>
       <ul class="dropdown-menu">
-        <li><a href="/">Main Page</a></li>
-      </ul>
-    </li>
-    <li class="dropdown">
-      <a href="/#tools">Tools</a>
-      <ul class="dropdown-menu">
-        <!-- On mobile, also provide a direct link to parent if needed: -->
-        <li class="go-parent"><a href="../#tools">Go to Tools</a></li>
+        <li class="go-parent"><a href="#tools">Go to Tools</a></li>
         <li><a href="../network-diagram/">Network Diagram Tool</a></li>
         <li><a href="../WSB-generator/">WBS Generator</a></li>
         <li><a href="../statistics/">Data Distribution Analysis</a></li>
@@ -140,22 +132,24 @@
       </ul>
     </li>
     <li class="dropdown">
-      <a href="/templates/">Templates</a>
+      <a href="../templates/" class="parent-link">Templates</a>
       <ul class="dropdown-menu">
-        <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
-        <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
+        <li class="go-parent"><a href="../templates/">Go to Templates</a></li>
+        <li><a href="../templates/learning_curve.xlsx">Learning Curve</a></li>
+        <li><a href="../templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
       </ul>
     </li>
     <li class="dropdown">
-      <a href="/tutorials/">Tutorials</a>
+      <a href="/tutorials/" class="parent-link">Tutorials</a>
       <ul class="dropdown-menu">
+        <li class="go-parent"><a href="/tutorials/">Go to Tutorials</a></li>
         <li><a href="/tutorials/index.html">Coming Soon</a></li>
       </ul>
     </li>
   </ul>
 </nav>
 
-<!-- Main Content -->
+<!-- Main Content: Tutorial Videos -->
 <main>
   <section style="padding: 2rem; text-align: center;">
     <h2>Tutorial Videos</h2>
@@ -167,9 +161,9 @@
       <iframe width="560" height="315" src="https://www.youtube.com/embed/-bsMkM-oJyk?si=Rud_-wjyBqhy--In" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
     </div>
     
-    <!-- Placeholder for Second Video -->
+    <!-- Second Video -->
     <div class="video-container">
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID_PLACEHOLDER" title="Second YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/8d5B47qEisY?si=ItsfoJyEFF891GLr" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
     </div>
   </section>
 </main>
@@ -179,12 +173,69 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
-<!-- Portal-based Dropdown & Two-Tap Mobile Logic -->
+<!-- Desktop Portal + Mobile Toggle Script (from main index page) -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // "Portal" approach for desktop with immediate disappearance
+  const canHover = window.matchMedia('(hover: hover)').matches;
   const dropdowns = document.querySelectorAll('.dropdown');
 
-  // 1) Desktop Portal Approach
-  dropdowns.forEach(drop => {
-    const dr
+  if (canHover) {
+    // Desktop Hover: Portal Approach
+    dropdowns.forEach(drop => {
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      drop.addEventListener('mouseenter', () => {
+        const rect = drop.getBoundingClientRect();
+        document.body.appendChild(dropdownMenu);
+        dropdownMenu.style.position = 'fixed';
+        dropdownMenu.style.top = rect.bottom + 'px';
+        dropdownMenu.style.left = rect.left + 'px';
+        dropdownMenu.style.display = 'block';
+        dropdownMenu.style.zIndex = '10000000';
+      });
+      drop.addEventListener('mouseleave', () => {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+      dropdownMenu.addEventListener('mouseleave', () => {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+    });
+    window.addEventListener('scroll', () => {
+      dropdowns.forEach(drop => {
+        const dropdownMenu = drop.querySelector('.dropdown-menu');
+        if (dropdownMenu.style.position === 'fixed') {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+    });
+  } else {
+    // Mobile: Simple Toggle In-Place
+    dropdowns.forEach(drop => {
+      const parentLink = drop.querySelector('.parent-link');
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      dropdownMenu.style.display = 'none';
+      parentLink.addEventListener('click', e => {
+        e.preventDefault();
+        dropdownMenu.style.display = (dropdownMenu.style.display === 'block') ? 'none' : 'block';
+      });
+    });
+  }
+});
+</script>
+</body>
+</html>
