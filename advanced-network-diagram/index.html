@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -80,6 +80,14 @@
       box-sizing: border-box;
       border: 1px solid #ccc;
       background: #fff;
+    }
+    /* Styling for risk insights output */
+    #riskInsightsOutput {
+      white-space: pre;
+      background: #fff;
+      padding: 0.8em;
+      border: 1px solid #ccc;
+      margin-top: 1em;
     }
   </style>
 </head>
@@ -219,6 +227,10 @@
 
   <button id="copyJsonBtn">Copy JSON Output</button>
   <textarea id="jsonOutput" readonly placeholder="JSON output will appear here..."></textarea>
+  
+  <!-- New Button and Output for Risk Insights -->
+  <button id="generateRiskInsightsBtn">Generate Risk Insights</button>
+  <div id="riskInsightsOutput"></div>
 
   <script>
     /**********************
@@ -381,21 +393,18 @@
      **********************/
     function doForwardPass() {
       if (allActivities.length < Object.keys(tasks).length) {
-        // fallback
         for (let t in tasks) {
           if (!allActivities.includes(t)) {
             allActivities.push(t);
           }
         }
       }
-      // init
       for (let t in tasks) {
         if (tasks[t].inDegree === 0) {
           tasks[t].ES = 0;
           tasks[t].EF = tasks[t].duration;
         }
       }
-      // forward
       allActivities.forEach(actName => {
         let act = tasks[actName];
         if (!act.deps || act.deps.length === 0) return;
@@ -517,7 +526,7 @@
       svg.setAttribute("width", width);
       svg.setAttribute("height", height);
 
-      // edges
+      // Draw edges
       for (let t in tasks) {
         let act = tasks[t];
         act.deps.forEach(dep => {
@@ -527,7 +536,7 @@
           drawArrow(svg, px, py, act.x, act.y, edgeKey, dep.type, dep.lag);
         });
       }
-      // nodes
+      // Draw nodes
       for (let t in tasks) {
         drawNode(svg, tasks[t]);
       }
@@ -562,7 +571,6 @@
         defs.appendChild(marker);
         svg.appendChild(defs);
       }
-      // arrow label
       const midX = (x1 + x2) / 2;
       const midY = (y1 + y2) / 2;
       let labelStr = depType;
@@ -600,7 +608,7 @@
     }
 
     /**********************
-     * highlight concurrency-based critical edges
+     * Highlight Critical Edges
      **********************/
     function highlightCriticalEdges() {
       for (let t in tasks) {
@@ -631,7 +639,7 @@
     }
 
     /**********************
-     * concurrency-based summary
+     * Concurrency-based Summary
      **********************/
     function showConcurrencySummary() {
       let lines = [];
@@ -645,82 +653,54 @@
     }
 
     /**********************
-     * Naive path listing that does a mini forward pass for each path
+     * Naive Path Listing (with lag)
      **********************/
     function showNaivePathsWithLag() {
       let lines = [];
       lines.push("Naive Paths (Start -> End) with Durations (including lead/lag):");
 
-      // find start nodes
       let startNodes = Object.values(tasks).filter(t => t.inDegree === 0).map(t => t.name);
       let allNaivePaths = [];
 
       startNodes.forEach(sn => {
-        // DFS all possible paths from sn to an end
         dfsNaive([sn], sn, {});
       });
 
       function dfsNaive(pathSoFar, current, localTimes) {
-        // localTimes is an object storing { startTime:..., finishTime:... } for each node in this path
-        // If it's empty and current is the start, we init
         if (!localTimes[current]) {
           localTimes[current] = { start: 0, finish: tasks[current].duration };
         }
-
-        // if no successors => end node
         if (tasks[current].succ.length === 0) {
           let finalFinish = localTimes[current].finish;
-          allNaivePaths.push({
-            path: pathSoFar.slice(),
-            total: finalFinish
-          });
+          allNaivePaths.push({ path: pathSoFar.slice(), total: finalFinish });
           return;
         }
-
         tasks[current].succ.forEach(succName => {
           let newPath = pathSoFar.slice();
           newPath.push(succName);
-
-          // copy localTimes to a new object so each path is independent
           let newTimes = JSON.parse(JSON.stringify(localTimes));
-
-          // do a mini forward pass for the edge current->succName
           let depObj = tasks[succName].deps.find(d => d.predecessor === current);
-          if (!depObj) {
-            // fallback: if no direct link, just assume FS with no lag
-            depObj = { type: "FS", lag: 0 };
-          }
+          if (!depObj) { depObj = { type: "FS", lag: 0 }; }
           let predStart = newTimes[current].start;
-          let predFinish= newTimes[current].finish;
-          let nextStart  = 0;
-
+          let predFinish = newTimes[current].finish;
+          let nextStart = 0;
           switch(depObj.type) {
             case "FS":
-              // successor can start after predecessor finishes + lag
               nextStart = predFinish + depObj.lag;
               break;
             case "SS":
-              // successor starts after predecessor starts + lag
               nextStart = predStart + depObj.lag;
               break;
             case "FF":
-              // successor finishes after predecessor finishes + lag => start = (predFinish + lag) - duration
               nextStart = (predFinish + depObj.lag) - tasks[succName].duration;
               break;
             case "SF":
-              // successor finishes after predecessor starts + lag => start = (predStart + lag) - duration
               nextStart = (predStart + depObj.lag) - tasks[succName].duration;
               break;
           }
-          if (nextStart < 0) nextStart = 0; // clamp to 0 if negative
-
-          newTimes[succName] = {
-            start: Math.max( (newTimes[succName]?.start || 0), nextStart ),
-            finish: 0
-          };
+          if (nextStart < 0) nextStart = 0;
+          newTimes[succName] = { start: Math.max((newTimes[succName]?.start || 0), nextStart), finish: 0 };
           newTimes[succName].finish = newTimes[succName].start + tasks[succName].duration;
-
-          // DFS deeper
           dfsNaive(newPath, succName, newTimes);
         });
       }
@@ -728,7 +708,6 @@
       if (allNaivePaths.length === 0) {
         lines.push("(No paths found or cyclical graph.)");
       } else {
-        // find the max
         let maxDur = Math.max(...allNaivePaths.map(p => p.total));
         allNaivePaths.forEach(p => {
           let pathStr = p.path.join(" -> ");
@@ -736,12 +715,11 @@
           lines.push(`Path: ${pathStr} | Duration: ${p.total}${critMark}`);
         });
       }
-
       return lines;
     }
 
     /**********************
-     * Copy JSON
+     * Copy JSON (including risk info)
      **********************/
     document.getElementById("copyJsonBtn").addEventListener("click", () => {
       const jsonText = document.getElementById("jsonOutput");
@@ -752,26 +730,85 @@
     });
 
     /**********************
-     * Generate JSON
+     * Generate JSON Output (with Suggested Risk)
      **********************/
     function generateJSONOutput() {
+      let maxFloat = 0;
+      for (let t in tasks) {
+        let fl = tasks[t].LS - tasks[t].ES;
+        if (fl > maxFloat) { maxFloat = fl; }
+      }
+      if (maxFloat === 0) { maxFloat = 1; }
+      let maxConn = 0;
+      for (let t in tasks) {
+        let conn = tasks[t].preds.length + tasks[t].succ.length;
+        if (conn > maxConn) { maxConn = conn; }
+      }
+      if (maxConn === 0) { maxConn = 1; }
+
       let activities = [];
       for (let t in tasks) {
         let task = tasks[t];
+        let floatVal = task.LS - task.ES;
+        let floatRisk = (maxFloat - floatVal) / maxFloat;
+        let connectivity = task.preds.length + task.succ.length;
+        let connRisk = connectivity / maxConn;
+        let riskScore = Math.round((0.6 * floatRisk + 0.4 * connRisk) * 10);
+        riskScore = Math.max(1, Math.min(10, riskScore));
+        let riskName = "Delay in " + task.name;
         activities.push({
           name: task.name,
           duration: task.duration,
-          // For your Monte Carlo: store both 'predecessors' and 'dependencies'
           predecessors: task.deps.map(d => d.predecessor),
           dependencies: task.deps.map(d => ({
             predecessor: d.predecessor,
             type: d.type,
             lag: d.lag
-          }))
+          })),
+          suggestedRisk: riskScore,
+          riskName: riskName
         });
       }
       const jsonStr = JSON.stringify(activities, null, 2);
       document.getElementById("jsonOutput").value = jsonStr;
+    }
+
+    /**********************
+     * Generate Risk Insights (Organized Report)
+     **********************/
+    document.getElementById("generateRiskInsightsBtn").addEventListener("click", generateRiskInsights);
+    function generateRiskInsights() {
+      let maxFloat = 0;
+      for (let t in tasks) {
+        let fl = tasks[t].LS - tasks[t].ES;
+        if (fl > maxFloat) { maxFloat = fl; }
+      }
+      if (maxFloat === 0) { maxFloat = 1; }
+      let maxConn = 0;
+      for (let t in tasks) {
+        let conn = tasks[t].preds.length + tasks[t].succ.length;
+        if (conn > maxConn) { maxConn = conn; }
+      }
+      if (maxConn === 0) { maxConn = 1; }
+      
+      let insights = "Risk Insights per Activity:\n\n";
+      for (let t in tasks) {
+        let act = tasks[t];
+        let floatVal = act.LS - act.ES;
+        let floatRisk = (maxFloat - floatVal) / maxFloat;
+        let connectivity = act.preds.length + act.succ.length;
+        let connRisk = connectivity / maxConn;
+        let riskScore = Math.round((0.6 * floatRisk + 0.4 * connRisk) * 10);
+        riskScore = Math.max(1, Math.min(10, riskScore));
+        
+        insights += `Activity ${act.name}:\n`;
+        insights += `  - Duration: ${act.duration}\n`;
+        insights += `  - Float: ${floatVal.toFixed(2)} (ES=${act.ES.toFixed(2)}, LS=${act.LS.toFixed(2)})\n`;
+        insights += `  - Connectivity: ${act.preds.length} predecessor(s) + ${act.succ.length} successor(s) = ${connectivity}\n`;
+        insights += `  - Suggested Risk Score: ${riskScore} (1 = Low Risk, 10 = High Risk)\n\n`;
+      }
+      insights += "Note: Estimated impact is calculated based on float and connectivity, with weights of 0.6 for float and 0.4 for connectivity.";
+      document.getElementById("riskInsightsOutput").textContent = insights;
     }
   </script>
 </body>
