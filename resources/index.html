@@ -1,0 +1,1164 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tasks & Resources with Critical Path Gantt (Work vs Material vs Cost)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 40px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      max-width: 1200px;
+      margin: auto;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 8px;
+      box-sizing: border-box;
+      font-family: monospace;
+      margin-bottom: 1em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+      font-size: 0.95em;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 0.4em;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 95%;
+      padding: 4px;
+      box-sizing: border-box;
+    }
+    .assignments-container {
+      display: flex;
+      flex-direction: column;
+    }
+    .assignment-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .assignment-row select {
+      width: auto;
+      margin-right: 8px;
+    }
+    .assignment-row input[type="number"] {
+      width: 60px;
+      margin-right: 8px;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 5px 2px;
+      background-color: #007BFF;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .warn {
+      color: red;
+      font-weight: bold;
+    }
+    /* Gantt chart styling */
+    #ganttContainer {
+      width: 100%;
+      overflow-x: auto; /* horizontal scroll */
+      border: 1px solid #ccc;
+      background: #fafafa;
+      margin-top: 1em;
+    }
+    #ganttChart {
+      /* We'll set width/height dynamically in code */
+      display: block;
+    }
+    .task-bar {
+      stroke-width: 1;
+      cursor: pointer;
+    }
+    .task-bar.noncritical {
+      fill: #2196F3;
+      stroke: #1976D2;
+    }
+    .task-bar.critical {
+      fill: #F44336;
+      stroke: #C62828;
+    }
+    .bar-text {
+      font-size: 10px;
+      fill: #000;
+      pointer-events: none;
+    }
+    .task-text {
+      font-size: 12px;
+      fill: #000;
+      text-anchor: start;
+    }
+    .dep-line {
+      stroke: #555;
+      stroke-width: 1;
+      fill: none;
+    }
+    /* Overallocation note area */
+    #overallocationOutput {
+      background: #ffe6e6;
+      border: 1px solid #ffa5a5;
+      padding: 10px;
+      margin-top: 1em;
+      display: none;
+    }
+    /* Modal for double-click editing */
+    #editModal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border: 2px solid #333;
+      border-radius: 6px;
+      padding: 20px;
+      width: 400px;
+      max-width: 90%;
+      display: none;
+      z-index: 9999;
+    }
+    #editModal h3 {
+      margin-top: 0;
+    }
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      z-index: 9998;
+    }
+    /* Resource risk output area */
+    #resourceRiskOutput {
+      white-space: pre;
+      background: #fff;
+      border: 1px solid #ccc;
+      margin-top: 1em;
+      padding: 1em;
+      display: none; /* shown only after generation */
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Tasks &amp; Resources with Critical Path Gantt</h1>
+  <p>
+    Paste advanced JSON from Tab 1 here, then load.  
+    - For <strong>Work</strong> resources, the assignment field = “%” (like 100).  
+    - For <strong>Material/Cost</strong>, the assignment field = “units” (like 6).  
+    <br/>
+    <strong>Zoom</strong> the Gantt with the slider, and scroll horizontally if needed. 
+    <br/>
+    <strong>Critical path</strong> tasks (float≈0) are highlighted red.
+  </p>
+  <textarea id="jsonInput" placeholder="Paste JSON from Tab 1 here..."></textarea>
+  <button id="loadJsonBtn">Load JSON</button>
+</div>
+
+<div class="container">
+  <h2>Tasks</h2>
+  <button id="addTaskBtn">Add Task</button>
+  <table id="tasksTable">
+    <thead>
+      <tr>
+        <th>Task Name</th>
+        <th>Dependencies<br>(predecessor|type|lag)</th>
+        <th>Duration (days)</th>
+        <th>Assignments</th>
+        <th>Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Populated dynamically -->
+    </tbody>
+  </table>
+</div>
+
+<div class="container">
+  <h2>Resources</h2>
+  <button id="addResourceBtn">Add Resource</button>
+  <table id="resourcesTable">
+    <thead>
+      <tr>
+        <th>Resource Name</th>
+        <th>Type</th>
+        <th>Material</th>
+        <th>Initials</th>
+        <th>Group</th>
+        <th>Max Units (%)</th>
+        <th>Std. Rate ($/hr or $/unit)</th>
+        <th>Ovt. Rate ($/hr)</th>
+        <th>Cost/Use</th>
+        <th>Accrue</th>
+        <th>Base</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Populated dynamically -->
+    </tbody>
+  </table>
+</div>
+
+<div class="container">
+  <button id="checkOverallocationBtn">Compute Overallocation</button>
+  <div id="overallocationOutput"></div>
+  <div style="margin-top:1em;">
+    <label for="zoomRange">Zoom (px/day):</label>
+    <input type="range" id="zoomRange" min="10" max="200" value="50" style="width:200px;">
+    <span id="zoomValue">50</span>
+  </div>
+  <button id="generateGanttBtn">Generate Gantt Chart</button>
+  <div id="ganttContainer">
+    <svg id="ganttChart" height="500"></svg>
+  </div>
+
+  <!-- New button to generate resource risk insights -->
+  <button id="generateResourceRiskBtn" style="margin-top:1em;">Generate Resource Risk Insights</button>
+  <div id="resourceRiskOutput"></div>
+</div>
+
+<!-- Modal for double-click editing -->
+<div id="modalOverlay"></div>
+<div id="editModal">
+  <h3>Edit Task</h3>
+  <div>
+    <label>Task Name:</label><br>
+    <input type="text" id="modalTaskName">
+  </div>
+  <div>
+    <label>Duration (days):</label><br>
+    <input type="number" id="modalTaskDuration">
+  </div>
+  <div>
+    <label>Dependencies:</label><br>
+    <textarea id="modalDependencies" rows="3" style="width:95%;"></textarea>
+    <small>Format: predecessor|type|lag, one per line (e.g. <code>B|SS|2</code>).</small>
+  </div>
+  <div>
+    <label>Assignments (Resource=Number):</label><br>
+    <textarea id="modalAssignments" rows="3" style="width:95%;"></textarea>
+    <small>For Work resources, the number is “%.” For Material/Cost, the number is “units.”</small>
+  </div>
+  <div style="margin-top:10px;">
+    <button id="modalSaveBtn">Save</button>
+    <button id="modalCancelBtn">Cancel</button>
+  </div>
+</div>
+
+<script>
+/***********************
+ * Data Structures
+ ***********************/
+let tasksData = [];      // Each { name, dependencies: [{predecessor, type, lag}], duration, assignments: [{ resourceName, value }], cost, float? }
+let resourcesData = [];  // Each { name, type, material, initials, group, maxUnits, stdRate, ovtRate, costUse, accrue, base }
+let ganttScale = 50;     // px per day (zoom)
+const hoursPerDayMap = {
+  "Standard":8,
+  "24 Hours":24,
+  "Night Shift":8 // or something else if needed
+};
+
+/***********************
+ * 1) Load JSON
+ ***********************/
+document.getElementById("loadJsonBtn").addEventListener("click", () => {
+  const text = document.getElementById("jsonInput").value.trim();
+  if (!text) return;
+  let arr;
+  try {
+    arr = JSON.parse(text);
+  } catch(e) {
+    alert("Invalid JSON.");
+    return;
+  }
+  if (!Array.isArray(arr)) {
+    alert("JSON must be an array.");
+    return;
+  }
+  tasksData = arr.map(item => ({
+    name: item.name || "Unnamed",
+    dependencies: (item.dependencies||[]).map(d=>({
+      predecessor: d.predecessor||"",
+      type: d.type||"FS",
+      lag: d.lag||0
+    })),
+    duration: item.duration||0,
+    assignments: [],
+    cost: 0
+  }));
+  renderTasksTable();
+});
+
+/***********************
+ * 2) Tasks Table
+ ***********************/
+document.getElementById("addTaskBtn").addEventListener("click", () => {
+  tasksData.push({
+    name: "New Task",
+    dependencies: [],
+    duration: 5,
+    assignments: [],
+    cost: 0
+  });
+  renderTasksTable();
+});
+
+function renderTasksTable() {
+  const tbody = document.getElementById("tasksTable").querySelector("tbody");
+  tbody.innerHTML = "";
+  tasksData.forEach((task, index) => {
+    const tr = document.createElement("tr");
+
+    // Name
+    let tdName = document.createElement("td");
+    let inputName = document.createElement("input");
+    inputName.type = "text";
+    inputName.value = task.name;
+    inputName.addEventListener("blur", e => {
+      task.name = e.target.value.trim();
+    });
+    tdName.appendChild(inputName);
+    tr.appendChild(tdName);
+
+    // Dependencies
+    let tdDeps = document.createElement("td");
+    let depStr = task.dependencies.map(d => `${d.predecessor}|${d.type}|${d.lag}`).join("\n");
+    let txtDeps = document.createElement("textarea");
+    txtDeps.rows = 2;
+    txtDeps.value = depStr;
+    txtDeps.addEventListener("blur", e => {
+      let lines = e.target.value.split("\n").map(s=>s.trim()).filter(Boolean);
+      let newDeps = [];
+      lines.forEach(line => {
+        let parts = line.split("|").map(x=>x.trim());
+        if(parts.length>=1) {
+          newDeps.push({
+            predecessor: parts[0],
+            type: parts[1]||"FS",
+            lag: parseFloat(parts[2])||0
+          });
+        }
+      });
+      task.dependencies = newDeps;
+    });
+    tdDeps.appendChild(txtDeps);
+    tr.appendChild(tdDeps);
+
+    // Duration
+    let tdDur = document.createElement("td");
+    let inputDur = document.createElement("input");
+    inputDur.type = "number";
+    inputDur.value = task.duration;
+    inputDur.addEventListener("blur", e => {
+      task.duration = parseFloat(e.target.value)||0;
+      recalcTaskCost(index);
+    });
+    tdDur.appendChild(inputDur);
+    tr.appendChild(tdDur);
+
+    // Assignments
+    let tdAssign = document.createElement("td");
+    let container = document.createElement("div");
+    container.className = "assignments-container";
+    task.assignments.forEach((assn,aIdx) => {
+      container.appendChild(createAssignmentRow(task, index, aIdx));
+    });
+    let addBtn = document.createElement("button");
+    addBtn.textContent = "+ Resource";
+    addBtn.style.marginTop = "4px";
+    addBtn.addEventListener("click", () => {
+      task.assignments.push({ resourceName:"", value:100 }); // default
+      renderTasksTable();
+    });
+    container.appendChild(addBtn);
+    tdAssign.appendChild(container);
+    tr.appendChild(tdAssign);
+
+    // Cost
+    let tdCost = document.createElement("td");
+    tdCost.textContent = `$${task.cost.toFixed(2)}`;
+    tr.appendChild(tdCost);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function createAssignmentRow(task, taskIndex, assignmentIndex) {
+  let assn = task.assignments[assignmentIndex];
+  let rowDiv = document.createElement("div");
+  rowDiv.className = "assignment-row";
+
+  let selRes = document.createElement("select");
+  let blankOpt = document.createElement("option");
+  blankOpt.value = "";
+  blankOpt.textContent = "(Select Resource)";
+  selRes.appendChild(blankOpt);
+  resourcesData.forEach(r => {
+    let opt = document.createElement("option");
+    opt.value = r.name;
+    opt.textContent = r.name;
+    if(r.name===assn.resourceName) opt.selected = true;
+    selRes.appendChild(opt);
+  });
+  selRes.addEventListener("blur", e => {
+    assn.resourceName = e.target.value;
+    recalcTaskCost(taskIndex);
+  });
+  rowDiv.appendChild(selRes);
+
+  let inputVal = document.createElement("input");
+  inputVal.type = "number";
+  inputVal.value = assn.value||100;
+  inputVal.min=0;
+  inputVal.addEventListener("blur", e => {
+    assn.value = parseFloat(e.target.value)||0;
+    recalcTaskCost(taskIndex);
+  });
+  rowDiv.appendChild(inputVal);
+
+  let removeBtn = document.createElement("button");
+  removeBtn.textContent = "X";
+  removeBtn.style.backgroundColor = "#f44336";
+  removeBtn.style.marginLeft = "8px";
+  removeBtn.addEventListener("click", () => {
+    task.assignments.splice(assignmentIndex,1);
+    renderTasksTable();
+  });
+  rowDiv.appendChild(removeBtn);
+
+  return rowDiv;
+}
+
+/***********************
+ * 3) Resources Table
+ ***********************/
+document.getElementById("addResourceBtn").addEventListener("click", () => {
+  resourcesData.push({
+    name:"New Resource",
+    type:"Work",
+    material:"",
+    initials:"",
+    group:"",
+    maxUnits:100,
+    stdRate:0,
+    ovtRate:0,
+    costUse:0,
+    accrue:"Prorated",
+    base:"Standard"
+  });
+  renderResourcesTable();
+});
+
+function renderResourcesTable() {
+  const tbody = document.getElementById("resourcesTable").querySelector("tbody");
+  tbody.innerHTML="";
+  resourcesData.forEach((res,index)=>{
+    let tr = document.createElement("tr");
+
+    // name
+    let tdName = document.createElement("td");
+    let inpName = document.createElement("input");
+    inpName.type="text";
+    inpName.value=res.name;
+    inpName.addEventListener("blur", e=>{
+      res.name=e.target.value.trim();
+      renderTasksTable(); // refresh resource dropdown
+    });
+    tdName.appendChild(inpName);
+    tr.appendChild(tdName);
+
+    // type
+    let tdType = document.createElement("td");
+    let selType = document.createElement("select");
+    ["Work","Material","Cost"].forEach(t=>{
+      let opt=document.createElement("option");
+      opt.value=t; opt.textContent=t;
+      if(t===res.type) opt.selected=true;
+      selType.appendChild(opt);
+    });
+    selType.addEventListener("blur", e=>{
+      res.type=e.target.value;
+    });
+    tdType.appendChild(selType);
+    tr.appendChild(tdType);
+
+    // material
+    let tdMat = document.createElement("td");
+    let inpMat = document.createElement("input");
+    inpMat.type="text";
+    inpMat.value=res.material;
+    inpMat.addEventListener("blur", e=>{
+      res.material=e.target.value.trim();
+    });
+    tdMat.appendChild(inpMat);
+    tr.appendChild(tdMat);
+
+    // initials
+    let tdInit = document.createElement("td");
+    let inpInit = document.createElement("input");
+    inpInit.type="text";
+    inpInit.value=res.initials;
+    inpInit.addEventListener("blur", e=>{
+      res.initials=e.target.value.trim();
+    });
+    tdInit.appendChild(inpInit);
+    tr.appendChild(tdInit);
+
+    // group
+    let tdGrp = document.createElement("td");
+    let inpGrp = document.createElement("input");
+    inpGrp.type="text";
+    inpGrp.value=res.group;
+    inpGrp.addEventListener("blur", e=>{
+      res.group=e.target.value.trim();
+    });
+    tdGrp.appendChild(inpGrp);
+    tr.appendChild(tdGrp);
+
+    // maxUnits
+    let tdMax = document.createElement("td");
+    let inpMax = document.createElement("input");
+    inpMax.type="number";
+    inpMax.value=res.maxUnits;
+    inpMax.addEventListener("blur", e=>{
+      res.maxUnits=parseFloat(e.target.value)||100;
+    });
+    tdMax.appendChild(inpMax);
+    tr.appendChild(tdMax);
+
+    // stdRate
+    let tdStd = document.createElement("td");
+    let inpStd = document.createElement("input");
+    inpStd.type="number";
+    inpStd.value=res.stdRate;
+    inpStd.addEventListener("blur", e=>{
+      res.stdRate=parseFloat(e.target.value)||0;
+    });
+    tdStd.appendChild(inpStd);
+    tr.appendChild(tdStd);
+
+    // ovtRate
+    let tdOvt = document.createElement("td");
+    let inpOvt = document.createElement("input");
+    inpOvt.type="number";
+    inpOvt.value=res.ovtRate;
+    inpOvt.addEventListener("blur", e=>{
+      res.ovtRate=parseFloat(e.target.value)||0;
+    });
+    tdOvt.appendChild(inpOvt);
+    tr.appendChild(tdOvt);
+
+    // costUse
+    let tdCU = document.createElement("td");
+    let inpCU = document.createElement("input");
+    inpCU.type="number";
+    inpCU.value=res.costUse;
+    inpCU.addEventListener("blur", e=>{
+      res.costUse=parseFloat(e.target.value)||0;
+    });
+    tdCU.appendChild(inpCU);
+    tr.appendChild(tdCU);
+
+    // accrue
+    let tdAcc = document.createElement("td");
+    let selAcc = document.createElement("select");
+    ["Start","Prorated","End"].forEach(a=>{
+      let opt=document.createElement("option");
+      opt.value=a; opt.textContent=a;
+      if(a===res.accrue) opt.selected=true;
+      selAcc.appendChild(opt);
+    });
+    selAcc.addEventListener("blur", e=>{
+      res.accrue=e.target.value;
+    });
+    tdAcc.appendChild(selAcc);
+    tr.appendChild(tdAcc);
+
+    // base
+    let tdBase = document.createElement("td");
+    let selBase = document.createElement("select");
+    ["Standard","24 Hours","Night Shift"].forEach(b=>{
+      let opt=document.createElement("option");
+      opt.value=b; opt.textContent=b;
+      if(b===res.base) opt.selected=true;
+      selBase.appendChild(opt);
+    });
+    selBase.addEventListener("blur", e=>{
+      res.base=e.target.value;
+    });
+    tdBase.appendChild(selBase);
+    tr.appendChild(tdBase);
+
+    tbody.appendChild(tr);
+  });
+}
+
+renderTasksTable();
+renderResourcesTable();
+
+/***********************
+ * 4) Recalc Task Cost
+ ***********************/
+function recalcTaskCost(taskIndex) {
+  let task=tasksData[taskIndex];
+  let totalCost=0;
+  task.assignments.forEach(a=>{
+    let r=resourcesData.find(rr=>rr.name===a.resourceName);
+    if(!r) return;
+    let val=(a.value||0);
+    let hoursPerDay = hoursPerDayMap[r.base] || 8;
+    let resourceCost=0;
+
+    if(r.type==="Work") {
+      // interpret val as % usage
+      let usageFrac = val/100;
+      resourceCost = (task.duration * hoursPerDay * r.stdRate * usageFrac) + (r.costUse||0);
+    }
+    else if(r.type==="Material") {
+      // interpret val as #units
+      resourceCost = (val * r.stdRate) + (r.costUse||0);
+    }
+    else if(r.type==="Cost") {
+      // interpret val as #units, cost = units * costUse
+      resourceCost = (val * (r.costUse||0));
+    }
+    totalCost+=resourceCost;
+  });
+  task.cost=totalCost;
+  renderTasksTable(); // refresh cost cells
+}
+
+/***********************
+ * 5) Compute Overallocation
+ ***********************/
+document.getElementById("checkOverallocationBtn").addEventListener("click", computeOverallocation);
+
+function computeOverallocation() {
+  let schedule=computeSchedule();
+  let maxFinish=Math.max(...schedule.map(s=>s.finish));
+  let dayToResUsage={};
+  for(let d=0; d<=maxFinish; d++){
+    dayToResUsage[d]={};
+    resourcesData.forEach(r=>{
+      dayToResUsage[d][r.name]=0;
+    });
+  }
+  tasksData.forEach((t,i)=>{
+    let sDay=Math.floor(schedule[i].start);
+    let fDay=Math.ceil(schedule[i].finish);
+    t.assignments.forEach(a=>{
+      let rName=a.resourceName;
+      if(!rName) return;
+      let r=resourcesData.find(rr=>rr.name===rName);
+      if(!r) return;
+      if(r.type!=="Work") return; // only check overallocation for Work
+      let val=a.value||100; 
+      for(let d=sDay; d<fDay; d++){
+        dayToResUsage[d][rName]+=val;
+      }
+    });
+  });
+  let overallocMsgs=[];
+  resourcesData.forEach(r=>{
+    let mU=r.maxUnits||100;
+    if(r.type!=="Work") return;
+    for(let d=0; d<=maxFinish; d++){
+      if(dayToResUsage[d][r.name]>mU){
+        overallocMsgs.push(`${r.name} overallocated on day ${d} (usage=${dayToResUsage[d][r.name]}%, max=${mU}%)`);
+        break;
+      }
+    }
+  });
+  let div=document.getElementById("overallocationOutput");
+  if(overallocMsgs.length===0){
+    div.style.display="block";
+    div.innerHTML="<strong>No overallocation found.</strong>";
+    div.style.background="#e6ffe6";
+    div.style.border="1px solid #b3ffb3";
+  } else {
+    div.style.display="block";
+    div.innerHTML=`<strong class="warn">Overallocation Detected:</strong><br>`+overallocMsgs.join("<br>");
+    div.style.background="#ffe6e6";
+    div.style.border="1px solid #ffa5a5";
+  }
+}
+
+/***********************
+ * 6) Zoom Range
+ ***********************/
+let zoomRange=document.getElementById("zoomRange");
+let zoomValue=document.getElementById("zoomValue");
+zoomRange.addEventListener("input",()=>{
+  ganttScale=parseInt(zoomRange.value);
+  zoomValue.textContent=ganttScale;
+});
+
+/***********************
+ * 7) Generate Gantt with critical path
+ ***********************/
+document.getElementById("generateGanttBtn").addEventListener("click", generateGantt);
+
+function generateGantt() {
+  // We'll do forward/backward pass to get start,finish plus float for each task => zero float => critical
+  let schedule=computeSchedule(); 
+  let { floatArr } = computeFloat(schedule); // array of floats for each task
+  tasksData.forEach((t,i)=>{ t.float=floatArr[i]; });
+  
+  let maxFinish=Math.max(...schedule.map(s=>s.finish));
+  const svg=document.getElementById("ganttChart");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  let rowHeight=20, rowSpacing=10;
+  let leftMargin=150, topMargin=20;
+  let totalHeight=tasksData.length*(rowHeight+rowSpacing)+topMargin*2+40; // extra for axis
+  let totalWidth=(maxFinish+2)*ganttScale+leftMargin+50;
+  svg.setAttribute("height", totalHeight);
+  svg.setAttribute("width", totalWidth);
+
+  // define arrowhead
+  let defs=document.createElementNS("http://www.w3.org/2000/svg","defs");
+  let marker=document.createElementNS("http://www.w3.org/2000/svg","marker");
+  marker.setAttribute("id","arrowhead");
+  marker.setAttribute("viewBox","0 0 10 10");
+  marker.setAttribute("refX","10");
+  marker.setAttribute("refY","5");
+  marker.setAttribute("markerUnits","strokeWidth");
+  marker.setAttribute("markerWidth","6");
+  marker.setAttribute("markerHeight","6");
+  marker.setAttribute("orient","auto");
+  let path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("d","M0,0 L10,5 L0,10 Z");
+  path.setAttribute("fill","#555");
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  // draw bars
+  tasksData.forEach((t,i)=>{
+    let s=schedule[i];
+    let x=leftMargin+s.start*ganttScale;
+    let y=topMargin+i*(rowHeight+rowSpacing);
+    let w=(s.finish - s.start)*ganttScale;
+    if(w<0) w=0;
+    let bar = document.createElementNS("http://www.w3.org/2000/svg","rect");
+    bar.setAttribute("x",x);
+    bar.setAttribute("y",y);
+    bar.setAttribute("width",w);
+    bar.setAttribute("height",rowHeight);
+    bar.setAttribute("class","task-bar");
+    // check float
+    if(t.float<0.0001) {
+      bar.classList.add("critical");
+    } else {
+      bar.classList.add("noncritical");
+    }
+    bar.addEventListener("dblclick",()=>openEditModal(i));
+    svg.appendChild(bar);
+
+    // resource text inside bar
+    let resStr = t.assignments.map(a=>{
+      if(!a.resourceName) return "";
+      let r=resourcesData.find(rr=>rr.name===a.resourceName);
+      if(!r) return "";
+      if(r.type==="Work") {
+        return `${r.name}(${a.value}%)`;
+      } else {
+        return `${r.name}(${a.value})`;
+      }
+    }).filter(Boolean).join(", ");
+    if(resStr) {
+      let barText=document.createElementNS("http://www.w3.org/2000/svg","text");
+      barText.setAttribute("x", x+4);
+      barText.setAttribute("y", y+rowHeight*0.7);
+      barText.setAttribute("class","bar-text");
+      barText.textContent=resStr;
+      svg.appendChild(barText);
+    }
+
+    // left label with task name
+    let text=document.createElementNS("http://www.w3.org/2000/svg","text");
+    text.setAttribute("x",5);
+    text.setAttribute("y",y+rowHeight*0.75);
+    text.setAttribute("class","task-text");
+    text.textContent=t.name;
+    svg.appendChild(text);
+  });
+
+  // dependency lines
+  tasksData.forEach((t,i)=>{
+    let s=schedule[i];
+    let xStart=leftMargin+s.start*ganttScale;
+    let xFinish=leftMargin+s.finish*ganttScale;
+    let yMid=topMargin+i*(rowHeight+rowSpacing)+rowHeight/2;
+    t.dependencies.forEach(dep=>{
+      let predIdx=tasksData.findIndex(tt=>tt.name===dep.predecessor);
+      if(predIdx<0) return;
+      let sp=schedule[predIdx];
+      let pxStart=leftMargin+sp.start*ganttScale;
+      let pxFinish=leftMargin+sp.finish*ganttScale;
+      let pyMid=topMargin+predIdx*(rowHeight+rowSpacing)+rowHeight/2;
+      // from pred to succ based on dep.type
+      let fromX, fromY, toX, toY;
+      switch(dep.type) {
+        case "FS":
+          fromX=pxFinish; fromY=pyMid;
+          toX=xStart; toY=yMid;
+          break;
+        case "SS":
+          fromX=pxStart; fromY=pyMid;
+          toX=xStart; toY=yMid;
+          break;
+        case "FF":
+          fromX=pxFinish; fromY=pyMid;
+          toX=xFinish; toY=yMid;
+          break;
+        case "SF":
+          fromX=pxStart; fromY=pyMid;
+          toX=xFinish; toY=yMid;
+          break;
+        default:
+          fromX=pxFinish; fromY=pyMid;
+          toX=xStart; toY=yMid;
+      }
+      // We'll do an L-shaped line:
+      let pathData = "";
+      pathData += `M${fromX},${fromY} `;
+      pathData += `L${fromX},${toY} `;
+      pathData += `L${toX},${toY}`;
+      
+      let line = document.createElementNS("http://www.w3.org/2000/svg","path");
+      line.setAttribute("d", pathData);
+      line.setAttribute("class","dep-line");
+      line.setAttribute("marker-end","url(#arrowhead)");
+      svg.appendChild(line);
+    });
+  });
+
+  // X-axis
+  let axisY=topMargin+tasksData.length*(rowHeight+rowSpacing)+20;
+  let axisLine=document.createElementNS("http://www.w3.org/2000/svg","line");
+  axisLine.setAttribute("x1",leftMargin);
+  axisLine.setAttribute("y1",axisY);
+  axisLine.setAttribute("x2",leftMargin+(maxFinish+2)*ganttScale);
+  axisLine.setAttribute("y2",axisY);
+  axisLine.setAttribute("stroke","#333");
+  svg.appendChild(axisLine);
+  for(let d=0; d<=maxFinish+1; d++){
+    let tickX=leftMargin+d*ganttScale;
+    let tick=document.createElementNS("http://www.w3.org/2000/svg","line");
+    tick.setAttribute("x1",tickX);
+    tick.setAttribute("y1",axisY);
+    tick.setAttribute("x2",tickX);
+    tick.setAttribute("y2",axisY-5);
+    tick.setAttribute("stroke","#333");
+    svg.appendChild(tick);
+
+    let lbl=document.createElementNS("http://www.w3.org/2000/svg","text");
+    lbl.setAttribute("x",tickX+2);
+    lbl.setAttribute("y",axisY+15);
+    lbl.setAttribute("font-size","12");
+    lbl.textContent=d;
+    svg.appendChild(lbl);
+  }
+}
+
+/***********************
+ * computeSchedule (forward pass concurrency)
+ ***********************/
+function computeSchedule() {
+  // build name->idx
+  let nameToIdx={};
+  tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
+  // adjacency
+  let graph=tasksData.map(()=>[]);
+  let inDegree=new Array(tasksData.length).fill(0);
+  tasksData.forEach((t,i)=>{
+    t.dependencies.forEach(dep=>{
+      let p=nameToIdx[dep.predecessor];
+      if(p!=null) {
+        graph[p].push(i);
+        inDegree[i]++;
+      }
+    });
+  });
+  // We'll store start, finish in schedule array
+  let schedule=tasksData.map(t=>({start:0, finish:t.duration}));
+  // Kahn's
+  let queue=[];
+  inDegree.forEach((d,i)=>{ if(d===0) queue.push(i); });
+  while(queue.length>0){
+    let cur=queue.shift();
+    graph[cur].forEach(succ=>{
+      let depObj=tasksData[succ].dependencies.find(d=>d.predecessor===tasksData[cur].name);
+      if(!depObj) return;
+      let cStart=schedule[cur].start;
+      let cFinish=schedule[cur].finish;
+      let lag=depObj.lag||0;
+      let candidate=0;
+      switch(depObj.type) {
+        case "FS": candidate=cFinish+lag; break;
+        case "SS": candidate=cStart+lag; break;
+        case "FF": candidate=(cFinish+lag)-tasksData[succ].duration; break;
+        case "SF": candidate=(cStart+lag)-tasksData[succ].duration; break;
+      }
+      if(candidate<0) candidate=0;
+      if(candidate>schedule[succ].start) {
+        schedule[succ].start=candidate;
+        schedule[succ].finish=candidate+tasksData[succ].duration;
+      }
+      inDegree[succ]--;
+      if(inDegree[succ]===0) queue.push(succ);
+    });
+  }
+  return schedule;
+}
+
+/***********************
+ * computeFloat (backward pass)
+ * FIXED the SS/SF formula so the critical path highlights correctly.
+ ***********************/
+function computeFloat(schedule) {
+  let endTime=Math.max(...schedule.map(s=>s.finish));
+  let n=tasksData.length;
+  let latestStart=new Array(n).fill(endTime);
+  let latestFinish=new Array(n).fill(endTime);
+  
+  // build reverse adjacency
+  let nameToIdx={};
+  tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
+  let revGraph=tasksData.map(()=>[]);
+  let outDegree=new Array(n).fill(0);
+  tasksData.forEach((t,i)=>{
+    t.dependencies.forEach(dep=>{
+      let p=nameToIdx[dep.predecessor];
+      if(p!=null) {
+        // i depends on p => forward: p->i => reverse: i->p
+        revGraph[i].push(p);
+        outDegree[p]++;
+      }
+    });
+  });
+  // tasks with no successors => keep LF= EF from forward pass
+  schedule.forEach((s,i)=>{
+    if(outDegree[i]===0) {
+      latestFinish[i]=s.finish;
+      latestStart[i]=s.finish - tasksData[i].duration;
+    }
+  });
+
+  // BFS in reverse
+  let queue=[];
+  outDegree.forEach((od,i)=>{ if(od===0) queue.push(i); });
+  while(queue.length>0) {
+    let cur=queue.shift();
+    let cLS=latestStart[cur];
+    let cLF=latestFinish[cur];
+    // for each predecessor p
+    revGraph[cur].forEach(pred=>{
+      let depObj=tasksData[cur].dependencies.find(d=>nameToIdx[d.predecessor]===pred);
+      if(!depObj) return;
+      // figure new LF for pred
+      let candidate=latestFinish[pred];
+      switch(depObj.type) {
+        case "FS":
+          // pred must finish by cur's start => LF(pred)= cLS - lag
+          candidate=cLS - depObj.lag;
+          break;
+        case "SS":
+          // pred must start by cur's start => LS(pred)= cLS - lag => LF(pred)= LS(pred)+dur
+          candidate=(cLS - depObj.lag) + tasksData[pred].duration;
+          break;
+        case "FF":
+          // pred must finish by cur's finish => LF(pred)= cLF - lag
+          candidate=cLF - depObj.lag;
+          break;
+        case "SF":
+          // pred must start by cur's finish => LS(pred)= cLF - lag => LF(pred)= LS(pred)+dur
+          candidate=(cLF - depObj.lag) + tasksData[pred].duration;
+          break;
+      }
+      if(candidate<latestFinish[pred]) {
+        latestFinish[pred]=candidate;
+        latestStart[pred]=candidate - tasksData[pred].duration;
+      }
+      outDegree[pred]--;
+      if(outDegree[pred]===0) queue.push(pred);
+    });
+  }
+
+  // now float = LS - ES
+  let floatArr=new Array(n).fill(0);
+  schedule.forEach((s,i)=>{
+    let es=s.start;
+    let ls=latestStart[i];
+    let fl=ls-es;
+    if(fl<0) fl=0; // no negative float
+    floatArr[i]=fl;
+  });
+  return { floatArr };
+}
+
+/***********************
+ * Double-click modal
+ ***********************/
+let editModal=document.getElementById("editModal");
+let modalOverlay=document.getElementById("modalOverlay");
+let modalTaskName=document.getElementById("modalTaskName");
+let modalTaskDuration=document.getElementById("modalTaskDuration");
+let modalDependencies=document.getElementById("modalDependencies");
+let modalAssignments=document.getElementById("modalAssignments");
+let modalSaveBtn=document.getElementById("modalSaveBtn");
+let modalCancelBtn=document.getElementById("modalCancelBtn");
+let currentEditIndex=-1;
+
+function openEditModal(taskIndex) {
+  currentEditIndex=taskIndex;
+  let t=tasksData[taskIndex];
+  modalTaskName.value=t.name;
+  modalTaskDuration.value=t.duration;
+  let depStr=t.dependencies.map(d=>`${d.predecessor}|${d.type}|${d.lag}`).join("\n");
+  modalDependencies.value=depStr;
+  let assnStr=t.assignments.map(a=>`${a.resourceName}=${a.value}`).join("\n");
+  modalAssignments.value=assnStr;
+
+  editModal.style.display="block";
+  modalOverlay.style.display="block";
+}
+modalCancelBtn.addEventListener("click",closeModal);
+function closeModal() {
+  editModal.style.display="none";
+  modalOverlay.style.display="none";
+}
+modalSaveBtn.addEventListener("click",()=>{
+  if(currentEditIndex<0) return;
+  let t=tasksData[currentEditIndex];
+  t.name=modalTaskName.value.trim();
+  t.duration=parseFloat(modalTaskDuration.value)||0;
+  let lines=modalDependencies.value.split("\n").map(x=>x.trim()).filter(Boolean);
+  let newDeps=[];
+  lines.forEach(line=>{
+    let parts=line.split("|").map(x=>x.trim());
+    if(parts.length>=1){
+      newDeps.push({
+        predecessor:parts[0],
+        type:parts[1]||"FS",
+        lag:parseFloat(parts[2])||0
+      });
+    }
+  });
+  t.dependencies=newDeps;
+  let lines2=modalAssignments.value.split("\n").map(x=>x.trim()).filter(Boolean);
+  let newAssn=[];
+  lines2.forEach(line=>{
+    let idx=line.indexOf("=");
+    if(idx>0) {
+      let rName=line.slice(0,idx).trim();
+      let val=parseFloat(line.slice(idx+1))||0;
+      newAssn.push({resourceName:rName,value:val});
+    }
+  });
+  t.assignments=newAssn;
+  closeModal();
+  recalcTaskCost(currentEditIndex);
+  renderTasksTable();
+});
+
+/***********************
+ * 8) Generate Resource Risk Insights
+ ***********************/
+document.getElementById("generateResourceRiskBtn").addEventListener("click", generateResourceRiskInsights);
+
+function generateResourceRiskInsights() {
+  // We'll re-use the overallocation approach to measure usage vs. maxUnits
+  // Then create a naive risk with “impact” based on how far usage is from the limit
+  let schedule=computeSchedule();
+  let maxFinish=Math.max(...schedule.map(s=>s.finish));
+  let dayToResUsage={};
+  for(let d=0; d<=maxFinish; d++){
+    dayToResUsage[d]={};
+    resourcesData.forEach(r=>{
+      dayToResUsage[d][r.name]=0;
+    });
+  }
+  tasksData.forEach((t,i)=>{
+    let sDay=Math.floor(schedule[i].start);
+    let fDay=Math.ceil(schedule[i].finish);
+    t.assignments.forEach(a=>{
+      let rName=a.resourceName;
+      if(!rName) return;
+      let r=resourcesData.find(rr=>rr.name===rName);
+      if(!r) return;
+      if(r.type!=="Work") return; // only do risk for Work resources
+      let val=a.value||100; 
+      for(let d=sDay; d<fDay; d++){
+        dayToResUsage[d][rName]+=val;
+      }
+    });
+  });
+
+  let lines=["Resource Risk Insights:\n"];
+  resourcesData.forEach(r=>{
+    if(r.type!=="Work") return; 
+    let mU=r.maxUnits||100;
+    let highestUsage=0;
+    for(let d=0; d<=maxFinish; d++){
+      if(dayToResUsage[d][r.name]>highestUsage) highestUsage=dayToResUsage[d][r.name];
+    }
+    if(highestUsage>mU) {
+      // Over usage => big risk
+      let overBy = highestUsage-mU;
+      // naive impact scale
+      let impact = Math.min(10, Math.floor(5 + (overBy/ mU)*5)); 
+      lines.push(`- ${r.name} usage peaked at ${highestUsage}%, above max ${mU}%. (Impact ~ ${impact})`);
+    } else if(highestUsage>=(0.8*mU)) {
+      // near usage => moderate risk
+      let usageFrac = (highestUsage/mU)*100;
+      let impact = 5; 
+      lines.push(`- ${r.name} usage near capacity (${highestUsage}% of ${mU}%). (Impact ~ ${impact})`);
+    }
+  });
+  if(lines.length===1) {
+    lines.push("No resource usage above 80% => minimal resource risk.");
+  }
+
+  let outDiv=document.getElementById("resourceRiskOutput");
+  outDiv.textContent=lines.join("\n");
+  outDiv.style.display="block";
+}
+</script>
+
+</body>
+</html>
