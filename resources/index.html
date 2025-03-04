@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Tasks & Resources with Critical Path Gantt (Work vs Material vs Cost)</title>
   <style>
-
     body {
       font-family: sans-serif;
       margin: 20px;
@@ -30,6 +29,12 @@
       box-sizing: border-box;
       font-family: monospace;
       margin-bottom: 1em;
+    }
+    /* New style for small textareas (for dependencies box) */
+    textarea.small-textarea {
+      height: auto !important;
+      padding: 4px;
+      margin-bottom: 0.5em;
     }
     table {
       width: 100%;
@@ -169,7 +174,33 @@
       border: 1px solid #ccc;
       margin-top: 1em;
       padding: 1em;
-      display: none; /* shown only after generation */
+      display: none;
+    }
+    /* New container for Risk JSON output */
+    #riskJsonOutputContainer {
+      display: none;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 1em;
+      background: #f9f9f9;
+    }
+    #riskJsonOutput {
+      width: 100%;
+      height: 80px;
+      font-family: monospace;
+      resize: none;
+    }
+    #copyRiskJsonBtn {
+      margin-top: 5px;
+      padding: 6px 12px;
+      background-color: #28a745;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #copyRiskJsonBtn:hover {
+      background-color: #218838;
     }
   </style>
 </head>
@@ -250,6 +281,14 @@
   <!-- New button to generate resource risk insights -->
   <button id="generateResourceRiskBtn" style="margin-top:1em;">Generate Resource Risk Insights</button>
   <div id="resourceRiskOutput"></div>
+  
+  <!-- New container for Risk JSON Output with copy-to-clipboard -->
+  <div id="riskJsonOutputContainer">
+    <label for="riskJsonOutput"><strong>Risk JSON Output (for Risk Register):</strong></label>
+    <textarea id="riskJsonOutput" readonly></textarea>
+    <br>
+    <button id="copyRiskJsonBtn">Copy to Clipboard</button>
+  </div>
 </div>
 
 <!-- Modal for double-click editing -->
@@ -359,7 +398,8 @@ function renderTasksTable() {
     let tdDeps = document.createElement("td");
     let depStr = task.dependencies.map(d => `${d.predecessor}|${d.type}|${d.lag}`).join("\n");
     let txtDeps = document.createElement("textarea");
-    txtDeps.rows = 2;
+    txtDeps.rows = 1;  // reduced from 2
+    txtDeps.classList.add("small-textarea"); // add class for small styling
     txtDeps.value = depStr;
     txtDeps.addEventListener("blur", e => {
       let lines = e.target.value.split("\n").map(s=>s.trim()).filter(Boolean);
@@ -1098,13 +1138,12 @@ modalSaveBtn.addEventListener("click",()=>{
 });
 
 /***********************
- * 8) Generate Resource Risk Insights
+ * 8) Generate Resource Risk Insights (Updated with Cost Risk and JSON output)
  ***********************/
 document.getElementById("generateResourceRiskBtn").addEventListener("click", generateResourceRiskInsights);
 
 function generateResourceRiskInsights() {
-  // We'll re-use the overallocation approach to measure usage vs. maxUnits
-  // Then create a naive risk with “impact” based on how far usage is from the limit
+  // Compute overallocation/usage risk as before
   let schedule=computeSchedule();
   let maxFinish=Math.max(...schedule.map(s=>s.finish));
   let dayToResUsage={};
@@ -1131,6 +1170,9 @@ function generateResourceRiskInsights() {
   });
 
   let lines=["Resource Risk Insights:\n"];
+  let riskEntries = [];
+
+  // Usage Risk
   resourcesData.forEach(r=>{
     if(r.type!=="Work") return; 
     let mU=r.maxUnits||100;
@@ -1138,27 +1180,63 @@ function generateResourceRiskInsights() {
     for(let d=0; d<=maxFinish; d++){
       if(dayToResUsage[d][r.name]>highestUsage) highestUsage=dayToResUsage[d][r.name];
     }
-    if(highestUsage>mU) {
-      // Over usage => big risk
-      let overBy = highestUsage-mU;
-      // naive impact scale
+    if(highestUsage > mU) {
+      let overBy = highestUsage - mU;
       let impact = Math.min(10, Math.floor(5 + (overBy/ mU)*5)); 
-      lines.push(`- ${r.name} usage peaked at ${highestUsage}%, above max ${mU}%. (Impact ~ ${impact})`);
-    } else if(highestUsage>=(0.8*mU)) {
-      // near usage => moderate risk
-      let usageFrac = (highestUsage/mU)*100;
+      lines.push(`- ${r.name} overallocated (usage=${highestUsage}%, max=${mU}%). (Impact ~ ${impact})`);
+      riskEntries.push({ riskName: `${r.name} overallocation`, suggestedRisk: impact });
+    } else if(highestUsage >= (0.8*mU)) {
       let impact = 5; 
       lines.push(`- ${r.name} usage near capacity (${highestUsage}% of ${mU}%). (Impact ~ ${impact})`);
+      riskEntries.push({ riskName: `${r.name} near capacity`, suggestedRisk: impact });
     }
   });
-  if(lines.length===1) {
-    lines.push("No resource usage above 80% => minimal resource risk.");
+
+  // Cost Risk: Check if any resource has a disproportionally large cost (stdRate) compared to the mean among work resources
+  let workResources = resourcesData.filter(r => r.type==="Work" && r.stdRate>0);
+  if(workResources.length > 0) {
+    let totalCost = workResources.reduce((sum, r)=> sum + r.stdRate, 0);
+    let meanCost = totalCost / workResources.length;
+    workResources.forEach(r=>{
+      if(r.stdRate > 1.5 * meanCost) {
+        let ratio = r.stdRate / meanCost;
+        let impact = Math.min(10, Math.floor((ratio - 1) * 10));
+        if(impact < 1) impact = 1;
+        lines.push(`- ${r.name} has a high cost rate of ${r.stdRate} (mean ${meanCost.toFixed(2)}). (Impact ~ ${impact})`);
+        riskEntries.push({ riskName: `${r.name} high cost rate`, suggestedRisk: impact });
+      }
+    });
   }
 
+  if(lines.length===1) {
+    lines.push("No resource usage above 80% and no disproportionate cost risk => minimal resource risk.");
+  }
+
+  // Display textual risk insights
   let outDiv=document.getElementById("resourceRiskOutput");
-  outDiv.textContent=lines.join("\n");
+  outDiv.innerHTML = `<strong>Textual Risk Insights:</strong><br>` + lines.join("<br>");
   outDiv.style.display="block";
+
+  // Prepare JSON output for risk register
+  // Format: an array of objects, each with riskName and suggestedRisk keys.
+  let riskJSON = JSON.stringify(riskEntries, null, 2);
+
+  // Place JSON output in the new container
+  const riskJsonOutputContainer = document.getElementById("riskJsonOutputContainer");
+  const riskJsonOutput = document.getElementById("riskJsonOutput");
+  riskJsonOutput.value = riskJSON;
+  riskJsonOutputContainer.style.display = "block";
 }
+
+// Copy-to-clipboard event for risk JSON
+document.getElementById("copyRiskJsonBtn").addEventListener("click", () => {
+  const riskJsonOutput = document.getElementById("riskJsonOutput");
+  riskJsonOutput.select();
+  riskJsonOutput.setSelectionRange(0, 99999); // For mobile devices
+  navigator.clipboard.writeText(riskJsonOutput.value)
+    .then(() => { alert("Risk JSON copied to clipboard!"); })
+    .catch(err => { alert("Error copying text: " + err); });
+});
 </script>
 
 </body>
