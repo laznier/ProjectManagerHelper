@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Resource & Schedule Optimizer</title>
+  <title>Tasks & Resources with Critical Path Gantt (Work vs Material vs Cost)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -30,6 +30,7 @@
       font-family: monospace;
       margin-bottom: 1em;
     }
+    /* New style for small textareas (for dependencies box) */
     textarea.small-textarea {
       height: auto !important;
       padding: 4px;
@@ -94,7 +95,7 @@
     /* Gantt chart styling */
     #ganttContainer {
       width: 100%;
-      overflow-x: auto; /* horizontal scroll */
+      overflow-x: auto;
       border: 1px solid #ccc;
       background: #fafafa;
       margin-top: 1em;
@@ -177,7 +178,7 @@
       padding: 1em;
       display: none;
     }
-    /* For Risk JSON output */
+    /* Container for Risk JSON output */
     #riskJsonOutputContainer {
       display: none;
       border: 1px solid #ccc;
@@ -208,7 +209,7 @@
 <body>
   <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
   <div class="container">
-    <h1>Tasks &amp; Resources with Concurrency Dependencies</h1>
+    <h1>Tasks & Resources with Critical Path Gantt</h1>
     <p>
       Paste advanced JSON from Tab 1 here, then load.  
       - For <strong>Work</strong> resources, the assignment field = “%” (like 100).  
@@ -267,13 +268,13 @@
   </div>
 
   <div class="container">
-    <button id="checkOverallocationBtn">Compute Overallocation</button>
-    <div id="overallocationOutput"></div>
-
-    <!-- TWO AUTO-OPTIMIZE BUTTONS -->
+    <!-- Global Auto Optimize buttons -->
     <button id="autoOptimizeNoReallocBtn" style="background:#DC143C;">Auto Optimize (No Reallocation)</button>
     <button id="autoOptimizeReallocBtn" style="background:#8B0000;">Auto Optimize (With Reallocation + New Dependencies)</button>
-
+    
+    <button id="checkOverallocationBtn">Compute Overallocation</button>
+    <div id="overallocationOutput"></div>
+    
     <div style="margin-top:1em;">
       <label for="zoomRange">Zoom (px/day):</label>
       <input type="range" id="zoomRange" min="10" max="200" value="50" style="width:200px;">
@@ -284,11 +285,9 @@
       <svg id="ganttChart" height="500"></svg>
     </div>
 
-    <!-- Button to generate resource risk insights -->
     <button id="generateResourceRiskBtn" style="margin-top:1em;">Generate Resource Risk Insights</button>
     <div id="resourceRiskOutput"></div>
     
-    <!-- Container for Risk JSON Output with copy-to-clipboard -->
     <div id="riskJsonOutputContainer">
       <label for="riskJsonOutput"><strong>Risk JSON Output (for Risk Register):</strong></label>
       <textarea id="riskJsonOutput" readonly></textarea>
@@ -329,8 +328,8 @@
     /***********************
      * Data Structures
      ***********************/
-    let tasksData = [];      // Each { name, dependencies[], duration, assignments[], cost, forcedStart? }
-    let resourcesData = [];  // Each { name, type, maxUnits, etc. }
+    let tasksData = [];      // Each task: { name, dependencies: [...], duration, assignments: [...], cost, float?, forcedStart? }
+    let resourcesData = [];  // Each resource: { name, type, material, initials, group, maxUnits, stdRate, ovtRate, costUse, accrue, base }
     let ganttScale = 50;
     const hoursPerDayMap = {
       "Standard": 8,
@@ -411,12 +410,12 @@
           let lines = e.target.value.split("\n").map(s => s.trim()).filter(Boolean);
           let newDeps = [];
           lines.forEach(line => {
-            let parts = line.split("|").map(x=>x.trim());
-            if(parts.length>=1){
+            let parts = line.split("|").map(x => x.trim());
+            if(parts.length >= 1) {
               newDeps.push({
                 predecessor: parts[0],
-                type: parts[1]||"FS",
-                lag: parseFloat(parts[2])||0
+                type: parts[1] || "FS",
+                lag: parseFloat(parts[2]) || 0
               });
             }
           });
@@ -432,7 +431,7 @@
         inputDur.type = "number";
         inputDur.value = task.duration;
         inputDur.addEventListener("blur", e => {
-          task.duration = parseFloat(e.target.value)||0;
+          task.duration = parseFloat(e.target.value) || 0;
           refreshAll();
         });
         tdDur.appendChild(inputDur);
@@ -449,7 +448,7 @@
         addBtn.textContent = "+ Resource";
         addBtn.style.marginTop = "4px";
         addBtn.addEventListener("click", () => {
-          task.assignments.push({ resourceName:"", value:100 });
+          task.assignments.push({ resourceName: "", value: 100 });
           renderTasksTable();
         });
         container.appendChild(addBtn);
@@ -490,10 +489,10 @@
 
       let inputVal = document.createElement("input");
       inputVal.type = "number";
-      inputVal.value = assn.value||100;
-      inputVal.min=0;
+      inputVal.value = assn.value || 100;
+      inputVal.min = 0;
       inputVal.addEventListener("blur", e => {
-        assn.value = parseFloat(e.target.value)||0;
+        assn.value = parseFloat(e.target.value) || 0;
         refreshAll();
       });
       rowDiv.appendChild(inputVal);
@@ -503,7 +502,7 @@
       removeBtn.style.backgroundColor = "#f44336";
       removeBtn.style.marginLeft = "8px";
       removeBtn.addEventListener("click", () => {
-        task.assignments.splice(assignmentIndex,1);
+        task.assignments.splice(assignmentIndex, 1);
         renderTasksTable();
         refreshAll();
       });
@@ -517,20 +516,19 @@
      ***********************/
     document.getElementById("addResourceBtn").addEventListener("click", () => {
       resourcesData.push({
-        name:"New Resource",
-        type:"Work",
-        material:"",
-        initials:"",
-        group:"",
-        maxUnits:100,
-        stdRate:0,
-        ovtRate:0,
-        costUse:0,
-        accrue:"Prorated",
-        base:"Standard"
+        name: "New Resource",
+        type: "Work",
+        material: "",
+        initials: "",
+        group: "",
+        maxUnits: 100,
+        stdRate: 0,
+        ovtRate: 0,
+        costUse: 0,
+        accrue: "Prorated",
+        base: "Standard"
       });
       renderResourcesTable();
-      refreshAll();
     });
 
     function renderResourcesTable() {
@@ -610,7 +608,7 @@
         inpMax.type = "number";
         inpMax.value = res.maxUnits;
         inpMax.addEventListener("blur", e => {
-          res.maxUnits = parseFloat(e.target.value)||100;
+          res.maxUnits = parseFloat(e.target.value) || 100;
           refreshAll();
         });
         tdMax.appendChild(inpMax);
@@ -622,7 +620,7 @@
         inpStd.type = "number";
         inpStd.value = res.stdRate;
         inpStd.addEventListener("blur", e => {
-          res.stdRate = parseFloat(e.target.value)||0;
+          res.stdRate = parseFloat(e.target.value) || 0;
           refreshAll();
         });
         tdStd.appendChild(inpStd);
@@ -634,7 +632,7 @@
         inpOvt.type = "number";
         inpOvt.value = res.ovtRate;
         inpOvt.addEventListener("blur", e => {
-          res.ovtRate = parseFloat(e.target.value)||0;
+          res.ovtRate = parseFloat(e.target.value) || 0;
           refreshAll();
         });
         tdOvt.appendChild(inpOvt);
@@ -646,7 +644,7 @@
         inpCU.type = "number";
         inpCU.value = res.costUse;
         inpCU.addEventListener("blur", e => {
-          res.costUse = parseFloat(e.target.value)||0;
+          res.costUse = parseFloat(e.target.value) || 0;
           refreshAll();
         });
         tdCU.appendChild(inpCU);
@@ -655,14 +653,14 @@
         // accrue
         let tdAcc = document.createElement("td");
         let selAcc = document.createElement("select");
-        ["Start","Prorated","End"].forEach(a=>{
-          let opt=document.createElement("option");
-          opt.value=a; opt.textContent=a;
-          if(a===res.accrue) opt.selected=true;
+        ["Start", "Prorated", "End"].forEach(a => {
+          let opt = document.createElement("option");
+          opt.value = a; opt.textContent = a;
+          if(a === res.accrue) opt.selected = true;
           selAcc.appendChild(opt);
         });
-        selAcc.addEventListener("blur", e=>{
-          res.accrue=e.target.value;
+        selAcc.addEventListener("blur", e => {
+          res.accrue = e.target.value;
           refreshAll();
         });
         tdAcc.appendChild(selAcc);
@@ -671,14 +669,14 @@
         // base
         let tdBase = document.createElement("td");
         let selBase = document.createElement("select");
-        ["Standard","24 Hours","Night Shift"].forEach(b=>{
-          let opt=document.createElement("option");
-          opt.value=b; opt.textContent=b;
-          if(b===res.base) opt.selected=true;
+        ["Standard", "24 Hours", "Night Shift"].forEach(b => {
+          let opt = document.createElement("option");
+          opt.value = b; opt.textContent = b;
+          if(b === res.base) opt.selected = true;
           selBase.appendChild(opt);
         });
-        selBase.addEventListener("blur", e=>{
-          res.base=e.target.value;
+        selBase.addEventListener("blur", e => {
+          res.base = e.target.value;
           refreshAll();
         });
         tdBase.appendChild(selBase);
@@ -718,13 +716,13 @@
     }
 
     function recalcAllTaskCosts() {
-      for (let i=0; i<tasksData.length; i++) {
+      for (let i = 0; i < tasksData.length; i++) {
         recalcTaskCost(i);
       }
     }
 
     /***********************
-     * 5) Compute Overallocation
+     * Overallocation
      ***********************/
     document.getElementById("checkOverallocationBtn").addEventListener("click", computeOverallocation);
 
@@ -734,10 +732,9 @@
       let dayToResUsage = buildDayToResourceUsage(schedule);
 
       let div = document.getElementById("overallocationOutput");
-      div.innerHTML = ""; // reset
+      div.innerHTML = "";
 
       let foundOverallocation = false;
-
       resourcesData.forEach(r => {
         let mU = r.maxUnits || 100;
         if (r.type !== "Work") return;
@@ -750,26 +747,35 @@
             lineDiv.innerHTML = `<strong class="warn">${r.name} overallocated on day ${d}</strong> 
               (usage=${usage}%, max=${mU}%)<br>
               Conflicting tasks: `;
-
             let conflictTasks = findTasksUsingResourceOnDay(r.name, d, schedule);
             conflictTasks.forEach((tIdx, idx) => {
               let tName = tasksData[tIdx].name;
-              // "Level" or "Smooth" or "Reallocate" buttons if you want
+              // Manual optimization buttons:
               let levelBtn = document.createElement("button");
               levelBtn.textContent = `Level ${tName}`;
               levelBtn.style.backgroundColor = "#8B4513";
+              levelBtn.addEventListener("click", () => {
+                levelActivity(tIdx, r.name, d);
+              });
+
               let smoothBtn = document.createElement("button");
               smoothBtn.textContent = `Smooth ${tName}`;
               smoothBtn.style.backgroundColor = "#6A5ACD";
+              smoothBtn.addEventListener("click", () => {
+                smoothActivity(tIdx, r.name, d);
+              });
+
               let reallocateBtn = document.createElement("button");
               reallocateBtn.textContent = `Reallocate ${tName}`;
               reallocateBtn.style.backgroundColor = "#228B22";
+              reallocateBtn.addEventListener("click", () => {
+                reallocateActivity(tIdx, r.name, d);
+              });
 
               lineDiv.appendChild(document.createTextNode(tName + " "));
               lineDiv.appendChild(levelBtn);
               lineDiv.appendChild(smoothBtn);
               lineDiv.appendChild(reallocateBtn);
-
               if (idx < conflictTasks.length - 1) {
                 lineDiv.appendChild(document.createTextNode(" | "));
               }
@@ -778,7 +784,6 @@
           }
         }
       });
-
       if (!foundOverallocation) {
         div.style.display = "block";
         div.innerHTML = "<strong>No overallocation found.</strong>";
@@ -794,22 +799,24 @@
     function buildDayToResourceUsage(schedule) {
       let maxFinish = Math.max(...schedule.map(s => s.finish));
       let dayToResUsage = {};
-      for(let d=0; d<=maxFinish; d++){
-        dayToResUsage[d]={};
-        resourcesData.forEach(r=>{
-          dayToResUsage[d][r.name]=0;
+      for (let d = 0; d <= maxFinish; d++) {
+        dayToResUsage[d] = {};
+        resourcesData.forEach(r => {
+          dayToResUsage[d][r.name] = 0;
         });
       }
-      tasksData.forEach((t,i)=>{
-        let sDay=Math.floor(schedule[i].start);
-        let fDay=Math.ceil(schedule[i].finish);
-        t.assignments.forEach(a=>{
-          let rName=a.resourceName;
-          let r=resourcesData.find(rr=>rr.name===rName);
-          if(!r||r.type!=="Work") return;
-          let val=a.value||100;
-          for(let d=sDay; d<fDay; d++){
-            dayToResUsage[d][rName]+=val;
+      tasksData.forEach((t, i) => {
+        let sDay = Math.floor(schedule[i].start);
+        let fDay = Math.ceil(schedule[i].finish);
+        t.assignments.forEach(a => {
+          let rName = a.resourceName;
+          if (!rName) return;
+          let r = resourcesData.find(rr => rr.name === rName);
+          if (!r) return;
+          if (r.type !== "Work") return;
+          let val = a.value || 100;
+          for (let d = sDay; d < fDay; d++) {
+            dayToResUsage[d][rName] += val;
           }
         });
       });
@@ -830,17 +837,86 @@
     }
 
     /***********************
-     * 6) Zoom Range
+     * Manual Optimization Methods
      ***********************/
-    let zoomRange=document.getElementById("zoomRange");
-    let zoomValue=document.getElementById("zoomValue");
-    zoomRange.addEventListener("input", ()=>{
-      ganttScale=parseInt(zoomRange.value);
-      zoomValue.textContent=ganttScale;
+    function levelActivity(taskIndex, resourceName, day) {
+      let schedule = computeSchedule();
+      let dayToResUsage = buildDayToResourceUsage(schedule);
+      let r = resourcesData.find(rr => rr.name === resourceName);
+      let mU = r.maxUnits || 100;
+      let d2 = day;
+      while (dayToResUsage[d2] && dayToResUsage[d2][resourceName] > mU) {
+        d2++;
+      }
+      tasksData[taskIndex].forcedStart = d2;
+      refreshAll();
+    }
+
+    function smoothActivity(taskIndex, resourceName, day) {
+      let schedule = computeSchedule();
+      let s = schedule[taskIndex];
+      if (Math.floor(s.start) > day) {
+        alert("Task already starts after day " + day + "; no smoothing needed.");
+        return;
+      }
+      let { floatArr } = computeFloat(schedule);
+      let fl = floatArr[taskIndex];
+      if (fl <= 0) {
+        alert("No float available for smoothing (task is critical).");
+        return;
+      }
+      let shiftSoFar = 0;
+      while (shiftSoFar < fl) {
+        tasksData[taskIndex].forcedStart = Math.floor(s.start) + shiftSoFar + 1;
+        refreshAllNoOverallocation();
+        let newSchedule = computeSchedule();
+        let dayToResUsage = buildDayToResourceUsage(newSchedule);
+        let r = resourcesData.find(rr => rr.name === resourceName);
+        let mU = r.maxUnits || 100;
+        if (dayToResUsage[day][resourceName] <= mU) {
+          refreshAll();
+          return;
+        }
+        shiftSoFar++;
+      }
+      refreshAll();
+      alert("Smoothing couldn't fix concurrency without extending project finish.");
+    }
+
+    function reallocateActivity(taskIndex, resourceName, day) {
+      let t = tasksData[taskIndex];
+      let assignment = t.assignments.find(a => a.resourceName === resourceName);
+      if (!assignment) {
+        alert("No assignment found for resource " + resourceName);
+        return;
+      }
+      let oldValue = assignment.value;
+      if (oldValue <= 100) {
+        alert("Already at 1 unit (100%); can't reduce further in this example.");
+        return;
+      }
+      let newValue = oldValue - 100;
+      let oldDuration = t.duration;
+      let totalWork = oldDuration * oldValue;
+      let newDuration = totalWork / newValue;
+      assignment.value = newValue;
+      t.duration = Math.ceil(newDuration);
+      delete t.forcedStart;
+      refreshAll();
+    }
+
+    /***********************
+     * Zoom
+     ***********************/
+    let zoomRange = document.getElementById("zoomRange");
+    let zoomValue = document.getElementById("zoomValue");
+    zoomRange.addEventListener("input", () => {
+      ganttScale = parseInt(zoomRange.value);
+      zoomValue.textContent = ganttScale;
     });
 
     /***********************
-     * 7) Generate Gantt
+     * Generate Gantt
      ***********************/
     document.getElementById("generateGanttBtn").addEventListener("click", generateGantt);
 
@@ -848,10 +924,9 @@
       let schedule = computeSchedule();
       let { floatArr } = computeFloat(schedule);
       tasksData.forEach((t, i) => { t.float = floatArr[i]; });
-
       let maxFinish = Math.max(...schedule.map(s => s.finish));
       const svg = document.getElementById("ganttChart");
-      while(svg.firstChild) svg.removeChild(svg.firstChild);
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
       let rowHeight = 20, rowSpacing = 10;
       let leftMargin = 150, topMargin = 20;
       let totalHeight = tasksData.length * (rowHeight + rowSpacing) + topMargin * 2 + 40;
@@ -859,142 +934,135 @@
       svg.setAttribute("height", totalHeight);
       svg.setAttribute("width", totalWidth);
 
-      // define arrowhead
-      let defs=document.createElementNS("http://www.w3.org/2000/svg","defs");
-      let marker=document.createElementNS("http://www.w3.org/2000/svg","marker");
-      marker.setAttribute("id","arrowhead");
-      marker.setAttribute("viewBox","0 0 10 10");
-      marker.setAttribute("refX","10");
-      marker.setAttribute("refY","5");
-      marker.setAttribute("markerUnits","strokeWidth");
-      marker.setAttribute("markerWidth","6");
-      marker.setAttribute("markerHeight","6");
-      marker.setAttribute("orient","auto");
-      let path=document.createElementNS("http://www.w3.org/2000/svg","path");
-      path.setAttribute("d","M0,0 L10,5 L0,10 Z");
-      path.setAttribute("fill","#555");
+      let defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      let marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+      marker.setAttribute("id", "arrowhead");
+      marker.setAttribute("viewBox", "0 0 10 10");
+      marker.setAttribute("refX", "10");
+      marker.setAttribute("refY", "5");
+      marker.setAttribute("markerUnits", "strokeWidth");
+      marker.setAttribute("markerWidth", "6");
+      marker.setAttribute("markerHeight", "6");
+      marker.setAttribute("orient", "auto");
+      let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M0,0 L10,5 L0,10 Z");
+      path.setAttribute("fill", "#555");
       marker.appendChild(path);
       defs.appendChild(marker);
       svg.appendChild(defs);
 
-      // draw bars
-      tasksData.forEach((t,i)=>{
-        let s=schedule[i];
-        let x=leftMargin+s.start*ganttScale;
-        let y=topMargin+i*(rowHeight+rowSpacing);
-        let w=(s.finish - s.start)*ganttScale;
-        if(w<0) w=0;
-        let bar = document.createElementNS("http://www.w3.org/2000/svg","rect");
-        bar.setAttribute("x",x);
-        bar.setAttribute("y",y);
-        bar.setAttribute("width",w);
-        bar.setAttribute("height",rowHeight);
-        bar.setAttribute("class","task-bar");
-        if(t.float<0.0001) {
+      tasksData.forEach((t, i) => {
+        let s = schedule[i];
+        let x = leftMargin + s.start * ganttScale;
+        let y = topMargin + i * (rowHeight + rowSpacing);
+        let w = (s.finish - s.start) * ganttScale;
+        if (w < 0) w = 0;
+        let bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        bar.setAttribute("x", x);
+        bar.setAttribute("y", y);
+        bar.setAttribute("width", w);
+        bar.setAttribute("height", rowHeight);
+        bar.setAttribute("class", "task-bar");
+        if (t.float < 0.0001) {
           bar.classList.add("critical");
         } else {
           bar.classList.add("noncritical");
         }
-        bar.addEventListener("dblclick",()=>openEditModal(i));
+        bar.addEventListener("dblclick", () => openEditModal(i));
         svg.appendChild(bar);
 
-        // resource text inside bar
-        let resStr = t.assignments.map(a=>{
-          if(!a.resourceName) return "";
-          let r=resourcesData.find(rr=>rr.name===a.resourceName);
-          if(!r) return "";
-          if(r.type==="Work"){
+        let resStr = t.assignments.map(a => {
+          if (!a.resourceName) return "";
+          let r = resourcesData.find(rr => rr.name === a.resourceName);
+          if (!r) return "";
+          if (r.type === "Work") {
             return `${r.name}(${a.value}%)`;
           } else {
             return `${r.name}(${a.value})`;
           }
         }).filter(Boolean).join(", ");
-        if(resStr){
-          let barText=document.createElementNS("http://www.w3.org/2000/svg","text");
-          barText.setAttribute("x", x+4);
-          barText.setAttribute("y", y+rowHeight*0.7);
-          barText.setAttribute("class","bar-text");
-          barText.textContent=resStr;
+        if (resStr) {
+          let barText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          barText.setAttribute("x", x + 4);
+          barText.setAttribute("y", y + rowHeight * 0.7);
+          barText.setAttribute("class", "bar-text");
+          barText.textContent = resStr;
           svg.appendChild(barText);
         }
 
-        // left label with task name
-        let text=document.createElementNS("http://www.w3.org/2000/svg","text");
-        text.setAttribute("x",5);
-        text.setAttribute("y",y+rowHeight*0.75);
-        text.setAttribute("class","task-text");
-        text.textContent=t.name;
+        let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", 5);
+        text.setAttribute("y", y + rowHeight * 0.75);
+        text.setAttribute("class", "task-text");
+        text.textContent = t.name;
         svg.appendChild(text);
       });
 
-      // dependency lines
-      tasksData.forEach((t,i)=>{
-        let s=schedule[i];
-        let xStart=leftMargin+s.start*ganttScale;
-        let xFinish=leftMargin+s.finish*ganttScale;
-        let yMid=topMargin+i*(rowHeight+rowSpacing)+rowHeight/2;
-        t.dependencies.forEach(dep=>{
-          let predIdx=tasksData.findIndex(tt=>tt.name===dep.predecessor);
-          if(predIdx<0) return;
-          let sp=schedule[predIdx];
-          let pxStart=leftMargin+sp.start*ganttScale;
-          let pxFinish=leftMargin+sp.finish*ganttScale;
-          let pyMid=topMargin+predIdx*(rowHeight+rowSpacing)+rowHeight/2;
+      tasksData.forEach((t, i) => {
+        let s = schedule[i];
+        let xStart = leftMargin + s.start * ganttScale;
+        let xFinish = leftMargin + s.finish * ganttScale;
+        let yMid = topMargin + i * (rowHeight + rowSpacing) + rowHeight / 2;
+        t.dependencies.forEach(dep => {
+          let predIdx = tasksData.findIndex(tt => tt.name === dep.predecessor);
+          if (predIdx < 0) return;
+          let sp = schedule[predIdx];
+          let pxStart = leftMargin + sp.start * ganttScale;
+          let pxFinish = leftMargin + sp.finish * ganttScale;
+          let pyMid = topMargin + predIdx * (rowHeight + rowSpacing) + rowHeight / 2;
           let fromX, fromY, toX, toY;
-          switch(dep.type){
+          switch(dep.type) {
             case "FS":
-              fromX=pxFinish; fromY=pyMid;
-              toX=xStart; toY=yMid;
+              fromX = pxFinish; fromY = pyMid;
+              toX = xStart; toY = yMid;
               break;
             case "SS":
-              fromX=pxStart; fromY=pyMid;
-              toX=xStart; toY=yMid;
+              fromX = pxStart; fromY = pyMid;
+              toX = xStart; toY = yMid;
               break;
             case "FF":
-              fromX=pxFinish; fromY=pyMid;
-              toX=xFinish; toY=yMid;
+              fromX = pxFinish; fromY = pyMid;
+              toX = xFinish; toY = yMid;
               break;
             case "SF":
-              fromX=pxStart; fromY=pyMid;
-              toX=xFinish; toY=yMid;
+              fromX = pxStart; fromY = pyMid;
+              toX = xFinish; toY = yMid;
               break;
             default:
-              fromX=pxFinish; fromY=pyMid;
-              toX=xStart; toY=yMid;
+              fromX = pxFinish; fromY = pyMid;
+              toX = xStart; toY = yMid;
           }
           let pathData = `M${fromX},${fromY} L${fromX},${toY} L${toX},${toY}`;
-          let line = document.createElementNS("http://www.w3.org/2000/svg","path");
+          let line = document.createElementNS("http://www.w3.org/2000/svg", "path");
           line.setAttribute("d", pathData);
-          line.setAttribute("class","dep-line");
-          line.setAttribute("marker-end","url(#arrowhead)");
+          line.setAttribute("class", "dep-line");
+          line.setAttribute("marker-end", "url(#arrowhead)");
           svg.appendChild(line);
         });
       });
 
-      // X-axis
-      let axisY=topMargin+tasksData.length*(rowHeight+rowSpacing)+20;
-      let axisLine=document.createElementNS("http://www.w3.org/2000/svg","line");
-      axisLine.setAttribute("x1",leftMargin);
-      axisLine.setAttribute("y1",axisY);
-      axisLine.setAttribute("x2",leftMargin+(maxFinish+2)*ganttScale);
-      axisLine.setAttribute("y2",axisY);
-      axisLine.setAttribute("stroke","#333");
+      let axisY = topMargin + tasksData.length * (rowHeight + rowSpacing) + 20;
+      let axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      axisLine.setAttribute("x1", leftMargin);
+      axisLine.setAttribute("y1", axisY);
+      axisLine.setAttribute("x2", leftMargin + (maxFinish + 2) * ganttScale);
+      axisLine.setAttribute("y2", axisY);
+      axisLine.setAttribute("stroke", "#333");
       svg.appendChild(axisLine);
-      for(let d=0; d<=maxFinish+1; d++){
-        let tickX=leftMargin+d*ganttScale;
-        let tick=document.createElementNS("http://www.w3.org/2000/svg","line");
-        tick.setAttribute("x1",tickX);
-        tick.setAttribute("y1",axisY);
-        tick.setAttribute("x2",tickX);
-        tick.setAttribute("y2",axisY-5);
-        tick.setAttribute("stroke","#333");
+      for (let d = 0; d <= maxFinish + 1; d++) {
+        let tickX = leftMargin + d * ganttScale;
+        let tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        tick.setAttribute("x1", tickX);
+        tick.setAttribute("y1", axisY);
+        tick.setAttribute("x2", tickX);
+        tick.setAttribute("y2", axisY - 5);
+        tick.setAttribute("stroke", "#333");
         svg.appendChild(tick);
-
-        let lbl=document.createElementNS("http://www.w3.org/2000/svg","text");
-        lbl.setAttribute("x",tickX+2);
-        lbl.setAttribute("y",axisY+15);
-        lbl.setAttribute("font-size","12");
-        lbl.textContent=d;
+        let lbl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        lbl.setAttribute("x", tickX + 2);
+        lbl.setAttribute("y", axisY + 15);
+        lbl.setAttribute("font-size", "12");
+        lbl.textContent = d;
         svg.appendChild(lbl);
       }
     }
@@ -1005,7 +1073,6 @@
     function computeSchedule() {
       let nameToIdx = {};
       tasksData.forEach((t, i) => { nameToIdx[t.name] = i; });
-
       let graph = tasksData.map(() => []);
       let inDegree = new Array(tasksData.length).fill(0);
       tasksData.forEach((t, i) => {
@@ -1017,14 +1084,11 @@
           }
         });
       });
-
       let schedule = tasksData.map(t => ({ start: 0, finish: t.duration }));
       let queue = [];
       inDegree.forEach((d, i) => { if(d === 0) queue.push(i); });
-
-      while(queue.length > 0){
+      while (queue.length > 0) {
         let cur = queue.shift();
-        // forcedStart logic
         if (typeof tasksData[cur].forcedStart === "number") {
           let fs = tasksData[cur].forcedStart;
           if (fs > schedule[cur].start) {
@@ -1032,10 +1096,9 @@
             schedule[cur].finish = fs + tasksData[cur].duration;
           }
         }
-
         graph[cur].forEach(succ => {
           let depObj = tasksData[succ].dependencies.find(d => d.predecessor === tasksData[cur].name);
-          if(!depObj) return;
+          if (!depObj) return;
           let cStart = schedule[cur].start;
           let cFinish = schedule[cur].finish;
           let lag = depObj.lag || 0;
@@ -1046,12 +1109,11 @@
             case "FF": candidate = (cFinish + lag) - tasksData[succ].duration; break;
             case "SF": candidate = (cStart + lag) - tasksData[succ].duration; break;
           }
-          if(candidate < 0) candidate = 0;
-          if(candidate > schedule[succ].start) {
+          if (candidate < 0) candidate = 0;
+          if (candidate > schedule[succ].start) {
             schedule[succ].start = candidate;
             schedule[succ].finish = candidate + tasksData[succ].duration;
           }
-          // also apply forcedStart if set
           if (typeof tasksData[succ].forcedStart === "number") {
             let fs2 = tasksData[succ].forcedStart;
             if (fs2 > schedule[succ].start) {
@@ -1060,7 +1122,7 @@
             }
           }
           inDegree[succ]--;
-          if(inDegree[succ] === 0) queue.push(succ);
+          if (inDegree[succ] === 0) queue.push(succ);
         });
       }
       return schedule;
@@ -1074,7 +1136,6 @@
       let n = tasksData.length;
       let latestStart = new Array(n).fill(endTime);
       let latestFinish = new Array(n).fill(endTime);
-
       let nameToIdx = {};
       tasksData.forEach((t, i) => { nameToIdx[t.name] = i; });
       let revGraph = tasksData.map(() => []);
@@ -1089,212 +1150,185 @@
         });
       });
       schedule.forEach((s, i) => {
-        if(outDegree[i] === 0) {
+        if (outDegree[i] === 0) {
           latestFinish[i] = s.finish;
           latestStart[i] = s.finish - tasksData[i].duration;
         }
       });
-
       let queue = [];
       outDegree.forEach((od, i) => { if(od === 0) queue.push(i); });
-      while(queue.length>0) {
+      while (queue.length > 0) {
         let cur = queue.shift();
         let cLS = latestStart[cur];
         let cLF = latestFinish[cur];
         revGraph[cur].forEach(pred => {
           let depObj = tasksData[cur].dependencies.find(d => d.predecessor === tasksData[pred].name);
-          if(!depObj) return;
+          if (!depObj) return;
           let candidate = latestFinish[pred];
           switch(depObj.type) {
-            case "FS":
-              candidate = cLS - depObj.lag;
-              break;
-            case "SS":
-              candidate = (cLS - depObj.lag) + tasksData[pred].duration;
-              break;
-            case "FF":
-              candidate = cLF - depObj.lag;
-              break;
-            case "SF":
-              candidate = (cLF - depObj.lag) + tasksData[pred].duration;
-              break;
+            case "FS": candidate = cLS - depObj.lag; break;
+            case "SS": candidate = (cLS - depObj.lag) + tasksData[pred].duration; break;
+            case "FF": candidate = cLF - depObj.lag; break;
+            case "SF": candidate = (cLF - depObj.lag) + tasksData[pred].duration; break;
           }
-          if(candidate < latestFinish[pred]) {
+          if (candidate < latestFinish[pred]) {
             latestFinish[pred] = candidate;
             latestStart[pred] = candidate - tasksData[pred].duration;
           }
           outDegree[pred]--;
-          if(outDegree[pred] === 0) queue.push(pred);
+          if (outDegree[pred] === 0) queue.push(pred);
         });
       }
-
       let floatArr = new Array(n).fill(0);
       schedule.forEach((s, i) => {
         let es = s.start;
         let ls = latestStart[i];
         let fl = ls - es;
-        if(fl < 0) fl = 0;
+        if (fl < 0) fl = 0;
         floatArr[i] = fl;
       });
       return { floatArr };
     }
 
     /***********************
-     * 7b) Helper: refreshAll => recalc everything
+     * Helper: refreshAll
      ***********************/
     function refreshAll() {
-      recalcAllTaskCosts();  
-      renderTasksTable();    
-      generateGantt();       
+      recalcAllTaskCosts();
+      renderTasksTable();
+      generateGantt();
       computeOverallocation();
+    }
+    function refreshAllNoOverallocation() {
+      recalcAllTaskCosts();
+      renderTasksTable();
+      generateGantt();
     }
 
     /***********************
-     * Double-click modal
+     * Double-click Modal
      ***********************/
-    let editModal=document.getElementById("editModal");
-    let modalOverlay=document.getElementById("modalOverlay");
-    let modalTaskName=document.getElementById("modalTaskName");
-    let modalTaskDuration=document.getElementById("modalTaskDuration");
-    let modalDependencies=document.getElementById("modalDependencies");
-    let modalAssignments=document.getElementById("modalAssignments");
-    let modalSaveBtn=document.getElementById("modalSaveBtn");
-    let modalCancelBtn=document.getElementById("modalCancelBtn");
-    let currentEditIndex=-1;
+    let editModal = document.getElementById("editModal");
+    let modalOverlay = document.getElementById("modalOverlay");
+    let modalTaskName = document.getElementById("modalTaskName");
+    let modalTaskDuration = document.getElementById("modalTaskDuration");
+    let modalDependencies = document.getElementById("modalDependencies");
+    let modalAssignments = document.getElementById("modalAssignments");
+    let modalSaveBtn = document.getElementById("modalSaveBtn");
+    let modalCancelBtn = document.getElementById("modalCancelBtn");
+    let currentEditIndex = -1;
 
     function openEditModal(taskIndex) {
-      currentEditIndex=taskIndex;
-      let t=tasksData[taskIndex];
-      modalTaskName.value=t.name;
-      modalTaskDuration.value=t.duration;
-      let depStr=t.dependencies.map(d=>`${d.predecessor}|${d.type}|${d.lag}`).join("\n");
-      modalDependencies.value=depStr;
-      let assnStr=t.assignments.map(a=>`${a.resourceName}=${a.value}`).join("\n");
-      modalAssignments.value=assnStr;
-      editModal.style.display="block";
-      modalOverlay.style.display="block";
+      currentEditIndex = taskIndex;
+      let t = tasksData[taskIndex];
+      modalTaskName.value = t.name;
+      modalTaskDuration.value = t.duration;
+      let depStr = t.dependencies.map(d => `${d.predecessor}|${d.type}|${d.lag}`).join("\n");
+      modalDependencies.value = depStr;
+      let assnStr = t.assignments.map(a => `${a.resourceName}=${a.value}`).join("\n");
+      modalAssignments.value = assnStr;
+      editModal.style.display = "block";
+      modalOverlay.style.display = "block";
     }
     modalCancelBtn.addEventListener("click", closeModal);
     function closeModal() {
-      editModal.style.display="none";
-      modalOverlay.style.display="none";
+      editModal.style.display = "none";
+      modalOverlay.style.display = "none";
     }
-    modalSaveBtn.addEventListener("click", ()=>{
-      if(currentEditIndex<0) return;
-      let t=tasksData[currentEditIndex];
-      t.name=modalTaskName.value.trim();
-      t.duration=parseFloat(modalTaskDuration.value)||0;
-      let lines=modalDependencies.value.split("\n").map(x=>x.trim()).filter(Boolean);
-      let newDeps=[];
-      lines.forEach(line=>{
-        let parts=line.split("|").map(x=>x.trim());
-        if(parts.length>=1){
+    modalSaveBtn.addEventListener("click", () => {
+      if (currentEditIndex < 0) return;
+      let t = tasksData[currentEditIndex];
+      t.name = modalTaskName.value.trim();
+      t.duration = parseFloat(modalTaskDuration.value) || 0;
+      let lines = modalDependencies.value.split("\n").map(x => x.trim()).filter(Boolean);
+      let newDeps = [];
+      lines.forEach(line => {
+        let parts = line.split("|").map(x => x.trim());
+        if (parts.length >= 1) {
           newDeps.push({
-            predecessor:parts[0],
-            type:parts[1]||"FS",
-            lag:parseFloat(parts[2])||0
+            predecessor: parts[0],
+            type: parts[1] || "FS",
+            lag: parseFloat(parts[2]) || 0
           });
         }
       });
-      t.dependencies=newDeps;
-      let lines2=modalAssignments.value.split("\n").map(x=>x.trim()).filter(Boolean);
-      let newAssn=[];
-      lines2.forEach(line=>{
-        let idx=line.indexOf("=");
-        if(idx>0){
-          let rName=line.slice(0,idx).trim();
-          let val=parseFloat(line.slice(idx+1))||0;
-          newAssn.push({resourceName:rName,value:val});
+      t.dependencies = newDeps;
+      let lines2 = modalAssignments.value.split("\n").map(x => x.trim()).filter(Boolean);
+      let newAssn = [];
+      lines2.forEach(line => {
+        let idx = line.indexOf("=");
+        if (idx > 0) {
+          let rName = line.slice(0, idx).trim();
+          let val = parseFloat(line.slice(idx + 1)) || 0;
+          newAssn.push({ resourceName: rName, value: val });
         }
       });
-      t.assignments=newAssn;
+      t.assignments = newAssn;
       closeModal();
       refreshAll();
     });
 
     /***********************
-     * 8) Resource Risk Insights
+     * Resource Risk Insights
      ***********************/
     document.getElementById("generateResourceRiskBtn").addEventListener("click", generateResourceRiskInsights);
 
     function generateResourceRiskInsights() {
-      let schedule=computeSchedule();
-      let maxFinish=Math.max(...schedule.map(s=>s.finish));
-      let dayToResUsage={};
-      for(let d=0; d<=maxFinish; d++){
-        dayToResUsage[d]={};
-        resourcesData.forEach(r=>{
-          dayToResUsage[d][r.name]=0;
+      let schedule = computeSchedule();
+      let maxFinish = Math.max(...schedule.map(s => s.finish));
+      let dayToResUsage = {};
+      for (let d = 0; d <= maxFinish; d++){
+        dayToResUsage[d] = {};
+        resourcesData.forEach(r => {
+          dayToResUsage[d][r.name] = 0;
         });
       }
-      tasksData.forEach((t,i)=>{
-        let sDay=Math.floor(schedule[i].start);
-        let fDay=Math.ceil(schedule[i].finish);
-        t.assignments.forEach(a=>{
-          let rName=a.resourceName;
-          if(!rName) return;
-          let r=resourcesData.find(rr=>rr.name===rName);
-          if(!r) return;
-          if(r.type!=="Work") return;
-          let val=a.value||100;
-          for(let d=sDay; d<fDay; d++){
-            dayToResUsage[d][rName]+=val;
+      tasksData.forEach((t, i) => {
+        let sDay = Math.floor(schedule[i].start);
+        let fDay = Math.ceil(schedule[i].finish);
+        t.assignments.forEach(a => {
+          let rName = a.resourceName;
+          if (!rName) return;
+          let r = resourcesData.find(rr => rr.name === rName);
+          if (!r) return;
+          if (r.type !== "Work") return;
+          let val = a.value || 100;
+          for (let d = sDay; d < fDay; d++){
+            dayToResUsage[d][rName] += val;
           }
         });
       });
-
-      let lines=["Resource Risk Insights:\n"];
-      let riskEntries=[];
-
-      // Overallocation risk
-      resourcesData.forEach(r=>{
-        if(r.type!=="Work") return;
-        let mU=r.maxUnits||100;
-        let highestUsage=0;
-        for(let d=0; d<=maxFinish; d++){
-          if(dayToResUsage[d][r.name]>highestUsage) highestUsage=dayToResUsage[d][r.name];
+      let lines = ["Resource Risk Insights:\n"];
+      let riskEntries = [];
+      resourcesData.forEach(r => {
+        if (r.type !== "Work") return;
+        let mU = r.maxUnits || 100;
+        let highestUsage = 0;
+        for (let d = 0; d <= maxFinish; d++){
+          if (dayToResUsage[d][r.name] > highestUsage) highestUsage = dayToResUsage[d][r.name];
         }
-        if(highestUsage>mU){
-          let overBy=highestUsage-mU;
-          let impact=Math.min(10, Math.floor(5+(overBy/mU)*5));
+        if (highestUsage > mU) {
+          let overBy = highestUsage - mU;
+          let impact = Math.min(10, Math.floor(5 + (overBy / mU) * 5));
           lines.push(`- ${r.name} overallocated (usage=${highestUsage}%, max=${mU}%). (Impact ~ ${impact})`);
           riskEntries.push({ riskName: `${r.name} overallocation`, suggestedRisk: impact });
-        } else if(highestUsage>=0.8*mU){
-          let impact=5;
+        } else if (highestUsage >= (0.8 * mU)) {
+          let impact = 5;
           lines.push(`- ${r.name} usage near capacity (${highestUsage}% of ${mU}%). (Impact ~ ${impact})`);
           riskEntries.push({ riskName: `${r.name} near capacity`, suggestedRisk: impact });
         }
       });
-
-      // Cost risk
-      let workResources=resourcesData.filter(r=>r.type==="Work" && r.stdRate>0);
-      if(workResources.length>0){
-        let totalCost=workResources.reduce((sum,r)=> sum+r.stdRate,0);
-        let meanCost=totalCost/workResources.length;
-        workResources.forEach(r=>{
-          if(r.stdRate>1.5*meanCost){
-            let ratio=r.stdRate/meanCost;
-            let impact=Math.min(10, Math.floor((ratio-1)*10));
-            if(impact<1) impact=1;
-            lines.push(`- ${r.name} has a high cost rate of ${r.stdRate} (mean ${meanCost.toFixed(2)}). (Impact ~ ${impact})`);
-            riskEntries.push({ riskName: `${r.name} high cost rate`, suggestedRisk: impact });
-          }
-        });
-      }
-
-      if(lines.length===1){
+      if (lines.length === 1) {
         lines.push("No resource usage above 80% and no disproportionate cost risk => minimal resource risk.");
       }
-
-      let outDiv=document.getElementById("resourceRiskOutput");
+      let outDiv = document.getElementById("resourceRiskOutput");
       outDiv.innerHTML = `<strong>Textual Risk Insights:</strong><br>` + lines.join("<br>");
       outDiv.style.display = "block";
-
-      let riskJSON=JSON.stringify(riskEntries, null, 2);
-      const riskJsonOutputContainer=document.getElementById("riskJsonOutputContainer");
-      const riskJsonOutput=document.getElementById("riskJsonOutput");
-      riskJsonOutput.value=riskJSON;
-      riskJsonOutputContainer.style.display="block";
+      let riskJSON = JSON.stringify(riskEntries, null, 2);
+      const riskJsonOutputContainer = document.getElementById("riskJsonOutputContainer");
+      const riskJsonOutput = document.getElementById("riskJsonOutput");
+      riskJsonOutput.value = riskJSON;
+      riskJsonOutputContainer.style.display = "block";
     }
 
     document.getElementById("copyRiskJsonBtn").addEventListener("click", () => {
@@ -1306,45 +1340,36 @@
         .catch(err => { alert("Error copying text: " + err); });
     });
 
-
-    /****************************************************************
-     * 9) TWO "Auto Optimize" Buttons
-     ****************************************************************/
+    /***********************
+     * Auto Optimize Functions (Global)
+     ***********************/
     document.getElementById("autoOptimizeNoReallocBtn").addEventListener("click", autoOptimizeNoReallocation);
     document.getElementById("autoOptimizeReallocBtn").addEventListener("click", autoOptimizeWithTimeCompressionAndNewDeps);
 
-    // 1) Simple "No Reallocation"
     function autoOptimizeNoReallocation() {
       tasksData.forEach(t => delete t.forcedStart);
       let topoOrder = getTopologicalOrder();
-      let partial = tasksData.map(() => ({start:-1, finish:-1}));
-
+      let partial = tasksData.map(() => ({ start: -1, finish: -1 }));
       topoOrder.forEach(taskIdx => {
         let es = earliestStartByDeps(taskIdx, partial);
         let feasibleStart = findFeasibleStartNoRealloc(taskIdx, es, partial);
         partial[taskIdx].start = feasibleStart;
         partial[taskIdx].finish = feasibleStart + tasksData[taskIdx].duration;
       });
-
-      partial.forEach((sch,i)=>{
+      partial.forEach((sch, i) => {
         tasksData[i].forcedStart = sch.start;
       });
-
       renderTasksTable();
       refreshAll();
       alert("Auto Optimize (No Reallocation) complete!");
     }
 
-    // 2) With Reallocation + new concurrency dependencies
     function autoOptimizeWithTimeCompressionAndNewDeps() {
-      // A) Zero out all existing leads/lags
       tasksData.forEach(task => {
         task.dependencies.forEach(dep => {
           dep.lag = 0;
         });
       });
-
-      // B) Saturate usage => recalc durations
       tasksData.forEach(task => {
         let oldSum = 0;
         task.assignments.forEach(a => {
@@ -1353,244 +1378,122 @@
             oldSum += (a.value || 0);
           }
         });
-        if (oldSum <= 0) return; // no work resources => skip
+        if (oldSum <= 0) return;
         let totalWork = oldSum * task.duration;
         let newSum = 0;
-
         task.assignments.forEach(a => {
           let r = resourcesData.find(rr => rr.name === a.resourceName);
           if (r && r.type === "Work") {
-            a.value = r.maxUnits || 100; 
+            a.value = r.maxUnits || 100;
             newSum += a.value;
           }
         });
-        if (newSum>0) {
+        if (newSum > 0) {
           let newDur = totalWork / newSum;
-          if(newDur<1) newDur=1;
+          if (newDur < 1) newDur = 1;
           task.duration = Math.ceil(newDur);
         }
       });
-
-      // C) Repeatedly schedule with concurrency-based new deps
       tasksData.forEach(t => delete t.forcedStart);
-
-      // We'll do up to N passes to incorporate new concurrency dependencies
       let maxPasses = 30;
-      for(let pass=0; pass<maxPasses; pass++){
+      for (let pass = 0; pass < maxPasses; pass++) {
         let changed = scheduleWithNewConcurrencyDeps();
-        if(!changed) break; // no new deps => done
+        if (!changed) break;
       }
-
-      // D) Finally, show in table
       renderTasksTable();
       refreshAll();
-      alert("Auto Optimize (With Reallocation + New Deps) complete!");
+      alert("Auto Optimize (With Reallocation + New Dependencies) complete!");
     }
 
-    /**
-     * scheduleWithNewConcurrencyDeps
-     *  - Gets topological order
-     *  - Places tasks in partial
-     *  - If concurrency conflict => add new FS dependency from occupant to current
-     *  - If we add a new concurrency dep, we set "changed=true"
-     */
-    function scheduleWithNewConcurrencyDeps(){
-      let topoOrder = getTopologicalOrder();
-      let partial = tasksData.map(() => ({start:-1, finish:-1}));
-      let changed = false;
-
-      for(let t of topoOrder){
-        let es = earliestStartByDeps(t, partial);
-        let result = findFeasibleStartAddConcurrencyDep(t, es, partial);
-        if(result.newDepAdded) changed = true;
-        if(result.startDay<0) {
-          // fallback if something goes wrong
-          result.startDay=es+5;
-        }
-        partial[t].start = result.startDay;
-        partial[t].finish = result.startDay + tasksData[t].duration;
-      }
-
-      // apply forcedStart
-      partial.forEach((sch,i)=>{
-        tasksData[i].forcedStart = sch.start;
-      });
-
-      return changed;
-    }
-
-    /**
-     * findFeasibleStartAddConcurrencyDep:
-     *  tries to place task at candidate day
-     *  if not feasible => find occupant => create new FS dep => return {startDay:-1, newDepAdded:true}
-     *  else => {startDay:candidate, newDepAdded:false}
-     */
-    function findFeasibleStartAddConcurrencyDep(taskIdx, candidate, partial) {
-      let dur = tasksData[taskIdx].duration;
-      let usageMap = buildDayUsagePartial(partial, taskIdx);
-      if(isFeasible(taskIdx, candidate, dur, usageMap)) {
-        return { startDay: candidate, newDepAdded: false };
-      } else {
-        // find occupant that blocks us on "candidate"
-        let occupantInfo = findOccupantBlocking(taskIdx, candidate, usageMap, partial);
-        if(!occupantInfo) {
-          // if we can't find occupant => shift 1 day
-          return { startDay: candidate+1, newDepAdded: false };
-        }
-
-        let occupantIdx = occupantInfo.taskIdx;
-        let occupantFinish = occupantInfo.finish;
-        let occupantName = tasksData[occupantIdx].name;
-
-        // create or update FS dep occupant => current
-        let depArr = tasksData[taskIdx].dependencies;
-        let existing = depArr.find(d => d.predecessor===occupantName && d.type==="FS");
-        if(!existing){
-          depArr.push({ predecessor: occupantName, type:"FS", lag:0 });
-        }
-        // We added new concurrency dep => must re-run topological pass
-        return { startDay: -1, newDepAdded: true };
-      }
-    }
-
-    /**
-     * findOccupantBlocking:
-     *  - scans resources for the current task at "candidate" day
-     *  - sees which occupant tasks are using that resource at that day
-     *  - picks occupant with the LATEST finish day
-     */
-    function findOccupantBlocking(taskIdx, candidateDay, usageMap, partial) {
-      let blockingResources = [];
-      let occupantCandidates = [];
-
-      let theTask = tasksData[taskIdx];
-      theTask.assignments.forEach(a => {
-        let r = resourcesData.find(rr => rr.name===a.resourceName);
-        if(!r || r.type!=="Work") return;
-        let val = a.value||100;
-        if(usageMap[candidateDay][r.name]+val > (r.maxUnits||100)) {
-          blockingResources.push(r.name);
-        }
-      });
-      if(blockingResources.length===0) return null;
-
-      // for each blocking resource, find occupant tasks
-      blockingResources.forEach(resName => {
-        // occupant tasks are tasks that are active at candidateDay in partial
-        for(let i=0; i<partial.length; i++){
-          if(i===taskIdx) continue;
-          if(partial[i].start<0) continue;
-          let sDay=Math.floor(partial[i].start);
-          let fDay=Math.ceil(partial[i].finish);
-          if(candidateDay>=sDay && candidateDay<fDay){
-            // does that occupant use resName?
-            let occupantUses = tasksData[i].assignments.some(a => a.resourceName===resName);
-            if(occupantUses){
-              occupantCandidates.push({ taskIdx:i, finish:fDay });
-            }
-          }
-        }
-      });
-
-      if(occupantCandidates.length===0) return null;
-      // pick occupant with largest "finish"
-      occupantCandidates.sort((a,b)=> b.finish - a.finish);
-      return occupantCandidates[0]; // occupant with the latest finish
-    }
-
-    /***********************
-     * "No Reallocation" Feasibility
-     ***********************/
     function getTopologicalOrder() {
-      let nameToIdx={};
-      tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
-      let graph=tasksData.map(()=>[]);
-      let inDeg=new Array(tasksData.length).fill(0);
-      tasksData.forEach((t,i)=>{
-        t.dependencies.forEach(dep=>{
-          let p=nameToIdx[dep.predecessor];
-          if(p!=null){
+      let nameToIdx = {};
+      tasksData.forEach((t, i) => { nameToIdx[t.name] = i; });
+      let graph = tasksData.map(() => []);
+      let inDeg = new Array(tasksData.length).fill(0);
+      tasksData.forEach((t, i) => {
+        t.dependencies.forEach(dep => {
+          let p = nameToIdx[dep.predecessor];
+          if (p != null) {
             graph[p].push(i);
             inDeg[i]++;
           }
         });
       });
-      let order=[];
-      let queue=[];
-      inDeg.forEach((d,i)=>{ if(d===0) queue.push(i); });
-      while(queue.length>0){
-        let cur=queue.shift();
+      let order = [];
+      let queue = [];
+      inDeg.forEach((d, i) => { if (d === 0) queue.push(i); });
+      while (queue.length > 0) {
+        let cur = queue.shift();
         order.push(cur);
-        graph[cur].forEach(succ=>{
+        graph[cur].forEach(succ => {
           inDeg[succ]--;
-          if(inDeg[succ]===0) queue.push(succ);
+          if (inDeg[succ] === 0) queue.push(succ);
         });
       }
       return order;
     }
 
     function earliestStartByDeps(taskIdx, partial) {
-      let es=0;
-      let nameToIdx={};
-      tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
-      tasksData[taskIdx].dependencies.forEach(dep=>{
-        let p=nameToIdx[dep.predecessor];
-        if(p==null) return;
-        let pf=partial[p].finish; 
-        let ps=partial[p].start;
-        if(ps<0 || pf<0) return; // not scheduled => skip
-        let lag=dep.lag||0;
-        let cand=0;
+      let es = 0;
+      let nameToIdx = {};
+      tasksData.forEach((t, i) => { nameToIdx[t.name] = i; });
+      tasksData[taskIdx].dependencies.forEach(dep => {
+        let p = nameToIdx[dep.predecessor];
+        if (p == null) return;
+        let pf = partial[p].finish;
+        let ps = partial[p].start;
+        if (ps < 0 || pf < 0) return;
+        let lag = dep.lag || 0;
+        let cand = 0;
         switch(dep.type){
-          case "FS": cand=pf+lag; break;
-          case "SS": cand=ps+lag; break;
-          case "FF": cand=(pf+lag)-tasksData[taskIdx].duration; break;
-          case "SF": cand=(ps+lag)-tasksData[taskIdx].duration; break;
+          case "FS": cand = pf + lag; break;
+          case "SS": cand = ps + lag; break;
+          case "FF": cand = (pf + lag) - tasksData[taskIdx].duration; break;
+          case "SF": cand = (ps + lag) - tasksData[taskIdx].duration; break;
         }
-        if(cand>es) es=cand;
+        if (cand > es) es = cand;
       });
-      if(es<0) es=0;
+      if (es < 0) es = 0;
       return es;
     }
 
     function findFeasibleStartNoRealloc(taskIdx, candidate, partial) {
       let dur = tasksData[taskIdx].duration;
-      while(true){
+      while (true) {
         let usageMap = buildDayUsagePartial(partial, taskIdx);
-        if(isFeasible(taskIdx, candidate, dur, usageMap)) {
+        if (isFeasible(taskIdx, candidate, dur, usageMap)) {
           return candidate;
         }
         candidate++;
-        if(candidate>999999) return candidate;
+        if (candidate > 999999) return candidate;
       }
     }
 
-    // same usage builder, skipping skipIdx
     function buildDayUsagePartial(partial, skipIdx) {
-      let maxFin=0;
-      partial.forEach((sch,i)=>{
-        if(i!==skipIdx && sch.finish>maxFin && sch.start>=0){
-          maxFin=sch.finish;
+      let maxFin = 0;
+      partial.forEach((sch, i) => {
+        if (i !== skipIdx && sch.finish > maxFin && sch.start >= 0) {
+          maxFin = sch.finish;
         }
       });
-      let usage={};
-      for(let d=0; d<=maxFin+200; d++){
-        usage[d]={};
-        resourcesData.forEach(r=>{
-          if(r.type==="Work") usage[d][r.name]=0;
+      let usage = {};
+      for (let d = 0; d <= maxFin + 200; d++) {
+        usage[d] = {};
+        resourcesData.forEach(r => {
+          if (r.type === "Work") usage[d][r.name] = 0;
         });
       }
-      partial.forEach((sch,i)=>{
-        if(i===skipIdx) return;
-        if(sch.start<0) return; // not scheduled
-        let sDay=Math.floor(sch.start);
-        let fDay=Math.ceil(sch.finish);
-        tasksData[i].assignments.forEach(a=>{
-          let r=resourcesData.find(rr=>rr.name===a.resourceName);
-          if(!r||r.type!=="Work") return;
-          let val=a.value||100;
-          for(let d=sDay; d<fDay; d++){
-            usage[d][r.name]+=val;
+      partial.forEach((sch, i) => {
+        if (i === skipIdx) return;
+        if (sch.start < 0) return;
+        let sDay = Math.floor(sch.start);
+        let fDay = Math.ceil(sch.finish);
+        tasksData[i].assignments.forEach(a => {
+          let r = resourcesData.find(rr => rr.name === a.resourceName);
+          if (!r || r.type !== "Work") return;
+          let val = a.value || 100;
+          for (let d = sDay; d < fDay; d++) {
+            usage[d][r.name] += val;
           }
         });
       });
@@ -1598,17 +1501,90 @@
     }
 
     function isFeasible(taskIdx, startDay, dur, usageMap) {
-      for(let d=startDay; d<startDay+dur; d++){
-        for(let a of tasksData[taskIdx].assignments){
-          let r=resourcesData.find(rr=>rr.name===a.resourceName);
-          if(!r||r.type!=="Work") continue;
-          let val=a.value||100;
-          if(usageMap[d][r.name]+val> (r.maxUnits||100)) {
+      for (let d = startDay; d < startDay + dur; d++) {
+        for (let a of tasksData[taskIdx].assignments) {
+          let r = resourcesData.find(rr => rr.name === a.resourceName);
+          if (!r || r.type !== "Work") continue;
+          let val = a.value || 100;
+          if (usageMap[d][r.name] + val > (r.maxUnits || 100)) {
             return false;
           }
         }
       }
       return true;
+    }
+
+    function scheduleWithNewConcurrencyDeps() {
+      let topoOrder = getTopologicalOrder();
+      let partial = tasksData.map(() => ({ start: -1, finish: -1 }));
+      let changed = false;
+      for (let t of topoOrder) {
+        let es = earliestStartByDeps(t, partial);
+        let result = findFeasibleStartAddConcurrencyDep(t, es, partial);
+        if (result.newDepAdded) changed = true;
+        if (result.startDay < 0) {
+          result.startDay = es + 5;
+        }
+        partial[t].start = result.startDay;
+        partial[t].finish = result.startDay + tasksData[t].duration;
+      }
+      partial.forEach((sch, i) => {
+        tasksData[i].forcedStart = sch.start;
+      });
+      return changed;
+    }
+
+    function findFeasibleStartAddConcurrencyDep(taskIdx, candidate, partial) {
+      let dur = tasksData[taskIdx].duration;
+      let usageMap = buildDayUsagePartial(partial, taskIdx);
+      if (isFeasible(taskIdx, candidate, dur, usageMap)) {
+        return { startDay: candidate, newDepAdded: false };
+      } else {
+        let occupantInfo = findOccupantBlocking(taskIdx, candidate, usageMap, partial);
+        if (!occupantInfo) {
+          return { startDay: candidate + 1, newDepAdded: false };
+        }
+        let occupantIdx = occupantInfo.taskIdx;
+        let occupantName = tasksData[occupantIdx].name;
+        let depArr = tasksData[taskIdx].dependencies;
+        let existing = depArr.find(d => d.predecessor === occupantName && d.type === "FS");
+        if (!existing) {
+          depArr.push({ predecessor: occupantName, type: "FS", lag: 0 });
+        }
+        return { startDay: -1, newDepAdded: true };
+      }
+    }
+
+    function findOccupantBlocking(taskIdx, candidateDay, usageMap, partial) {
+      let blockingResources = [];
+      let occupantCandidates = [];
+      let theTask = tasksData[taskIdx];
+      theTask.assignments.forEach(a => {
+        let r = resourcesData.find(rr => rr.name === a.resourceName);
+        if (!r || r.type !== "Work") return;
+        let val = a.value || 100;
+        if (usageMap[candidateDay][r.name] + val > (r.maxUnits || 100)) {
+          blockingResources.push(r.name);
+        }
+      });
+      if (blockingResources.length === 0) return null;
+      blockingResources.forEach(resName => {
+        for (let i = 0; i < partial.length; i++) {
+          if (i === taskIdx) continue;
+          if (partial[i].start < 0) continue;
+          let sDay = Math.floor(partial[i].start);
+          let fDay = Math.ceil(partial[i].finish);
+          if (candidateDay >= sDay && candidateDay < fDay) {
+            let occupantUses = tasksData[i].assignments.some(a => a.resourceName === resName);
+            if (occupantUses) {
+              occupantCandidates.push({ taskIdx: i, finish: fDay });
+            }
+          }
+        }
+      });
+      if (occupantCandidates.length === 0) return null;
+      occupantCandidates.sort((a, b) => b.finish - a.finish);
+      return occupantCandidates[0];
     }
   </script>
 </body>
