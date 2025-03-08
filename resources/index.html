@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tasks & Resources with Critical Path Gantt (Work vs Material vs Cost)</title>
+  <title>Resource & Schedule Optimizer</title>
   <style>
     body {
       font-family: sans-serif;
@@ -30,7 +30,6 @@
       font-family: monospace;
       margin-bottom: 1em;
     }
-    /* New style for small textareas (for dependencies box) */
     textarea.small-textarea {
       height: auto !important;
       padding: 4px;
@@ -101,7 +100,6 @@
       margin-top: 1em;
     }
     #ganttChart {
-      /* We'll set width/height dynamically in code */
       display: block;
     }
     .task-bar {
@@ -138,6 +136,9 @@
       padding: 10px;
       margin-top: 1em;
       display: none;
+    }
+    .overallocation-line {
+      margin-bottom: 6px;
     }
     /* Modal for double-click editing */
     #editModal {
@@ -176,7 +177,7 @@
       padding: 1em;
       display: none;
     }
-    /* New container for Risk JSON output */
+    /* For Risk JSON output */
     #riskJsonOutputContainer {
       display: none;
       border: 1px solid #ccc;
@@ -205,1039 +206,1410 @@
   </style>
 </head>
 <body>
-<button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
-<div class="container">
-  <h1>Tasks &amp; Resources with Critical Path Gantt</h1>
-  <p>
-    Paste advanced JSON from Tab 1 here, then load.  
-    - For <strong>Work</strong> resources, the assignment field = “%” (like 100).  
-    - For <strong>Material/Cost</strong>, the assignment field = “units” (like 6).  
-    <br/>
-    <strong>Zoom</strong> the Gantt with the slider, and scroll horizontally if needed. 
-    <br/>
-    <strong>Critical path</strong> tasks (float≈0) are highlighted red.
-  </p>
-  <textarea id="jsonInput" placeholder="Paste JSON from Tab 1 here..."></textarea>
-  <button id="loadJsonBtn">Load JSON</button>
-</div>
-
-<div class="container">
-  <h2>Tasks</h2>
-  <button id="addTaskBtn">Add Task</button>
-  <table id="tasksTable">
-    <thead>
-      <tr>
-        <th>Task Name</th>
-        <th>Dependencies<br>(predecessor|type|lag)</th>
-        <th>Duration (days)</th>
-        <th>Assignments</th>
-        <th>Cost</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Populated dynamically -->
-    </tbody>
-  </table>
-</div>
-
-<div class="container">
-  <h2>Resources</h2>
-  <button id="addResourceBtn">Add Resource</button>
-  <table id="resourcesTable">
-    <thead>
-      <tr>
-        <th>Resource Name</th>
-        <th>Type</th>
-        <th>Material</th>
-        <th>Initials</th>
-        <th>Group</th>
-        <th>Max Units (%)</th>
-        <th>Std. Rate ($/hr or $/unit)</th>
-        <th>Ovt. Rate ($/hr)</th>
-        <th>Cost/Use</th>
-        <th>Accrue</th>
-        <th>Base</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Populated dynamically -->
-    </tbody>
-  </table>
-</div>
-
-<div class="container">
-  <button id="checkOverallocationBtn">Compute Overallocation</button>
-  <div id="overallocationOutput"></div>
-  <div style="margin-top:1em;">
-    <label for="zoomRange">Zoom (px/day):</label>
-    <input type="range" id="zoomRange" min="10" max="200" value="50" style="width:200px;">
-    <span id="zoomValue">50</span>
-  </div>
-  <button id="generateGanttBtn">Generate Gantt Chart</button>
-  <div id="ganttContainer">
-    <svg id="ganttChart" height="500"></svg>
+  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+  <div class="container">
+    <h1>Tasks &amp; Resources with Concurrency Dependencies</h1>
+    <p>
+      Paste advanced JSON from Tab 1 here, then load.  
+      - For <strong>Work</strong> resources, the assignment field = “%” (like 100).  
+      - For <strong>Material/Cost</strong>, the assignment field = “units” (like 6).  
+      <br/>
+      <strong>Zoom</strong> the Gantt with the slider, and scroll horizontally if needed. 
+      <br/>
+      <strong>Critical path</strong> tasks (float≈0) are highlighted red.
+    </p>
+    <textarea id="jsonInput" placeholder="Paste JSON from Tab 1 here..."></textarea>
+    <button id="loadJsonBtn">Load JSON</button>
   </div>
 
-  <!-- New button to generate resource risk insights -->
-  <button id="generateResourceRiskBtn" style="margin-top:1em;">Generate Resource Risk Insights</button>
-  <div id="resourceRiskOutput"></div>
-  
-  <!-- New container for Risk JSON Output with copy-to-clipboard -->
-  <div id="riskJsonOutputContainer">
-    <label for="riskJsonOutput"><strong>Risk JSON Output (for Risk Register):</strong></label>
-    <textarea id="riskJsonOutput" readonly></textarea>
-    <br>
-    <button id="copyRiskJsonBtn">Copy to Clipboard</button>
+  <div class="container">
+    <h2>Tasks</h2>
+    <button id="addTaskBtn">Add Task</button>
+    <table id="tasksTable">
+      <thead>
+        <tr>
+          <th>Task Name</th>
+          <th>Dependencies<br>(predecessor|type|lag)</th>
+          <th>Duration (days)</th>
+          <th>Assignments</th>
+          <th>Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Populated dynamically -->
+      </tbody>
+    </table>
   </div>
-</div>
 
-<!-- Modal for double-click editing -->
-<div id="modalOverlay"></div>
-<div id="editModal">
-  <h3>Edit Task</h3>
-  <div>
-    <label>Task Name:</label><br>
-    <input type="text" id="modalTaskName">
+  <div class="container">
+    <h2>Resources</h2>
+    <button id="addResourceBtn">Add Resource</button>
+    <table id="resourcesTable">
+      <thead>
+        <tr>
+          <th>Resource Name</th>
+          <th>Type</th>
+          <th>Material</th>
+          <th>Initials</th>
+          <th>Group</th>
+          <th>Max Units (%)</th>
+          <th>Std. Rate ($/hr or $/unit)</th>
+          <th>Ovt. Rate ($/hr)</th>
+          <th>Cost/Use</th>
+          <th>Accrue</th>
+          <th>Base</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Populated dynamically -->
+      </tbody>
+    </table>
   </div>
-  <div>
-    <label>Duration (days):</label><br>
-    <input type="number" id="modalTaskDuration">
+
+  <div class="container">
+    <button id="checkOverallocationBtn">Compute Overallocation</button>
+    <div id="overallocationOutput"></div>
+
+    <!-- TWO AUTO-OPTIMIZE BUTTONS -->
+    <button id="autoOptimizeNoReallocBtn" style="background:#DC143C;">Auto Optimize (No Reallocation)</button>
+    <button id="autoOptimizeReallocBtn" style="background:#8B0000;">Auto Optimize (With Reallocation + New Dependencies)</button>
+
+    <div style="margin-top:1em;">
+      <label for="zoomRange">Zoom (px/day):</label>
+      <input type="range" id="zoomRange" min="10" max="200" value="50" style="width:200px;">
+      <span id="zoomValue">50</span>
+    </div>
+    <button id="generateGanttBtn">Generate Gantt Chart</button>
+    <div id="ganttContainer">
+      <svg id="ganttChart" height="500"></svg>
+    </div>
+
+    <!-- Button to generate resource risk insights -->
+    <button id="generateResourceRiskBtn" style="margin-top:1em;">Generate Resource Risk Insights</button>
+    <div id="resourceRiskOutput"></div>
+    
+    <!-- Container for Risk JSON Output with copy-to-clipboard -->
+    <div id="riskJsonOutputContainer">
+      <label for="riskJsonOutput"><strong>Risk JSON Output (for Risk Register):</strong></label>
+      <textarea id="riskJsonOutput" readonly></textarea>
+      <br>
+      <button id="copyRiskJsonBtn">Copy to Clipboard</button>
+    </div>
   </div>
-  <div>
-    <label>Dependencies:</label><br>
-    <textarea id="modalDependencies" rows="3" style="width:95%;"></textarea>
-    <small>Format: predecessor|type|lag, one per line (e.g. <code>B|SS|2</code>).</small>
+
+  <!-- Modal for double-click editing -->
+  <div id="modalOverlay"></div>
+  <div id="editModal">
+    <h3>Edit Task</h3>
+    <div>
+      <label>Task Name:</label><br>
+      <input type="text" id="modalTaskName">
+    </div>
+    <div>
+      <label>Duration (days):</label><br>
+      <input type="number" id="modalTaskDuration">
+    </div>
+    <div>
+      <label>Dependencies:</label><br>
+      <textarea id="modalDependencies" rows="3" style="width:95%;"></textarea>
+      <small>Format: predecessor|type|lag, one per line (e.g. <code>B|SS|2</code>).</small>
+    </div>
+    <div>
+      <label>Assignments (Resource=Number):</label><br>
+      <textarea id="modalAssignments" rows="3" style="width:95%;"></textarea>
+      <small>For Work resources, the number is “%.” For Material/Cost, the number is “units.”</small>
+    </div>
+    <div style="margin-top:10px;">
+      <button id="modalSaveBtn">Save</button>
+      <button id="modalCancelBtn">Cancel</button>
+    </div>
   </div>
-  <div>
-    <label>Assignments (Resource=Number):</label><br>
-    <textarea id="modalAssignments" rows="3" style="width:95%;"></textarea>
-    <small>For Work resources, the number is “%.” For Material/Cost, the number is “units.”</small>
-  </div>
-  <div style="margin-top:10px;">
-    <button id="modalSaveBtn">Save</button>
-    <button id="modalCancelBtn">Cancel</button>
-  </div>
-</div>
 
-<script>
-/***********************
- * Data Structures
- ***********************/
-let tasksData = [];      // Each { name, dependencies: [{predecessor, type, lag}], duration, assignments: [{ resourceName, value }], cost, float? }
-let resourcesData = [];  // Each { name, type, material, initials, group, maxUnits, stdRate, ovtRate, costUse, accrue, base }
-let ganttScale = 50;     // px per day (zoom)
-const hoursPerDayMap = {
-  "Standard":8,
-  "24 Hours":24,
-  "Night Shift":8 // or something else if needed
-};
+  <script>
+    /***********************
+     * Data Structures
+     ***********************/
+    let tasksData = [];      // Each { name, dependencies[], duration, assignments[], cost, forcedStart? }
+    let resourcesData = [];  // Each { name, type, maxUnits, etc. }
+    let ganttScale = 50;
+    const hoursPerDayMap = {
+      "Standard": 8,
+      "24 Hours": 24,
+      "Night Shift": 8
+    };
 
-/***********************
- * 1) Load JSON
- ***********************/
-document.getElementById("loadJsonBtn").addEventListener("click", () => {
-  const text = document.getElementById("jsonInput").value.trim();
-  if (!text) return;
-  let arr;
-  try {
-    arr = JSON.parse(text);
-  } catch(e) {
-    alert("Invalid JSON.");
-    return;
-  }
-  if (!Array.isArray(arr)) {
-    alert("JSON must be an array.");
-    return;
-  }
-  tasksData = arr.map(item => ({
-    name: item.name || "Unnamed",
-    dependencies: (item.dependencies||[]).map(d=>({
-      predecessor: d.predecessor||"",
-      type: d.type||"FS",
-      lag: d.lag||0
-    })),
-    duration: item.duration||0,
-    assignments: [],
-    cost: 0
-  }));
-  renderTasksTable();
-});
-
-/***********************
- * 2) Tasks Table
- ***********************/
-document.getElementById("addTaskBtn").addEventListener("click", () => {
-  tasksData.push({
-    name: "New Task",
-    dependencies: [],
-    duration: 5,
-    assignments: [],
-    cost: 0
-  });
-  renderTasksTable();
-});
-
-function renderTasksTable() {
-  const tbody = document.getElementById("tasksTable").querySelector("tbody");
-  tbody.innerHTML = "";
-  tasksData.forEach((task, index) => {
-    const tr = document.createElement("tr");
-
-    // Name
-    let tdName = document.createElement("td");
-    let inputName = document.createElement("input");
-    inputName.type = "text";
-    inputName.value = task.name;
-    inputName.addEventListener("blur", e => {
-      task.name = e.target.value.trim();
+    /***********************
+     * 1) Load JSON
+     ***********************/
+    document.getElementById("loadJsonBtn").addEventListener("click", () => {
+      const text = document.getElementById("jsonInput").value.trim();
+      if (!text) return;
+      let arr;
+      try {
+        arr = JSON.parse(text);
+      } catch(e) {
+        alert("Invalid JSON.");
+        return;
+      }
+      if (!Array.isArray(arr)) {
+        alert("JSON must be an array.");
+        return;
+      }
+      tasksData = arr.map(item => ({
+        name: item.name || "Unnamed",
+        dependencies: (item.dependencies || []).map(d => ({
+          predecessor: d.predecessor || "",
+          type: d.type || "FS",
+          lag: d.lag || 0
+        })),
+        duration: item.duration || 0,
+        assignments: [],
+        cost: 0
+      }));
+      renderTasksTable();
     });
-    tdName.appendChild(inputName);
-    tr.appendChild(tdName);
 
-    // Dependencies
-    let tdDeps = document.createElement("td");
-    let depStr = task.dependencies.map(d => `${d.predecessor}|${d.type}|${d.lag}`).join("\n");
-    let txtDeps = document.createElement("textarea");
-    txtDeps.rows = 1;  // reduced from 2
-    txtDeps.classList.add("small-textarea"); // add class for small styling
-    txtDeps.value = depStr;
-    txtDeps.addEventListener("blur", e => {
-      let lines = e.target.value.split("\n").map(s=>s.trim()).filter(Boolean);
-      let newDeps = [];
-      lines.forEach(line => {
-        let parts = line.split("|").map(x=>x.trim());
-        if(parts.length>=1) {
+    /***********************
+     * 2) Tasks Table
+     ***********************/
+    document.getElementById("addTaskBtn").addEventListener("click", () => {
+      tasksData.push({
+        name: "New Task",
+        dependencies: [],
+        duration: 5,
+        assignments: [],
+        cost: 0
+      });
+      renderTasksTable();
+    });
+
+    function renderTasksTable() {
+      const tbody = document.getElementById("tasksTable").querySelector("tbody");
+      tbody.innerHTML = "";
+      tasksData.forEach((task, index) => {
+        const tr = document.createElement("tr");
+
+        // Name
+        let tdName = document.createElement("td");
+        let inputName = document.createElement("input");
+        inputName.type = "text";
+        inputName.value = task.name;
+        inputName.addEventListener("blur", e => {
+          task.name = e.target.value.trim();
+        });
+        tdName.appendChild(inputName);
+        tr.appendChild(tdName);
+
+        // Dependencies
+        let tdDeps = document.createElement("td");
+        let depStr = task.dependencies.map(d => `${d.predecessor}|${d.type}|${d.lag}`).join("\n");
+        let txtDeps = document.createElement("textarea");
+        txtDeps.rows = 1;
+        txtDeps.classList.add("small-textarea");
+        txtDeps.value = depStr;
+        txtDeps.addEventListener("blur", e => {
+          let lines = e.target.value.split("\n").map(s => s.trim()).filter(Boolean);
+          let newDeps = [];
+          lines.forEach(line => {
+            let parts = line.split("|").map(x=>x.trim());
+            if(parts.length>=1){
+              newDeps.push({
+                predecessor: parts[0],
+                type: parts[1]||"FS",
+                lag: parseFloat(parts[2])||0
+              });
+            }
+          });
+          task.dependencies = newDeps;
+          refreshAll();
+        });
+        tdDeps.appendChild(txtDeps);
+        tr.appendChild(tdDeps);
+
+        // Duration
+        let tdDur = document.createElement("td");
+        let inputDur = document.createElement("input");
+        inputDur.type = "number";
+        inputDur.value = task.duration;
+        inputDur.addEventListener("blur", e => {
+          task.duration = parseFloat(e.target.value)||0;
+          refreshAll();
+        });
+        tdDur.appendChild(inputDur);
+        tr.appendChild(tdDur);
+
+        // Assignments
+        let tdAssign = document.createElement("td");
+        let container = document.createElement("div");
+        container.className = "assignments-container";
+        task.assignments.forEach((assn, aIdx) => {
+          container.appendChild(createAssignmentRow(task, index, aIdx));
+        });
+        let addBtn = document.createElement("button");
+        addBtn.textContent = "+ Resource";
+        addBtn.style.marginTop = "4px";
+        addBtn.addEventListener("click", () => {
+          task.assignments.push({ resourceName:"", value:100 });
+          renderTasksTable();
+        });
+        container.appendChild(addBtn);
+        tdAssign.appendChild(container);
+        tr.appendChild(tdAssign);
+
+        // Cost
+        let tdCost = document.createElement("td");
+        tdCost.textContent = `$${task.cost.toFixed(2)}`;
+        tr.appendChild(tdCost);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function createAssignmentRow(task, taskIndex, assignmentIndex) {
+      let assn = task.assignments[assignmentIndex];
+      let rowDiv = document.createElement("div");
+      rowDiv.className = "assignment-row";
+
+      let selRes = document.createElement("select");
+      let blankOpt = document.createElement("option");
+      blankOpt.value = "";
+      blankOpt.textContent = "(Select Resource)";
+      selRes.appendChild(blankOpt);
+      resourcesData.forEach(r => {
+        let opt = document.createElement("option");
+        opt.value = r.name;
+        opt.textContent = r.name;
+        if(r.name === assn.resourceName) opt.selected = true;
+        selRes.appendChild(opt);
+      });
+      selRes.addEventListener("blur", e => {
+        assn.resourceName = e.target.value;
+        refreshAll();
+      });
+      rowDiv.appendChild(selRes);
+
+      let inputVal = document.createElement("input");
+      inputVal.type = "number";
+      inputVal.value = assn.value||100;
+      inputVal.min=0;
+      inputVal.addEventListener("blur", e => {
+        assn.value = parseFloat(e.target.value)||0;
+        refreshAll();
+      });
+      rowDiv.appendChild(inputVal);
+
+      let removeBtn = document.createElement("button");
+      removeBtn.textContent = "X";
+      removeBtn.style.backgroundColor = "#f44336";
+      removeBtn.style.marginLeft = "8px";
+      removeBtn.addEventListener("click", () => {
+        task.assignments.splice(assignmentIndex,1);
+        renderTasksTable();
+        refreshAll();
+      });
+      rowDiv.appendChild(removeBtn);
+
+      return rowDiv;
+    }
+
+    /***********************
+     * 3) Resources Table
+     ***********************/
+    document.getElementById("addResourceBtn").addEventListener("click", () => {
+      resourcesData.push({
+        name:"New Resource",
+        type:"Work",
+        material:"",
+        initials:"",
+        group:"",
+        maxUnits:100,
+        stdRate:0,
+        ovtRate:0,
+        costUse:0,
+        accrue:"Prorated",
+        base:"Standard"
+      });
+      renderResourcesTable();
+      refreshAll();
+    });
+
+    function renderResourcesTable() {
+      const tbody = document.getElementById("resourcesTable").querySelector("tbody");
+      tbody.innerHTML = "";
+      resourcesData.forEach((res, index) => {
+        let tr = document.createElement("tr");
+
+        // name
+        let tdName = document.createElement("td");
+        let inpName = document.createElement("input");
+        inpName.type = "text";
+        inpName.value = res.name;
+        inpName.addEventListener("blur", e => {
+          res.name = e.target.value.trim();
+          renderTasksTable();
+          refreshAll();
+        });
+        tdName.appendChild(inpName);
+        tr.appendChild(tdName);
+
+        // type
+        let tdType = document.createElement("td");
+        let selType = document.createElement("select");
+        ["Work", "Material", "Cost"].forEach(t => {
+          let opt = document.createElement("option");
+          opt.value = t; opt.textContent = t;
+          if(t === res.type) opt.selected = true;
+          selType.appendChild(opt);
+        });
+        selType.addEventListener("blur", e => {
+          res.type = e.target.value;
+          refreshAll();
+        });
+        tdType.appendChild(selType);
+        tr.appendChild(tdType);
+
+        // material
+        let tdMat = document.createElement("td");
+        let inpMat = document.createElement("input");
+        inpMat.type = "text";
+        inpMat.value = res.material;
+        inpMat.addEventListener("blur", e => {
+          res.material = e.target.value.trim();
+          refreshAll();
+        });
+        tdMat.appendChild(inpMat);
+        tr.appendChild(tdMat);
+
+        // initials
+        let tdInit = document.createElement("td");
+        let inpInit = document.createElement("input");
+        inpInit.type = "text";
+        inpInit.value = res.initials;
+        inpInit.addEventListener("blur", e => {
+          res.initials = e.target.value.trim();
+          refreshAll();
+        });
+        tdInit.appendChild(inpInit);
+        tr.appendChild(tdInit);
+
+        // group
+        let tdGrp = document.createElement("td");
+        let inpGrp = document.createElement("input");
+        inpGrp.type = "text";
+        inpGrp.value = res.group;
+        inpGrp.addEventListener("blur", e => {
+          res.group = e.target.value.trim();
+          refreshAll();
+        });
+        tdGrp.appendChild(inpGrp);
+        tr.appendChild(tdGrp);
+
+        // maxUnits
+        let tdMax = document.createElement("td");
+        let inpMax = document.createElement("input");
+        inpMax.type = "number";
+        inpMax.value = res.maxUnits;
+        inpMax.addEventListener("blur", e => {
+          res.maxUnits = parseFloat(e.target.value)||100;
+          refreshAll();
+        });
+        tdMax.appendChild(inpMax);
+        tr.appendChild(tdMax);
+
+        // stdRate
+        let tdStd = document.createElement("td");
+        let inpStd = document.createElement("input");
+        inpStd.type = "number";
+        inpStd.value = res.stdRate;
+        inpStd.addEventListener("blur", e => {
+          res.stdRate = parseFloat(e.target.value)||0;
+          refreshAll();
+        });
+        tdStd.appendChild(inpStd);
+        tr.appendChild(tdStd);
+
+        // ovtRate
+        let tdOvt = document.createElement("td");
+        let inpOvt = document.createElement("input");
+        inpOvt.type = "number";
+        inpOvt.value = res.ovtRate;
+        inpOvt.addEventListener("blur", e => {
+          res.ovtRate = parseFloat(e.target.value)||0;
+          refreshAll();
+        });
+        tdOvt.appendChild(inpOvt);
+        tr.appendChild(tdOvt);
+
+        // costUse
+        let tdCU = document.createElement("td");
+        let inpCU = document.createElement("input");
+        inpCU.type = "number";
+        inpCU.value = res.costUse;
+        inpCU.addEventListener("blur", e => {
+          res.costUse = parseFloat(e.target.value)||0;
+          refreshAll();
+        });
+        tdCU.appendChild(inpCU);
+        tr.appendChild(tdCU);
+
+        // accrue
+        let tdAcc = document.createElement("td");
+        let selAcc = document.createElement("select");
+        ["Start","Prorated","End"].forEach(a=>{
+          let opt=document.createElement("option");
+          opt.value=a; opt.textContent=a;
+          if(a===res.accrue) opt.selected=true;
+          selAcc.appendChild(opt);
+        });
+        selAcc.addEventListener("blur", e=>{
+          res.accrue=e.target.value;
+          refreshAll();
+        });
+        tdAcc.appendChild(selAcc);
+        tr.appendChild(tdAcc);
+
+        // base
+        let tdBase = document.createElement("td");
+        let selBase = document.createElement("select");
+        ["Standard","24 Hours","Night Shift"].forEach(b=>{
+          let opt=document.createElement("option");
+          opt.value=b; opt.textContent=b;
+          if(b===res.base) opt.selected=true;
+          selBase.appendChild(opt);
+        });
+        selBase.addEventListener("blur", e=>{
+          res.base=e.target.value;
+          refreshAll();
+        });
+        tdBase.appendChild(selBase);
+        tr.appendChild(tdBase);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    renderTasksTable();
+    renderResourcesTable();
+
+    /***********************
+     * Recalc Task Cost
+     ***********************/
+    function recalcTaskCost(taskIndex) {
+      let task = tasksData[taskIndex];
+      let totalCost = 0;
+      task.assignments.forEach(a => {
+        let r = resourcesData.find(rr => rr.name === a.resourceName);
+        if (!r) return;
+        let val = (a.value || 0);
+        let hoursPerDay = hoursPerDayMap[r.base] || 8;
+        let resourceCost = 0;
+
+        if (r.type === "Work") {
+          let usageFrac = val / 100;
+          resourceCost = (task.duration * hoursPerDay * r.stdRate * usageFrac) + (r.costUse || 0);
+        } else if (r.type === "Material") {
+          resourceCost = (val * r.stdRate) + (r.costUse || 0);
+        } else if (r.type === "Cost") {
+          resourceCost = (val * (r.costUse || 0));
+        }
+        totalCost += resourceCost;
+      });
+      task.cost = totalCost;
+    }
+
+    function recalcAllTaskCosts() {
+      for (let i=0; i<tasksData.length; i++) {
+        recalcTaskCost(i);
+      }
+    }
+
+    /***********************
+     * 5) Compute Overallocation
+     ***********************/
+    document.getElementById("checkOverallocationBtn").addEventListener("click", computeOverallocation);
+
+    function computeOverallocation() {
+      let schedule = computeSchedule();
+      let maxFinish = Math.max(...schedule.map(s => s.finish));
+      let dayToResUsage = buildDayToResourceUsage(schedule);
+
+      let div = document.getElementById("overallocationOutput");
+      div.innerHTML = ""; // reset
+
+      let foundOverallocation = false;
+
+      resourcesData.forEach(r => {
+        let mU = r.maxUnits || 100;
+        if (r.type !== "Work") return;
+        for (let d = 0; d <= maxFinish; d++) {
+          if (dayToResUsage[d][r.name] > mU) {
+            foundOverallocation = true;
+            let usage = dayToResUsage[d][r.name];
+            let lineDiv = document.createElement("div");
+            lineDiv.className = "overallocation-line";
+            lineDiv.innerHTML = `<strong class="warn">${r.name} overallocated on day ${d}</strong> 
+              (usage=${usage}%, max=${mU}%)<br>
+              Conflicting tasks: `;
+
+            let conflictTasks = findTasksUsingResourceOnDay(r.name, d, schedule);
+            conflictTasks.forEach((tIdx, idx) => {
+              let tName = tasksData[tIdx].name;
+              // "Level" or "Smooth" or "Reallocate" buttons if you want
+              let levelBtn = document.createElement("button");
+              levelBtn.textContent = `Level ${tName}`;
+              levelBtn.style.backgroundColor = "#8B4513";
+              let smoothBtn = document.createElement("button");
+              smoothBtn.textContent = `Smooth ${tName}`;
+              smoothBtn.style.backgroundColor = "#6A5ACD";
+              let reallocateBtn = document.createElement("button");
+              reallocateBtn.textContent = `Reallocate ${tName}`;
+              reallocateBtn.style.backgroundColor = "#228B22";
+
+              lineDiv.appendChild(document.createTextNode(tName + " "));
+              lineDiv.appendChild(levelBtn);
+              lineDiv.appendChild(smoothBtn);
+              lineDiv.appendChild(reallocateBtn);
+
+              if (idx < conflictTasks.length - 1) {
+                lineDiv.appendChild(document.createTextNode(" | "));
+              }
+            });
+            div.appendChild(lineDiv);
+          }
+        }
+      });
+
+      if (!foundOverallocation) {
+        div.style.display = "block";
+        div.innerHTML = "<strong>No overallocation found.</strong>";
+        div.style.background = "#e6ffe6";
+        div.style.border = "1px solid #b3ffb3";
+      } else {
+        div.style.display = "block";
+        div.style.background = "#ffe6e6";
+        div.style.border = "1px solid #ffa5a5";
+      }
+    }
+
+    function buildDayToResourceUsage(schedule) {
+      let maxFinish = Math.max(...schedule.map(s => s.finish));
+      let dayToResUsage = {};
+      for(let d=0; d<=maxFinish; d++){
+        dayToResUsage[d]={};
+        resourcesData.forEach(r=>{
+          dayToResUsage[d][r.name]=0;
+        });
+      }
+      tasksData.forEach((t,i)=>{
+        let sDay=Math.floor(schedule[i].start);
+        let fDay=Math.ceil(schedule[i].finish);
+        t.assignments.forEach(a=>{
+          let rName=a.resourceName;
+          let r=resourcesData.find(rr=>rr.name===rName);
+          if(!r||r.type!=="Work") return;
+          let val=a.value||100;
+          for(let d=sDay; d<fDay; d++){
+            dayToResUsage[d][rName]+=val;
+          }
+        });
+      });
+      return dayToResUsage;
+    }
+
+    function findTasksUsingResourceOnDay(resourceName, day, schedule) {
+      let results = [];
+      tasksData.forEach((task, i) => {
+        let sDay = Math.floor(schedule[i].start);
+        let fDay = Math.ceil(schedule[i].finish);
+        let hasResource = task.assignments.some(a => a.resourceName === resourceName);
+        if (day >= sDay && day < fDay && hasResource) {
+          results.push(i);
+        }
+      });
+      return results;
+    }
+
+    /***********************
+     * 6) Zoom Range
+     ***********************/
+    let zoomRange=document.getElementById("zoomRange");
+    let zoomValue=document.getElementById("zoomValue");
+    zoomRange.addEventListener("input", ()=>{
+      ganttScale=parseInt(zoomRange.value);
+      zoomValue.textContent=ganttScale;
+    });
+
+    /***********************
+     * 7) Generate Gantt
+     ***********************/
+    document.getElementById("generateGanttBtn").addEventListener("click", generateGantt);
+
+    function generateGantt() {
+      let schedule = computeSchedule();
+      let { floatArr } = computeFloat(schedule);
+      tasksData.forEach((t, i) => { t.float = floatArr[i]; });
+
+      let maxFinish = Math.max(...schedule.map(s => s.finish));
+      const svg = document.getElementById("ganttChart");
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+      let rowHeight = 20, rowSpacing = 10;
+      let leftMargin = 150, topMargin = 20;
+      let totalHeight = tasksData.length * (rowHeight + rowSpacing) + topMargin * 2 + 40;
+      let totalWidth = (maxFinish + 2) * ganttScale + leftMargin + 50;
+      svg.setAttribute("height", totalHeight);
+      svg.setAttribute("width", totalWidth);
+
+      // define arrowhead
+      let defs=document.createElementNS("http://www.w3.org/2000/svg","defs");
+      let marker=document.createElementNS("http://www.w3.org/2000/svg","marker");
+      marker.setAttribute("id","arrowhead");
+      marker.setAttribute("viewBox","0 0 10 10");
+      marker.setAttribute("refX","10");
+      marker.setAttribute("refY","5");
+      marker.setAttribute("markerUnits","strokeWidth");
+      marker.setAttribute("markerWidth","6");
+      marker.setAttribute("markerHeight","6");
+      marker.setAttribute("orient","auto");
+      let path=document.createElementNS("http://www.w3.org/2000/svg","path");
+      path.setAttribute("d","M0,0 L10,5 L0,10 Z");
+      path.setAttribute("fill","#555");
+      marker.appendChild(path);
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+
+      // draw bars
+      tasksData.forEach((t,i)=>{
+        let s=schedule[i];
+        let x=leftMargin+s.start*ganttScale;
+        let y=topMargin+i*(rowHeight+rowSpacing);
+        let w=(s.finish - s.start)*ganttScale;
+        if(w<0) w=0;
+        let bar = document.createElementNS("http://www.w3.org/2000/svg","rect");
+        bar.setAttribute("x",x);
+        bar.setAttribute("y",y);
+        bar.setAttribute("width",w);
+        bar.setAttribute("height",rowHeight);
+        bar.setAttribute("class","task-bar");
+        if(t.float<0.0001) {
+          bar.classList.add("critical");
+        } else {
+          bar.classList.add("noncritical");
+        }
+        bar.addEventListener("dblclick",()=>openEditModal(i));
+        svg.appendChild(bar);
+
+        // resource text inside bar
+        let resStr = t.assignments.map(a=>{
+          if(!a.resourceName) return "";
+          let r=resourcesData.find(rr=>rr.name===a.resourceName);
+          if(!r) return "";
+          if(r.type==="Work"){
+            return `${r.name}(${a.value}%)`;
+          } else {
+            return `${r.name}(${a.value})`;
+          }
+        }).filter(Boolean).join(", ");
+        if(resStr){
+          let barText=document.createElementNS("http://www.w3.org/2000/svg","text");
+          barText.setAttribute("x", x+4);
+          barText.setAttribute("y", y+rowHeight*0.7);
+          barText.setAttribute("class","bar-text");
+          barText.textContent=resStr;
+          svg.appendChild(barText);
+        }
+
+        // left label with task name
+        let text=document.createElementNS("http://www.w3.org/2000/svg","text");
+        text.setAttribute("x",5);
+        text.setAttribute("y",y+rowHeight*0.75);
+        text.setAttribute("class","task-text");
+        text.textContent=t.name;
+        svg.appendChild(text);
+      });
+
+      // dependency lines
+      tasksData.forEach((t,i)=>{
+        let s=schedule[i];
+        let xStart=leftMargin+s.start*ganttScale;
+        let xFinish=leftMargin+s.finish*ganttScale;
+        let yMid=topMargin+i*(rowHeight+rowSpacing)+rowHeight/2;
+        t.dependencies.forEach(dep=>{
+          let predIdx=tasksData.findIndex(tt=>tt.name===dep.predecessor);
+          if(predIdx<0) return;
+          let sp=schedule[predIdx];
+          let pxStart=leftMargin+sp.start*ganttScale;
+          let pxFinish=leftMargin+sp.finish*ganttScale;
+          let pyMid=topMargin+predIdx*(rowHeight+rowSpacing)+rowHeight/2;
+          let fromX, fromY, toX, toY;
+          switch(dep.type){
+            case "FS":
+              fromX=pxFinish; fromY=pyMid;
+              toX=xStart; toY=yMid;
+              break;
+            case "SS":
+              fromX=pxStart; fromY=pyMid;
+              toX=xStart; toY=yMid;
+              break;
+            case "FF":
+              fromX=pxFinish; fromY=pyMid;
+              toX=xFinish; toY=yMid;
+              break;
+            case "SF":
+              fromX=pxStart; fromY=pyMid;
+              toX=xFinish; toY=yMid;
+              break;
+            default:
+              fromX=pxFinish; fromY=pyMid;
+              toX=xStart; toY=yMid;
+          }
+          let pathData = `M${fromX},${fromY} L${fromX},${toY} L${toX},${toY}`;
+          let line = document.createElementNS("http://www.w3.org/2000/svg","path");
+          line.setAttribute("d", pathData);
+          line.setAttribute("class","dep-line");
+          line.setAttribute("marker-end","url(#arrowhead)");
+          svg.appendChild(line);
+        });
+      });
+
+      // X-axis
+      let axisY=topMargin+tasksData.length*(rowHeight+rowSpacing)+20;
+      let axisLine=document.createElementNS("http://www.w3.org/2000/svg","line");
+      axisLine.setAttribute("x1",leftMargin);
+      axisLine.setAttribute("y1",axisY);
+      axisLine.setAttribute("x2",leftMargin+(maxFinish+2)*ganttScale);
+      axisLine.setAttribute("y2",axisY);
+      axisLine.setAttribute("stroke","#333");
+      svg.appendChild(axisLine);
+      for(let d=0; d<=maxFinish+1; d++){
+        let tickX=leftMargin+d*ganttScale;
+        let tick=document.createElementNS("http://www.w3.org/2000/svg","line");
+        tick.setAttribute("x1",tickX);
+        tick.setAttribute("y1",axisY);
+        tick.setAttribute("x2",tickX);
+        tick.setAttribute("y2",axisY-5);
+        tick.setAttribute("stroke","#333");
+        svg.appendChild(tick);
+
+        let lbl=document.createElementNS("http://www.w3.org/2000/svg","text");
+        lbl.setAttribute("x",tickX+2);
+        lbl.setAttribute("y",axisY+15);
+        lbl.setAttribute("font-size","12");
+        lbl.textContent=d;
+        svg.appendChild(lbl);
+      }
+    }
+
+    /***********************
+     * computeSchedule (Forward Pass)
+     ***********************/
+    function computeSchedule() {
+      let nameToIdx = {};
+      tasksData.forEach((t, i) => { nameToIdx[t.name] = i; });
+
+      let graph = tasksData.map(() => []);
+      let inDegree = new Array(tasksData.length).fill(0);
+      tasksData.forEach((t, i) => {
+        t.dependencies.forEach(dep => {
+          let p = nameToIdx[dep.predecessor];
+          if (p != null) {
+            graph[p].push(i);
+            inDegree[i]++;
+          }
+        });
+      });
+
+      let schedule = tasksData.map(t => ({ start: 0, finish: t.duration }));
+      let queue = [];
+      inDegree.forEach((d, i) => { if(d === 0) queue.push(i); });
+
+      while(queue.length > 0){
+        let cur = queue.shift();
+        // forcedStart logic
+        if (typeof tasksData[cur].forcedStart === "number") {
+          let fs = tasksData[cur].forcedStart;
+          if (fs > schedule[cur].start) {
+            schedule[cur].start = fs;
+            schedule[cur].finish = fs + tasksData[cur].duration;
+          }
+        }
+
+        graph[cur].forEach(succ => {
+          let depObj = tasksData[succ].dependencies.find(d => d.predecessor === tasksData[cur].name);
+          if(!depObj) return;
+          let cStart = schedule[cur].start;
+          let cFinish = schedule[cur].finish;
+          let lag = depObj.lag || 0;
+          let candidate = 0;
+          switch(depObj.type) {
+            case "FS": candidate = cFinish + lag; break;
+            case "SS": candidate = cStart + lag; break;
+            case "FF": candidate = (cFinish + lag) - tasksData[succ].duration; break;
+            case "SF": candidate = (cStart + lag) - tasksData[succ].duration; break;
+          }
+          if(candidate < 0) candidate = 0;
+          if(candidate > schedule[succ].start) {
+            schedule[succ].start = candidate;
+            schedule[succ].finish = candidate + tasksData[succ].duration;
+          }
+          // also apply forcedStart if set
+          if (typeof tasksData[succ].forcedStart === "number") {
+            let fs2 = tasksData[succ].forcedStart;
+            if (fs2 > schedule[succ].start) {
+              schedule[succ].start = fs2;
+              schedule[succ].finish = fs2 + tasksData[succ].duration;
+            }
+          }
+          inDegree[succ]--;
+          if(inDegree[succ] === 0) queue.push(succ);
+        });
+      }
+      return schedule;
+    }
+
+    /***********************
+     * computeFloat (Backward Pass)
+     ***********************/
+    function computeFloat(schedule) {
+      let endTime = Math.max(...schedule.map(s => s.finish));
+      let n = tasksData.length;
+      let latestStart = new Array(n).fill(endTime);
+      let latestFinish = new Array(n).fill(endTime);
+
+      let nameToIdx = {};
+      tasksData.forEach((t, i) => { nameToIdx[t.name] = i; });
+      let revGraph = tasksData.map(() => []);
+      let outDegree = new Array(n).fill(0);
+      tasksData.forEach((t, i) => {
+        t.dependencies.forEach(dep => {
+          let p = nameToIdx[dep.predecessor];
+          if (p != null) {
+            revGraph[i].push(p);
+            outDegree[p]++;
+          }
+        });
+      });
+      schedule.forEach((s, i) => {
+        if(outDegree[i] === 0) {
+          latestFinish[i] = s.finish;
+          latestStart[i] = s.finish - tasksData[i].duration;
+        }
+      });
+
+      let queue = [];
+      outDegree.forEach((od, i) => { if(od === 0) queue.push(i); });
+      while(queue.length>0) {
+        let cur = queue.shift();
+        let cLS = latestStart[cur];
+        let cLF = latestFinish[cur];
+        revGraph[cur].forEach(pred => {
+          let depObj = tasksData[cur].dependencies.find(d => d.predecessor === tasksData[pred].name);
+          if(!depObj) return;
+          let candidate = latestFinish[pred];
+          switch(depObj.type) {
+            case "FS":
+              candidate = cLS - depObj.lag;
+              break;
+            case "SS":
+              candidate = (cLS - depObj.lag) + tasksData[pred].duration;
+              break;
+            case "FF":
+              candidate = cLF - depObj.lag;
+              break;
+            case "SF":
+              candidate = (cLF - depObj.lag) + tasksData[pred].duration;
+              break;
+          }
+          if(candidate < latestFinish[pred]) {
+            latestFinish[pred] = candidate;
+            latestStart[pred] = candidate - tasksData[pred].duration;
+          }
+          outDegree[pred]--;
+          if(outDegree[pred] === 0) queue.push(pred);
+        });
+      }
+
+      let floatArr = new Array(n).fill(0);
+      schedule.forEach((s, i) => {
+        let es = s.start;
+        let ls = latestStart[i];
+        let fl = ls - es;
+        if(fl < 0) fl = 0;
+        floatArr[i] = fl;
+      });
+      return { floatArr };
+    }
+
+    /***********************
+     * 7b) Helper: refreshAll => recalc everything
+     ***********************/
+    function refreshAll() {
+      recalcAllTaskCosts();  
+      renderTasksTable();    
+      generateGantt();       
+      computeOverallocation();
+    }
+
+    /***********************
+     * Double-click modal
+     ***********************/
+    let editModal=document.getElementById("editModal");
+    let modalOverlay=document.getElementById("modalOverlay");
+    let modalTaskName=document.getElementById("modalTaskName");
+    let modalTaskDuration=document.getElementById("modalTaskDuration");
+    let modalDependencies=document.getElementById("modalDependencies");
+    let modalAssignments=document.getElementById("modalAssignments");
+    let modalSaveBtn=document.getElementById("modalSaveBtn");
+    let modalCancelBtn=document.getElementById("modalCancelBtn");
+    let currentEditIndex=-1;
+
+    function openEditModal(taskIndex) {
+      currentEditIndex=taskIndex;
+      let t=tasksData[taskIndex];
+      modalTaskName.value=t.name;
+      modalTaskDuration.value=t.duration;
+      let depStr=t.dependencies.map(d=>`${d.predecessor}|${d.type}|${d.lag}`).join("\n");
+      modalDependencies.value=depStr;
+      let assnStr=t.assignments.map(a=>`${a.resourceName}=${a.value}`).join("\n");
+      modalAssignments.value=assnStr;
+      editModal.style.display="block";
+      modalOverlay.style.display="block";
+    }
+    modalCancelBtn.addEventListener("click", closeModal);
+    function closeModal() {
+      editModal.style.display="none";
+      modalOverlay.style.display="none";
+    }
+    modalSaveBtn.addEventListener("click", ()=>{
+      if(currentEditIndex<0) return;
+      let t=tasksData[currentEditIndex];
+      t.name=modalTaskName.value.trim();
+      t.duration=parseFloat(modalTaskDuration.value)||0;
+      let lines=modalDependencies.value.split("\n").map(x=>x.trim()).filter(Boolean);
+      let newDeps=[];
+      lines.forEach(line=>{
+        let parts=line.split("|").map(x=>x.trim());
+        if(parts.length>=1){
           newDeps.push({
-            predecessor: parts[0],
-            type: parts[1]||"FS",
-            lag: parseFloat(parts[2])||0
+            predecessor:parts[0],
+            type:parts[1]||"FS",
+            lag:parseFloat(parts[2])||0
           });
         }
       });
-      task.dependencies = newDeps;
-    });
-    tdDeps.appendChild(txtDeps);
-    tr.appendChild(tdDeps);
-
-    // Duration
-    let tdDur = document.createElement("td");
-    let inputDur = document.createElement("input");
-    inputDur.type = "number";
-    inputDur.value = task.duration;
-    inputDur.addEventListener("blur", e => {
-      task.duration = parseFloat(e.target.value)||0;
-      recalcTaskCost(index);
-    });
-    tdDur.appendChild(inputDur);
-    tr.appendChild(tdDur);
-
-    // Assignments
-    let tdAssign = document.createElement("td");
-    let container = document.createElement("div");
-    container.className = "assignments-container";
-    task.assignments.forEach((assn,aIdx) => {
-      container.appendChild(createAssignmentRow(task, index, aIdx));
-    });
-    let addBtn = document.createElement("button");
-    addBtn.textContent = "+ Resource";
-    addBtn.style.marginTop = "4px";
-    addBtn.addEventListener("click", () => {
-      task.assignments.push({ resourceName:"", value:100 }); // default
-      renderTasksTable();
-    });
-    container.appendChild(addBtn);
-    tdAssign.appendChild(container);
-    tr.appendChild(tdAssign);
-
-    // Cost
-    let tdCost = document.createElement("td");
-    tdCost.textContent = `$${task.cost.toFixed(2)}`;
-    tr.appendChild(tdCost);
-
-    tbody.appendChild(tr);
-  });
-}
-
-function createAssignmentRow(task, taskIndex, assignmentIndex) {
-  let assn = task.assignments[assignmentIndex];
-  let rowDiv = document.createElement("div");
-  rowDiv.className = "assignment-row";
-
-  let selRes = document.createElement("select");
-  let blankOpt = document.createElement("option");
-  blankOpt.value = "";
-  blankOpt.textContent = "(Select Resource)";
-  selRes.appendChild(blankOpt);
-  resourcesData.forEach(r => {
-    let opt = document.createElement("option");
-    opt.value = r.name;
-    opt.textContent = r.name;
-    if(r.name===assn.resourceName) opt.selected = true;
-    selRes.appendChild(opt);
-  });
-  selRes.addEventListener("blur", e => {
-    assn.resourceName = e.target.value;
-    recalcTaskCost(taskIndex);
-  });
-  rowDiv.appendChild(selRes);
-
-  let inputVal = document.createElement("input");
-  inputVal.type = "number";
-  inputVal.value = assn.value||100;
-  inputVal.min=0;
-  inputVal.addEventListener("blur", e => {
-    assn.value = parseFloat(e.target.value)||0;
-    recalcTaskCost(taskIndex);
-  });
-  rowDiv.appendChild(inputVal);
-
-  let removeBtn = document.createElement("button");
-  removeBtn.textContent = "X";
-  removeBtn.style.backgroundColor = "#f44336";
-  removeBtn.style.marginLeft = "8px";
-  removeBtn.addEventListener("click", () => {
-    task.assignments.splice(assignmentIndex,1);
-    renderTasksTable();
-  });
-  rowDiv.appendChild(removeBtn);
-
-  return rowDiv;
-}
-
-/***********************
- * 3) Resources Table
- ***********************/
-document.getElementById("addResourceBtn").addEventListener("click", () => {
-  resourcesData.push({
-    name:"New Resource",
-    type:"Work",
-    material:"",
-    initials:"",
-    group:"",
-    maxUnits:100,
-    stdRate:0,
-    ovtRate:0,
-    costUse:0,
-    accrue:"Prorated",
-    base:"Standard"
-  });
-  renderResourcesTable();
-});
-
-function renderResourcesTable() {
-  const tbody = document.getElementById("resourcesTable").querySelector("tbody");
-  tbody.innerHTML="";
-  resourcesData.forEach((res,index)=>{
-    let tr = document.createElement("tr");
-
-    // name
-    let tdName = document.createElement("td");
-    let inpName = document.createElement("input");
-    inpName.type="text";
-    inpName.value=res.name;
-    inpName.addEventListener("blur", e=>{
-      res.name=e.target.value.trim();
-      renderTasksTable(); // refresh resource dropdown
-    });
-    tdName.appendChild(inpName);
-    tr.appendChild(tdName);
-
-    // type
-    let tdType = document.createElement("td");
-    let selType = document.createElement("select");
-    ["Work","Material","Cost"].forEach(t=>{
-      let opt=document.createElement("option");
-      opt.value=t; opt.textContent=t;
-      if(t===res.type) opt.selected=true;
-      selType.appendChild(opt);
-    });
-    selType.addEventListener("blur", e=>{
-      res.type=e.target.value;
-    });
-    tdType.appendChild(selType);
-    tr.appendChild(tdType);
-
-    // material
-    let tdMat = document.createElement("td");
-    let inpMat = document.createElement("input");
-    inpMat.type="text";
-    inpMat.value=res.material;
-    inpMat.addEventListener("blur", e=>{
-      res.material=e.target.value.trim();
-    });
-    tdMat.appendChild(inpMat);
-    tr.appendChild(tdMat);
-
-    // initials
-    let tdInit = document.createElement("td");
-    let inpInit = document.createElement("input");
-    inpInit.type="text";
-    inpInit.value=res.initials;
-    inpInit.addEventListener("blur", e=>{
-      res.initials=e.target.value.trim();
-    });
-    tdInit.appendChild(inpInit);
-    tr.appendChild(tdInit);
-
-    // group
-    let tdGrp = document.createElement("td");
-    let inpGrp = document.createElement("input");
-    inpGrp.type="text";
-    inpGrp.value=res.group;
-    inpGrp.addEventListener("blur", e=>{
-      res.group=e.target.value.trim();
-    });
-    tdGrp.appendChild(inpGrp);
-    tr.appendChild(tdGrp);
-
-    // maxUnits
-    let tdMax = document.createElement("td");
-    let inpMax = document.createElement("input");
-    inpMax.type="number";
-    inpMax.value=res.maxUnits;
-    inpMax.addEventListener("blur", e=>{
-      res.maxUnits=parseFloat(e.target.value)||100;
-    });
-    tdMax.appendChild(inpMax);
-    tr.appendChild(tdMax);
-
-    // stdRate
-    let tdStd = document.createElement("td");
-    let inpStd = document.createElement("input");
-    inpStd.type="number";
-    inpStd.value=res.stdRate;
-    inpStd.addEventListener("blur", e=>{
-      res.stdRate=parseFloat(e.target.value)||0;
-    });
-    tdStd.appendChild(inpStd);
-    tr.appendChild(tdStd);
-
-    // ovtRate
-    let tdOvt = document.createElement("td");
-    let inpOvt = document.createElement("input");
-    inpOvt.type="number";
-    inpOvt.value=res.ovtRate;
-    inpOvt.addEventListener("blur", e=>{
-      res.ovtRate=parseFloat(e.target.value)||0;
-    });
-    tdOvt.appendChild(inpOvt);
-    tr.appendChild(tdOvt);
-
-    // costUse
-    let tdCU = document.createElement("td");
-    let inpCU = document.createElement("input");
-    inpCU.type="number";
-    inpCU.value=res.costUse;
-    inpCU.addEventListener("blur", e=>{
-      res.costUse=parseFloat(e.target.value)||0;
-    });
-    tdCU.appendChild(inpCU);
-    tr.appendChild(tdCU);
-
-    // accrue
-    let tdAcc = document.createElement("td");
-    let selAcc = document.createElement("select");
-    ["Start","Prorated","End"].forEach(a=>{
-      let opt=document.createElement("option");
-      opt.value=a; opt.textContent=a;
-      if(a===res.accrue) opt.selected=true;
-      selAcc.appendChild(opt);
-    });
-    selAcc.addEventListener("blur", e=>{
-      res.accrue=e.target.value;
-    });
-    tdAcc.appendChild(selAcc);
-    tr.appendChild(tdAcc);
-
-    // base
-    let tdBase = document.createElement("td");
-    let selBase = document.createElement("select");
-    ["Standard","24 Hours","Night Shift"].forEach(b=>{
-      let opt=document.createElement("option");
-      opt.value=b; opt.textContent=b;
-      if(b===res.base) opt.selected=true;
-      selBase.appendChild(opt);
-    });
-    selBase.addEventListener("blur", e=>{
-      res.base=e.target.value;
-    });
-    tdBase.appendChild(selBase);
-    tr.appendChild(tdBase);
-
-    tbody.appendChild(tr);
-  });
-}
-
-renderTasksTable();
-renderResourcesTable();
-
-/***********************
- * 4) Recalc Task Cost
- ***********************/
-function recalcTaskCost(taskIndex) {
-  let task=tasksData[taskIndex];
-  let totalCost=0;
-  task.assignments.forEach(a=>{
-    let r=resourcesData.find(rr=>rr.name===a.resourceName);
-    if(!r) return;
-    let val=(a.value||0);
-    let hoursPerDay = hoursPerDayMap[r.base] || 8;
-    let resourceCost=0;
-
-    if(r.type==="Work") {
-      // interpret val as % usage
-      let usageFrac = val/100;
-      resourceCost = (task.duration * hoursPerDay * r.stdRate * usageFrac) + (r.costUse||0);
-    }
-    else if(r.type==="Material") {
-      // interpret val as #units
-      resourceCost = (val * r.stdRate) + (r.costUse||0);
-    }
-    else if(r.type==="Cost") {
-      // interpret val as #units, cost = units * costUse
-      resourceCost = (val * (r.costUse||0));
-    }
-    totalCost+=resourceCost;
-  });
-  task.cost=totalCost;
-  renderTasksTable(); // refresh cost cells
-}
-
-/***********************
- * 5) Compute Overallocation
- ***********************/
-document.getElementById("checkOverallocationBtn").addEventListener("click", computeOverallocation);
-
-function computeOverallocation() {
-  let schedule=computeSchedule();
-  let maxFinish=Math.max(...schedule.map(s=>s.finish));
-  let dayToResUsage={};
-  for(let d=0; d<=maxFinish; d++){
-    dayToResUsage[d]={};
-    resourcesData.forEach(r=>{
-      dayToResUsage[d][r.name]=0;
-    });
-  }
-  tasksData.forEach((t,i)=>{
-    let sDay=Math.floor(schedule[i].start);
-    let fDay=Math.ceil(schedule[i].finish);
-    t.assignments.forEach(a=>{
-      let rName=a.resourceName;
-      if(!rName) return;
-      let r=resourcesData.find(rr=>rr.name===rName);
-      if(!r) return;
-      if(r.type!=="Work") return; // only check overallocation for Work
-      let val=a.value||100; 
-      for(let d=sDay; d<fDay; d++){
-        dayToResUsage[d][rName]+=val;
-      }
-    });
-  });
-  let overallocMsgs=[];
-  resourcesData.forEach(r=>{
-    let mU=r.maxUnits||100;
-    if(r.type!=="Work") return;
-    for(let d=0; d<=maxFinish; d++){
-      if(dayToResUsage[d][r.name]>mU){
-        overallocMsgs.push(`${r.name} overallocated on day ${d} (usage=${dayToResUsage[d][r.name]}%, max=${mU}%)`);
-        break;
-      }
-    }
-  });
-  let div=document.getElementById("overallocationOutput");
-  if(overallocMsgs.length===0){
-    div.style.display="block";
-    div.innerHTML="<strong>No overallocation found.</strong>";
-    div.style.background="#e6ffe6";
-    div.style.border="1px solid #b3ffb3";
-  } else {
-    div.style.display="block";
-    div.innerHTML=`<strong class="warn">Overallocation Detected:</strong><br>`+overallocMsgs.join("<br>");
-    div.style.background="#ffe6e6";
-    div.style.border="1px solid #ffa5a5";
-  }
-}
-
-/***********************
- * 6) Zoom Range
- ***********************/
-let zoomRange=document.getElementById("zoomRange");
-let zoomValue=document.getElementById("zoomValue");
-zoomRange.addEventListener("input",()=>{
-  ganttScale=parseInt(zoomRange.value);
-  zoomValue.textContent=ganttScale;
-});
-
-/***********************
- * 7) Generate Gantt with critical path
- ***********************/
-document.getElementById("generateGanttBtn").addEventListener("click", generateGantt);
-
-function generateGantt() {
-  // We'll do forward/backward pass to get start,finish plus float for each task => zero float => critical
-  let schedule=computeSchedule(); 
-  let { floatArr } = computeFloat(schedule); // array of floats for each task
-  tasksData.forEach((t,i)=>{ t.float=floatArr[i]; });
-  
-  let maxFinish=Math.max(...schedule.map(s=>s.finish));
-  const svg=document.getElementById("ganttChart");
-  while(svg.firstChild) svg.removeChild(svg.firstChild);
-  let rowHeight=20, rowSpacing=10;
-  let leftMargin=150, topMargin=20;
-  let totalHeight=tasksData.length*(rowHeight+rowSpacing)+topMargin*2+40; // extra for axis
-  let totalWidth=(maxFinish+2)*ganttScale+leftMargin+50;
-  svg.setAttribute("height", totalHeight);
-  svg.setAttribute("width", totalWidth);
-
-  // define arrowhead
-  let defs=document.createElementNS("http://www.w3.org/2000/svg","defs");
-  let marker=document.createElementNS("http://www.w3.org/2000/svg","marker");
-  marker.setAttribute("id","arrowhead");
-  marker.setAttribute("viewBox","0 0 10 10");
-  marker.setAttribute("refX","10");
-  marker.setAttribute("refY","5");
-  marker.setAttribute("markerUnits","strokeWidth");
-  marker.setAttribute("markerWidth","6");
-  marker.setAttribute("markerHeight","6");
-  marker.setAttribute("orient","auto");
-  let path=document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.setAttribute("d","M0,0 L10,5 L0,10 Z");
-  path.setAttribute("fill","#555");
-  marker.appendChild(path);
-  defs.appendChild(marker);
-  svg.appendChild(defs);
-
-  // draw bars
-  tasksData.forEach((t,i)=>{
-    let s=schedule[i];
-    let x=leftMargin+s.start*ganttScale;
-    let y=topMargin+i*(rowHeight+rowSpacing);
-    let w=(s.finish - s.start)*ganttScale;
-    if(w<0) w=0;
-    let bar = document.createElementNS("http://www.w3.org/2000/svg","rect");
-    bar.setAttribute("x",x);
-    bar.setAttribute("y",y);
-    bar.setAttribute("width",w);
-    bar.setAttribute("height",rowHeight);
-    bar.setAttribute("class","task-bar");
-    // check float
-    if(t.float<0.0001) {
-      bar.classList.add("critical");
-    } else {
-      bar.classList.add("noncritical");
-    }
-    bar.addEventListener("dblclick",()=>openEditModal(i));
-    svg.appendChild(bar);
-
-    // resource text inside bar
-    let resStr = t.assignments.map(a=>{
-      if(!a.resourceName) return "";
-      let r=resourcesData.find(rr=>rr.name===a.resourceName);
-      if(!r) return "";
-      if(r.type==="Work") {
-        return `${r.name}(${a.value}%)`;
-      } else {
-        return `${r.name}(${a.value})`;
-      }
-    }).filter(Boolean).join(", ");
-    if(resStr) {
-      let barText=document.createElementNS("http://www.w3.org/2000/svg","text");
-      barText.setAttribute("x", x+4);
-      barText.setAttribute("y", y+rowHeight*0.7);
-      barText.setAttribute("class","bar-text");
-      barText.textContent=resStr;
-      svg.appendChild(barText);
-    }
-
-    // left label with task name
-    let text=document.createElementNS("http://www.w3.org/2000/svg","text");
-    text.setAttribute("x",5);
-    text.setAttribute("y",y+rowHeight*0.75);
-    text.setAttribute("class","task-text");
-    text.textContent=t.name;
-    svg.appendChild(text);
-  });
-
-  // dependency lines
-  tasksData.forEach((t,i)=>{
-    let s=schedule[i];
-    let xStart=leftMargin+s.start*ganttScale;
-    let xFinish=leftMargin+s.finish*ganttScale;
-    let yMid=topMargin+i*(rowHeight+rowSpacing)+rowHeight/2;
-    t.dependencies.forEach(dep=>{
-      let predIdx=tasksData.findIndex(tt=>tt.name===dep.predecessor);
-      if(predIdx<0) return;
-      let sp=schedule[predIdx];
-      let pxStart=leftMargin+sp.start*ganttScale;
-      let pxFinish=leftMargin+sp.finish*ganttScale;
-      let pyMid=topMargin+predIdx*(rowHeight+rowSpacing)+rowHeight/2;
-      // from pred to succ based on dep.type
-      let fromX, fromY, toX, toY;
-      switch(dep.type) {
-        case "FS":
-          fromX=pxFinish; fromY=pyMid;
-          toX=xStart; toY=yMid;
-          break;
-        case "SS":
-          fromX=pxStart; fromY=pyMid;
-          toX=xStart; toY=yMid;
-          break;
-        case "FF":
-          fromX=pxFinish; fromY=pyMid;
-          toX=xFinish; toY=yMid;
-          break;
-        case "SF":
-          fromX=pxStart; fromY=pyMid;
-          toX=xFinish; toY=yMid;
-          break;
-        default:
-          fromX=pxFinish; fromY=pyMid;
-          toX=xStart; toY=yMid;
-      }
-      // We'll do an L-shaped line:
-      let pathData = "";
-      pathData += `M${fromX},${fromY} `;
-      pathData += `L${fromX},${toY} `;
-      pathData += `L${toX},${toY}`;
-      
-      let line = document.createElementNS("http://www.w3.org/2000/svg","path");
-      line.setAttribute("d", pathData);
-      line.setAttribute("class","dep-line");
-      line.setAttribute("marker-end","url(#arrowhead)");
-      svg.appendChild(line);
-    });
-  });
-
-  // X-axis
-  let axisY=topMargin+tasksData.length*(rowHeight+rowSpacing)+20;
-  let axisLine=document.createElementNS("http://www.w3.org/2000/svg","line");
-  axisLine.setAttribute("x1",leftMargin);
-  axisLine.setAttribute("y1",axisY);
-  axisLine.setAttribute("x2",leftMargin+(maxFinish+2)*ganttScale);
-  axisLine.setAttribute("y2",axisY);
-  axisLine.setAttribute("stroke","#333");
-  svg.appendChild(axisLine);
-  for(let d=0; d<=maxFinish+1; d++){
-    let tickX=leftMargin+d*ganttScale;
-    let tick=document.createElementNS("http://www.w3.org/2000/svg","line");
-    tick.setAttribute("x1",tickX);
-    tick.setAttribute("y1",axisY);
-    tick.setAttribute("x2",tickX);
-    tick.setAttribute("y2",axisY-5);
-    tick.setAttribute("stroke","#333");
-    svg.appendChild(tick);
-
-    let lbl=document.createElementNS("http://www.w3.org/2000/svg","text");
-    lbl.setAttribute("x",tickX+2);
-    lbl.setAttribute("y",axisY+15);
-    lbl.setAttribute("font-size","12");
-    lbl.textContent=d;
-    svg.appendChild(lbl);
-  }
-}
-
-/***********************
- * computeSchedule (forward pass concurrency)
- ***********************/
-function computeSchedule() {
-  // build name->idx
-  let nameToIdx={};
-  tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
-  // adjacency
-  let graph=tasksData.map(()=>[]);
-  let inDegree=new Array(tasksData.length).fill(0);
-  tasksData.forEach((t,i)=>{
-    t.dependencies.forEach(dep=>{
-      let p=nameToIdx[dep.predecessor];
-      if(p!=null) {
-        graph[p].push(i);
-        inDegree[i]++;
-      }
-    });
-  });
-  // We'll store start, finish in schedule array
-  let schedule=tasksData.map(t=>({start:0, finish:t.duration}));
-  // Kahn's
-  let queue=[];
-  inDegree.forEach((d,i)=>{ if(d===0) queue.push(i); });
-  while(queue.length>0){
-    let cur=queue.shift();
-    graph[cur].forEach(succ=>{
-      let depObj=tasksData[succ].dependencies.find(d=>d.predecessor===tasksData[cur].name);
-      if(!depObj) return;
-      let cStart=schedule[cur].start;
-      let cFinish=schedule[cur].finish;
-      let lag=depObj.lag||0;
-      let candidate=0;
-      switch(depObj.type) {
-        case "FS": candidate=cFinish+lag; break;
-        case "SS": candidate=cStart+lag; break;
-        case "FF": candidate=(cFinish+lag)-tasksData[succ].duration; break;
-        case "SF": candidate=(cStart+lag)-tasksData[succ].duration; break;
-      }
-      if(candidate<0) candidate=0;
-      if(candidate>schedule[succ].start) {
-        schedule[succ].start=candidate;
-        schedule[succ].finish=candidate+tasksData[succ].duration;
-      }
-      inDegree[succ]--;
-      if(inDegree[succ]===0) queue.push(succ);
-    });
-  }
-  return schedule;
-}
-
-/***********************
- * computeFloat (backward pass)
- * FIXED the SS/SF formula so the critical path highlights correctly.
- ***********************/
-function computeFloat(schedule) {
-  let endTime=Math.max(...schedule.map(s=>s.finish));
-  let n=tasksData.length;
-  let latestStart=new Array(n).fill(endTime);
-  let latestFinish=new Array(n).fill(endTime);
-  
-  // build reverse adjacency
-  let nameToIdx={};
-  tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
-  let revGraph=tasksData.map(()=>[]);
-  let outDegree=new Array(n).fill(0);
-  tasksData.forEach((t,i)=>{
-    t.dependencies.forEach(dep=>{
-      let p=nameToIdx[dep.predecessor];
-      if(p!=null) {
-        // i depends on p => forward: p->i => reverse: i->p
-        revGraph[i].push(p);
-        outDegree[p]++;
-      }
-    });
-  });
-  // tasks with no successors => keep LF= EF from forward pass
-  schedule.forEach((s,i)=>{
-    if(outDegree[i]===0) {
-      latestFinish[i]=s.finish;
-      latestStart[i]=s.finish - tasksData[i].duration;
-    }
-  });
-
-  // BFS in reverse
-  let queue=[];
-  outDegree.forEach((od,i)=>{ if(od===0) queue.push(i); });
-  while(queue.length>0) {
-    let cur=queue.shift();
-    let cLS=latestStart[cur];
-    let cLF=latestFinish[cur];
-    // for each predecessor p
-    revGraph[cur].forEach(pred=>{
-      let depObj=tasksData[cur].dependencies.find(d=>nameToIdx[d.predecessor]===pred);
-      if(!depObj) return;
-      // figure new LF for pred
-      let candidate=latestFinish[pred];
-      switch(depObj.type) {
-        case "FS":
-          // pred must finish by cur's start => LF(pred)= cLS - lag
-          candidate=cLS - depObj.lag;
-          break;
-        case "SS":
-          // pred must start by cur's start => LS(pred)= cLS - lag => LF(pred)= LS(pred)+dur
-          candidate=(cLS - depObj.lag) + tasksData[pred].duration;
-          break;
-        case "FF":
-          // pred must finish by cur's finish => LF(pred)= cLF - lag
-          candidate=cLF - depObj.lag;
-          break;
-        case "SF":
-          // pred must start by cur's finish => LS(pred)= cLF - lag => LF(pred)= LS(pred)+dur
-          candidate=(cLF - depObj.lag) + tasksData[pred].duration;
-          break;
-      }
-      if(candidate<latestFinish[pred]) {
-        latestFinish[pred]=candidate;
-        latestStart[pred]=candidate - tasksData[pred].duration;
-      }
-      outDegree[pred]--;
-      if(outDegree[pred]===0) queue.push(pred);
-    });
-  }
-
-  // now float = LS - ES
-  let floatArr=new Array(n).fill(0);
-  schedule.forEach((s,i)=>{
-    let es=s.start;
-    let ls=latestStart[i];
-    let fl=ls-es;
-    if(fl<0) fl=0; // no negative float
-    floatArr[i]=fl;
-  });
-  return { floatArr };
-}
-
-/***********************
- * Double-click modal
- ***********************/
-let editModal=document.getElementById("editModal");
-let modalOverlay=document.getElementById("modalOverlay");
-let modalTaskName=document.getElementById("modalTaskName");
-let modalTaskDuration=document.getElementById("modalTaskDuration");
-let modalDependencies=document.getElementById("modalDependencies");
-let modalAssignments=document.getElementById("modalAssignments");
-let modalSaveBtn=document.getElementById("modalSaveBtn");
-let modalCancelBtn=document.getElementById("modalCancelBtn");
-let currentEditIndex=-1;
-
-function openEditModal(taskIndex) {
-  currentEditIndex=taskIndex;
-  let t=tasksData[taskIndex];
-  modalTaskName.value=t.name;
-  modalTaskDuration.value=t.duration;
-  let depStr=t.dependencies.map(d=>`${d.predecessor}|${d.type}|${d.lag}`).join("\n");
-  modalDependencies.value=depStr;
-  let assnStr=t.assignments.map(a=>`${a.resourceName}=${a.value}`).join("\n");
-  modalAssignments.value=assnStr;
-
-  editModal.style.display="block";
-  modalOverlay.style.display="block";
-}
-modalCancelBtn.addEventListener("click",closeModal);
-function closeModal() {
-  editModal.style.display="none";
-  modalOverlay.style.display="none";
-}
-modalSaveBtn.addEventListener("click",()=>{
-  if(currentEditIndex<0) return;
-  let t=tasksData[currentEditIndex];
-  t.name=modalTaskName.value.trim();
-  t.duration=parseFloat(modalTaskDuration.value)||0;
-  let lines=modalDependencies.value.split("\n").map(x=>x.trim()).filter(Boolean);
-  let newDeps=[];
-  lines.forEach(line=>{
-    let parts=line.split("|").map(x=>x.trim());
-    if(parts.length>=1){
-      newDeps.push({
-        predecessor:parts[0],
-        type:parts[1]||"FS",
-        lag:parseFloat(parts[2])||0
+      t.dependencies=newDeps;
+      let lines2=modalAssignments.value.split("\n").map(x=>x.trim()).filter(Boolean);
+      let newAssn=[];
+      lines2.forEach(line=>{
+        let idx=line.indexOf("=");
+        if(idx>0){
+          let rName=line.slice(0,idx).trim();
+          let val=parseFloat(line.slice(idx+1))||0;
+          newAssn.push({resourceName:rName,value:val});
+        }
       });
-    }
-  });
-  t.dependencies=newDeps;
-  let lines2=modalAssignments.value.split("\n").map(x=>x.trim()).filter(Boolean);
-  let newAssn=[];
-  lines2.forEach(line=>{
-    let idx=line.indexOf("=");
-    if(idx>0) {
-      let rName=line.slice(0,idx).trim();
-      let val=parseFloat(line.slice(idx+1))||0;
-      newAssn.push({resourceName:rName,value:val});
-    }
-  });
-  t.assignments=newAssn;
-  closeModal();
-  recalcTaskCost(currentEditIndex);
-  renderTasksTable();
-});
-
-/***********************
- * 8) Generate Resource Risk Insights (Updated with Cost Risk and JSON output)
- ***********************/
-document.getElementById("generateResourceRiskBtn").addEventListener("click", generateResourceRiskInsights);
-
-function generateResourceRiskInsights() {
-  // Compute overallocation/usage risk as before
-  let schedule=computeSchedule();
-  let maxFinish=Math.max(...schedule.map(s=>s.finish));
-  let dayToResUsage={};
-  for(let d=0; d<=maxFinish; d++){
-    dayToResUsage[d]={};
-    resourcesData.forEach(r=>{
-      dayToResUsage[d][r.name]=0;
+      t.assignments=newAssn;
+      closeModal();
+      refreshAll();
     });
-  }
-  tasksData.forEach((t,i)=>{
-    let sDay=Math.floor(schedule[i].start);
-    let fDay=Math.ceil(schedule[i].finish);
-    t.assignments.forEach(a=>{
-      let rName=a.resourceName;
-      if(!rName) return;
-      let r=resourcesData.find(rr=>rr.name===rName);
-      if(!r) return;
-      if(r.type!=="Work") return; // only do risk for Work resources
-      let val=a.value||100; 
-      for(let d=sDay; d<fDay; d++){
-        dayToResUsage[d][rName]+=val;
+
+    /***********************
+     * 8) Resource Risk Insights
+     ***********************/
+    document.getElementById("generateResourceRiskBtn").addEventListener("click", generateResourceRiskInsights);
+
+    function generateResourceRiskInsights() {
+      let schedule=computeSchedule();
+      let maxFinish=Math.max(...schedule.map(s=>s.finish));
+      let dayToResUsage={};
+      for(let d=0; d<=maxFinish; d++){
+        dayToResUsage[d]={};
+        resourcesData.forEach(r=>{
+          dayToResUsage[d][r.name]=0;
+        });
       }
-    });
-  });
+      tasksData.forEach((t,i)=>{
+        let sDay=Math.floor(schedule[i].start);
+        let fDay=Math.ceil(schedule[i].finish);
+        t.assignments.forEach(a=>{
+          let rName=a.resourceName;
+          if(!rName) return;
+          let r=resourcesData.find(rr=>rr.name===rName);
+          if(!r) return;
+          if(r.type!=="Work") return;
+          let val=a.value||100;
+          for(let d=sDay; d<fDay; d++){
+            dayToResUsage[d][rName]+=val;
+          }
+        });
+      });
 
-  let lines=["Resource Risk Insights:\n"];
-  let riskEntries = [];
+      let lines=["Resource Risk Insights:\n"];
+      let riskEntries=[];
 
-  // Usage Risk
-  resourcesData.forEach(r=>{
-    if(r.type!=="Work") return; 
-    let mU=r.maxUnits||100;
-    let highestUsage=0;
-    for(let d=0; d<=maxFinish; d++){
-      if(dayToResUsage[d][r.name]>highestUsage) highestUsage=dayToResUsage[d][r.name];
-    }
-    if(highestUsage > mU) {
-      let overBy = highestUsage - mU;
-      let impact = Math.min(10, Math.floor(5 + (overBy/ mU)*5)); 
-      lines.push(`- ${r.name} overallocated (usage=${highestUsage}%, max=${mU}%). (Impact ~ ${impact})`);
-      riskEntries.push({ riskName: `${r.name} overallocation`, suggestedRisk: impact });
-    } else if(highestUsage >= (0.8*mU)) {
-      let impact = 5; 
-      lines.push(`- ${r.name} usage near capacity (${highestUsage}% of ${mU}%). (Impact ~ ${impact})`);
-      riskEntries.push({ riskName: `${r.name} near capacity`, suggestedRisk: impact });
-    }
-  });
+      // Overallocation risk
+      resourcesData.forEach(r=>{
+        if(r.type!=="Work") return;
+        let mU=r.maxUnits||100;
+        let highestUsage=0;
+        for(let d=0; d<=maxFinish; d++){
+          if(dayToResUsage[d][r.name]>highestUsage) highestUsage=dayToResUsage[d][r.name];
+        }
+        if(highestUsage>mU){
+          let overBy=highestUsage-mU;
+          let impact=Math.min(10, Math.floor(5+(overBy/mU)*5));
+          lines.push(`- ${r.name} overallocated (usage=${highestUsage}%, max=${mU}%). (Impact ~ ${impact})`);
+          riskEntries.push({ riskName: `${r.name} overallocation`, suggestedRisk: impact });
+        } else if(highestUsage>=0.8*mU){
+          let impact=5;
+          lines.push(`- ${r.name} usage near capacity (${highestUsage}% of ${mU}%). (Impact ~ ${impact})`);
+          riskEntries.push({ riskName: `${r.name} near capacity`, suggestedRisk: impact });
+        }
+      });
 
-  // Cost Risk: Check if any resource has a disproportionally large cost (stdRate) compared to the mean among work resources
-  let workResources = resourcesData.filter(r => r.type==="Work" && r.stdRate>0);
-  if(workResources.length > 0) {
-    let totalCost = workResources.reduce((sum, r)=> sum + r.stdRate, 0);
-    let meanCost = totalCost / workResources.length;
-    workResources.forEach(r=>{
-      if(r.stdRate > 1.5 * meanCost) {
-        let ratio = r.stdRate / meanCost;
-        let impact = Math.min(10, Math.floor((ratio - 1) * 10));
-        if(impact < 1) impact = 1;
-        lines.push(`- ${r.name} has a high cost rate of ${r.stdRate} (mean ${meanCost.toFixed(2)}). (Impact ~ ${impact})`);
-        riskEntries.push({ riskName: `${r.name} high cost rate`, suggestedRisk: impact });
+      // Cost risk
+      let workResources=resourcesData.filter(r=>r.type==="Work" && r.stdRate>0);
+      if(workResources.length>0){
+        let totalCost=workResources.reduce((sum,r)=> sum+r.stdRate,0);
+        let meanCost=totalCost/workResources.length;
+        workResources.forEach(r=>{
+          if(r.stdRate>1.5*meanCost){
+            let ratio=r.stdRate/meanCost;
+            let impact=Math.min(10, Math.floor((ratio-1)*10));
+            if(impact<1) impact=1;
+            lines.push(`- ${r.name} has a high cost rate of ${r.stdRate} (mean ${meanCost.toFixed(2)}). (Impact ~ ${impact})`);
+            riskEntries.push({ riskName: `${r.name} high cost rate`, suggestedRisk: impact });
+          }
+        });
       }
+
+      if(lines.length===1){
+        lines.push("No resource usage above 80% and no disproportionate cost risk => minimal resource risk.");
+      }
+
+      let outDiv=document.getElementById("resourceRiskOutput");
+      outDiv.innerHTML = `<strong>Textual Risk Insights:</strong><br>` + lines.join("<br>");
+      outDiv.style.display = "block";
+
+      let riskJSON=JSON.stringify(riskEntries, null, 2);
+      const riskJsonOutputContainer=document.getElementById("riskJsonOutputContainer");
+      const riskJsonOutput=document.getElementById("riskJsonOutput");
+      riskJsonOutput.value=riskJSON;
+      riskJsonOutputContainer.style.display="block";
+    }
+
+    document.getElementById("copyRiskJsonBtn").addEventListener("click", () => {
+      const riskJsonOutput = document.getElementById("riskJsonOutput");
+      riskJsonOutput.select();
+      riskJsonOutput.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(riskJsonOutput.value)
+        .then(() => { alert("Risk JSON copied to clipboard!"); })
+        .catch(err => { alert("Error copying text: " + err); });
     });
-  }
 
-  if(lines.length===1) {
-    lines.push("No resource usage above 80% and no disproportionate cost risk => minimal resource risk.");
-  }
 
-  // Display textual risk insights
-  let outDiv=document.getElementById("resourceRiskOutput");
-  outDiv.innerHTML = `<strong>Textual Risk Insights:</strong><br>` + lines.join("<br>");
-  outDiv.style.display="block";
+    /****************************************************************
+     * 9) TWO "Auto Optimize" Buttons
+     ****************************************************************/
+    document.getElementById("autoOptimizeNoReallocBtn").addEventListener("click", autoOptimizeNoReallocation);
+    document.getElementById("autoOptimizeReallocBtn").addEventListener("click", autoOptimizeWithTimeCompressionAndNewDeps);
 
-  // Prepare JSON output for risk register
-  // Format: an array of objects, each with riskName and suggestedRisk keys.
-  let riskJSON = JSON.stringify(riskEntries, null, 2);
+    // 1) Simple "No Reallocation"
+    function autoOptimizeNoReallocation() {
+      tasksData.forEach(t => delete t.forcedStart);
+      let topoOrder = getTopologicalOrder();
+      let partial = tasksData.map(() => ({start:-1, finish:-1}));
 
-  // Place JSON output in the new container
-  const riskJsonOutputContainer = document.getElementById("riskJsonOutputContainer");
-  const riskJsonOutput = document.getElementById("riskJsonOutput");
-  riskJsonOutput.value = riskJSON;
-  riskJsonOutputContainer.style.display = "block";
-}
+      topoOrder.forEach(taskIdx => {
+        let es = earliestStartByDeps(taskIdx, partial);
+        let feasibleStart = findFeasibleStartNoRealloc(taskIdx, es, partial);
+        partial[taskIdx].start = feasibleStart;
+        partial[taskIdx].finish = feasibleStart + tasksData[taskIdx].duration;
+      });
 
-// Copy-to-clipboard event for risk JSON
-document.getElementById("copyRiskJsonBtn").addEventListener("click", () => {
-  const riskJsonOutput = document.getElementById("riskJsonOutput");
-  riskJsonOutput.select();
-  riskJsonOutput.setSelectionRange(0, 99999); // For mobile devices
-  navigator.clipboard.writeText(riskJsonOutput.value)
-    .then(() => { alert("Risk JSON copied to clipboard!"); })
-    .catch(err => { alert("Error copying text: " + err); });
-});
-</script>
+      partial.forEach((sch,i)=>{
+        tasksData[i].forcedStart = sch.start;
+      });
 
+      renderTasksTable();
+      refreshAll();
+      alert("Auto Optimize (No Reallocation) complete!");
+    }
+
+    // 2) With Reallocation + new concurrency dependencies
+    function autoOptimizeWithTimeCompressionAndNewDeps() {
+      // A) Zero out all existing leads/lags
+      tasksData.forEach(task => {
+        task.dependencies.forEach(dep => {
+          dep.lag = 0;
+        });
+      });
+
+      // B) Saturate usage => recalc durations
+      tasksData.forEach(task => {
+        let oldSum = 0;
+        task.assignments.forEach(a => {
+          let r = resourcesData.find(rr => rr.name === a.resourceName);
+          if (r && r.type === "Work") {
+            oldSum += (a.value || 0);
+          }
+        });
+        if (oldSum <= 0) return; // no work resources => skip
+        let totalWork = oldSum * task.duration;
+        let newSum = 0;
+
+        task.assignments.forEach(a => {
+          let r = resourcesData.find(rr => rr.name === a.resourceName);
+          if (r && r.type === "Work") {
+            a.value = r.maxUnits || 100; 
+            newSum += a.value;
+          }
+        });
+        if (newSum>0) {
+          let newDur = totalWork / newSum;
+          if(newDur<1) newDur=1;
+          task.duration = Math.ceil(newDur);
+        }
+      });
+
+      // C) Repeatedly schedule with concurrency-based new deps
+      tasksData.forEach(t => delete t.forcedStart);
+
+      // We'll do up to N passes to incorporate new concurrency dependencies
+      let maxPasses = 30;
+      for(let pass=0; pass<maxPasses; pass++){
+        let changed = scheduleWithNewConcurrencyDeps();
+        if(!changed) break; // no new deps => done
+      }
+
+      // D) Finally, show in table
+      renderTasksTable();
+      refreshAll();
+      alert("Auto Optimize (With Reallocation + New Deps) complete!");
+    }
+
+    /**
+     * scheduleWithNewConcurrencyDeps
+     *  - Gets topological order
+     *  - Places tasks in partial
+     *  - If concurrency conflict => add new FS dependency from occupant to current
+     *  - If we add a new concurrency dep, we set "changed=true"
+     */
+    function scheduleWithNewConcurrencyDeps(){
+      let topoOrder = getTopologicalOrder();
+      let partial = tasksData.map(() => ({start:-1, finish:-1}));
+      let changed = false;
+
+      for(let t of topoOrder){
+        let es = earliestStartByDeps(t, partial);
+        let result = findFeasibleStartAddConcurrencyDep(t, es, partial);
+        if(result.newDepAdded) changed = true;
+        if(result.startDay<0) {
+          // fallback if something goes wrong
+          result.startDay=es+5;
+        }
+        partial[t].start = result.startDay;
+        partial[t].finish = result.startDay + tasksData[t].duration;
+      }
+
+      // apply forcedStart
+      partial.forEach((sch,i)=>{
+        tasksData[i].forcedStart = sch.start;
+      });
+
+      return changed;
+    }
+
+    /**
+     * findFeasibleStartAddConcurrencyDep:
+     *  tries to place task at candidate day
+     *  if not feasible => find occupant => create new FS dep => return {startDay:-1, newDepAdded:true}
+     *  else => {startDay:candidate, newDepAdded:false}
+     */
+    function findFeasibleStartAddConcurrencyDep(taskIdx, candidate, partial) {
+      let dur = tasksData[taskIdx].duration;
+      let usageMap = buildDayUsagePartial(partial, taskIdx);
+      if(isFeasible(taskIdx, candidate, dur, usageMap)) {
+        return { startDay: candidate, newDepAdded: false };
+      } else {
+        // find occupant that blocks us on "candidate"
+        let occupantInfo = findOccupantBlocking(taskIdx, candidate, usageMap, partial);
+        if(!occupantInfo) {
+          // if we can't find occupant => shift 1 day
+          return { startDay: candidate+1, newDepAdded: false };
+        }
+
+        let occupantIdx = occupantInfo.taskIdx;
+        let occupantFinish = occupantInfo.finish;
+        let occupantName = tasksData[occupantIdx].name;
+
+        // create or update FS dep occupant => current
+        let depArr = tasksData[taskIdx].dependencies;
+        let existing = depArr.find(d => d.predecessor===occupantName && d.type==="FS");
+        if(!existing){
+          depArr.push({ predecessor: occupantName, type:"FS", lag:0 });
+        }
+        // We added new concurrency dep => must re-run topological pass
+        return { startDay: -1, newDepAdded: true };
+      }
+    }
+
+    /**
+     * findOccupantBlocking:
+     *  - scans resources for the current task at "candidate" day
+     *  - sees which occupant tasks are using that resource at that day
+     *  - picks occupant with the LATEST finish day
+     */
+    function findOccupantBlocking(taskIdx, candidateDay, usageMap, partial) {
+      let blockingResources = [];
+      let occupantCandidates = [];
+
+      let theTask = tasksData[taskIdx];
+      theTask.assignments.forEach(a => {
+        let r = resourcesData.find(rr => rr.name===a.resourceName);
+        if(!r || r.type!=="Work") return;
+        let val = a.value||100;
+        if(usageMap[candidateDay][r.name]+val > (r.maxUnits||100)) {
+          blockingResources.push(r.name);
+        }
+      });
+      if(blockingResources.length===0) return null;
+
+      // for each blocking resource, find occupant tasks
+      blockingResources.forEach(resName => {
+        // occupant tasks are tasks that are active at candidateDay in partial
+        for(let i=0; i<partial.length; i++){
+          if(i===taskIdx) continue;
+          if(partial[i].start<0) continue;
+          let sDay=Math.floor(partial[i].start);
+          let fDay=Math.ceil(partial[i].finish);
+          if(candidateDay>=sDay && candidateDay<fDay){
+            // does that occupant use resName?
+            let occupantUses = tasksData[i].assignments.some(a => a.resourceName===resName);
+            if(occupantUses){
+              occupantCandidates.push({ taskIdx:i, finish:fDay });
+            }
+          }
+        }
+      });
+
+      if(occupantCandidates.length===0) return null;
+      // pick occupant with largest "finish"
+      occupantCandidates.sort((a,b)=> b.finish - a.finish);
+      return occupantCandidates[0]; // occupant with the latest finish
+    }
+
+    /***********************
+     * "No Reallocation" Feasibility
+     ***********************/
+    function getTopologicalOrder() {
+      let nameToIdx={};
+      tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
+      let graph=tasksData.map(()=>[]);
+      let inDeg=new Array(tasksData.length).fill(0);
+      tasksData.forEach((t,i)=>{
+        t.dependencies.forEach(dep=>{
+          let p=nameToIdx[dep.predecessor];
+          if(p!=null){
+            graph[p].push(i);
+            inDeg[i]++;
+          }
+        });
+      });
+      let order=[];
+      let queue=[];
+      inDeg.forEach((d,i)=>{ if(d===0) queue.push(i); });
+      while(queue.length>0){
+        let cur=queue.shift();
+        order.push(cur);
+        graph[cur].forEach(succ=>{
+          inDeg[succ]--;
+          if(inDeg[succ]===0) queue.push(succ);
+        });
+      }
+      return order;
+    }
+
+    function earliestStartByDeps(taskIdx, partial) {
+      let es=0;
+      let nameToIdx={};
+      tasksData.forEach((t,i)=>{ nameToIdx[t.name]=i; });
+      tasksData[taskIdx].dependencies.forEach(dep=>{
+        let p=nameToIdx[dep.predecessor];
+        if(p==null) return;
+        let pf=partial[p].finish; 
+        let ps=partial[p].start;
+        if(ps<0 || pf<0) return; // not scheduled => skip
+        let lag=dep.lag||0;
+        let cand=0;
+        switch(dep.type){
+          case "FS": cand=pf+lag; break;
+          case "SS": cand=ps+lag; break;
+          case "FF": cand=(pf+lag)-tasksData[taskIdx].duration; break;
+          case "SF": cand=(ps+lag)-tasksData[taskIdx].duration; break;
+        }
+        if(cand>es) es=cand;
+      });
+      if(es<0) es=0;
+      return es;
+    }
+
+    function findFeasibleStartNoRealloc(taskIdx, candidate, partial) {
+      let dur = tasksData[taskIdx].duration;
+      while(true){
+        let usageMap = buildDayUsagePartial(partial, taskIdx);
+        if(isFeasible(taskIdx, candidate, dur, usageMap)) {
+          return candidate;
+        }
+        candidate++;
+        if(candidate>999999) return candidate;
+      }
+    }
+
+    // same usage builder, skipping skipIdx
+    function buildDayUsagePartial(partial, skipIdx) {
+      let maxFin=0;
+      partial.forEach((sch,i)=>{
+        if(i!==skipIdx && sch.finish>maxFin && sch.start>=0){
+          maxFin=sch.finish;
+        }
+      });
+      let usage={};
+      for(let d=0; d<=maxFin+200; d++){
+        usage[d]={};
+        resourcesData.forEach(r=>{
+          if(r.type==="Work") usage[d][r.name]=0;
+        });
+      }
+      partial.forEach((sch,i)=>{
+        if(i===skipIdx) return;
+        if(sch.start<0) return; // not scheduled
+        let sDay=Math.floor(sch.start);
+        let fDay=Math.ceil(sch.finish);
+        tasksData[i].assignments.forEach(a=>{
+          let r=resourcesData.find(rr=>rr.name===a.resourceName);
+          if(!r||r.type!=="Work") return;
+          let val=a.value||100;
+          for(let d=sDay; d<fDay; d++){
+            usage[d][r.name]+=val;
+          }
+        });
+      });
+      return usage;
+    }
+
+    function isFeasible(taskIdx, startDay, dur, usageMap) {
+      for(let d=startDay; d<startDay+dur; d++){
+        for(let a of tasksData[taskIdx].assignments){
+          let r=resourcesData.find(rr=>rr.name===a.resourceName);
+          if(!r||r.type!=="Work") continue;
+          let val=a.value||100;
+          if(usageMap[d][r.name]+val> (r.maxUnits||100)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+  </script>
 </body>
 </html>
