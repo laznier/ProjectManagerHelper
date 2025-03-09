@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -100,6 +100,17 @@
       width: 100%;
       height: 80px;
     }
+    /* Style for side-by-side results container */
+    .results-container {
+      display: flex;
+    }
+    .results-container > div {
+      width: 50%;
+      margin-right: 10px;
+    }
+    .results-container > div:last-child {
+      margin-right: 0;
+    }
   </style>
 </head>
 <body>
@@ -167,8 +178,13 @@
   </div>
 
   <button id="computeQueueBtn">Compute</button>
-  <div class="results-box" id="queueResultsArea">
-    <!-- results go here -->
+  <div class="results-container">
+    <div class="results-box" id="queueResultsArea">
+      <!-- Numerical results will appear here -->
+    </div>
+    <div class="results-box" id="summaryResultsArea">
+      <!-- Summary and recommendations will appear here -->
+    </div>
   </div>
 </div>
 
@@ -178,7 +194,6 @@
 <div class="container">
   <h1>Multi-Stage CFD</h1>
     
-
   <!-- Buttons & Paste area -->
   <div>
     <button id="addStageBtn">Add Stage</button>
@@ -227,80 +242,87 @@ const kContainer = document.getElementById('kContainer');
 const nContainer = document.getElementById('nContainer');
 const scvContainer = document.getElementById('scvContainer');
 
-modelSelect.addEventListener('change',()=>{
-  cContainer.style.display='none';
-  kContainer.style.display='none';
-  nContainer.style.display='none';
-  scvContainer.style.display='none';
+modelSelect.addEventListener('change', () => {
+  cContainer.style.display = 'none';
+  kContainer.style.display = 'none';
+  nContainer.style.display = 'none';
+  scvContainer.style.display = 'none';
   
-  const val=modelSelect.value;
-  if(val==='mmc'){
-    cContainer.style.display='inline-block';
+  const val = modelSelect.value;
+  if(val === 'mmc'){
+    cContainer.style.display = 'inline-block';
   }
-  else if(val==='mmck'){
-    cContainer.style.display='inline-block';
-    kContainer.style.display='inline-block';
+  else if(val === 'mmck'){
+    cContainer.style.display = 'inline-block';
+    kContainer.style.display = 'inline-block';
   }
-  else if(val==='mm1finite'){
-    nContainer.style.display='inline-block';
+  else if(val === 'mm1finite'){
+    nContainer.style.display = 'inline-block';
   }
-  else if(val==='mg1'){
-    scvContainer.style.display='inline-block';
+  else if(val === 'mg1'){
+    scvContainer.style.display = 'inline-block';
   }
 });
 modelSelect.dispatchEvent(new Event('change'));
 
 /*************************************************************
-  B) Queue formulas
+  B) Queue formulas and Summary Generation
 *************************************************************/
 const computeQueueBtn = document.getElementById('computeQueueBtn');
 const queueResultsArea = document.getElementById('queueResultsArea');
+const summaryResultsArea = document.getElementById('summaryResultsArea');
 
-computeQueueBtn.addEventListener('click',()=>{
-  const model= modelSelect.value;
-  const lambdaVal=parseFloat(document.getElementById('lambdaInput').value);
-  const muVal=parseFloat(document.getElementById('muInput').value);
-  let cVal=1; let kVal=Infinity; let nVal=Infinity; let scvVal=1.0;
+computeQueueBtn.addEventListener('click', () => {
+  const model = modelSelect.value;
+  const lambdaVal = parseFloat(document.getElementById('lambdaInput').value);
+  const muVal = parseFloat(document.getElementById('muInput').value);
+  let cVal = 1, kVal = Infinity, nVal = Infinity, scvVal = 1.0;
 
   if(document.getElementById('cInput').value){
-    cVal=parseInt(document.getElementById('cInput').value);
+    cVal = parseInt(document.getElementById('cInput').value);
   }
   if(document.getElementById('kInput').value){
-    kVal=parseInt(document.getElementById('kInput').value);
+    kVal = parseInt(document.getElementById('kInput').value);
   }
   if(document.getElementById('nInput').value){
-    nVal=parseInt(document.getElementById('nInput').value);
+    nVal = parseInt(document.getElementById('nInput').value);
   }
   if(document.getElementById('scvInput').value){
-    scvVal=parseFloat(document.getElementById('scvInput').value);
+    scvVal = parseFloat(document.getElementById('scvInput').value);
   }
 
   // basic checks
-  if(isNaN(lambdaVal)|| isNaN(muVal)|| lambdaVal<=0|| muVal<=0){
-    queueResultsArea.innerHTML=`<strong style="color:red;">Invalid λ or μ</strong>`;
+  if(isNaN(lambdaVal) || isNaN(muVal) || lambdaVal <= 0 || muVal <= 0){
+    queueResultsArea.innerHTML = `<strong style="color:red;">Invalid λ or μ</strong>`;
+    summaryResultsArea.innerHTML = '';
     return;
   }
-  let resHTML='';
+  let resHTML = '';
+  let summaryHTML = '<h3>Summary & Recommendation</h3>';
 
-  function factorial(n){
-    if(n<0)return NaN;
-    if(n===0||n===1)return 1;
-    let f=1; for(let i=2;i<=n;i++){ f*=i;}
+  function factorial(n) {
+    if(n < 0) return NaN;
+    if(n === 0 || n === 1) return 1;
+    let f = 1; 
+    for(let i = 2; i <= n; i++){
+      f *= i;
+    }
     return f;
   }
 
-  if(model==='mm1'){
-    const rho=lambdaVal/muVal;
-    resHTML+=`<p>ρ = ${rho.toFixed(4)}</p>`;
-    if(rho>=1){
-      resHTML+=`<p style="color:red;">ρ ≥ 1 => unstable</p>`;
-    }else{
-      const p0=1-rho;
-      const Lq=(rho*rho)/(1-rho);
-      const L=rho/(1-rho);
-      const Wq=rho/(muVal-lambdaVal);
-      const W=1/(muVal-lambdaVal);
-      resHTML+=`
+  if(model === 'mm1'){
+    const rho = lambdaVal / muVal;
+    resHTML += `<p>ρ = ${rho.toFixed(4)}</p>`;
+    if(rho >= 1){
+      resHTML += `<p style="color:red;">ρ ≥ 1 => unstable</p>`;
+      summaryHTML += `<p>The utilization (ρ) is ${rho.toFixed(4)}, which indicates that the arrival rate meets or exceeds the service rate. This system is unstable and customers will experience indefinite delays. Consider increasing the service rate or adding more servers.</p>`;
+    } else {
+      const p0 = 1 - rho;
+      const Lq = (rho * rho) / (1 - rho);
+      const L = rho / (1 - rho);
+      const Wq = rho / (muVal - lambdaVal);
+      const W = 1 / (muVal - lambdaVal);
+      resHTML += `
         <ul>
           <li>p0 = ${p0.toFixed(4)}</li>
           <li>Lq = ${Lq.toFixed(4)}</li>
@@ -309,167 +331,184 @@ computeQueueBtn.addEventListener('click',()=>{
           <li>W = ${W.toFixed(4)}</li>
         </ul>
       `;
+      summaryHTML += `<p>The utilization (ρ = λ/μ) is ${rho.toFixed(4)} which is less than 1, so the system is stable. p0 shows the probability of having no customers in the system (${p0.toFixed(4)}). Lq and Wq provide the average number waiting and the average wait time. If these values seem high, consider increasing the service rate.</p>`;
     }
+    summaryResultsArea.innerHTML = summaryHTML;
   }
-  else if(model==='mmc'){
-    if(isNaN(cVal)||cVal<1){
-      queueResultsArea.innerHTML=`<strong style="color:red;">Need c≥1</strong>`;
+  else if(model === 'mmc'){
+    if(isNaN(cVal) || cVal < 1){
+      queueResultsArea.innerHTML = `<strong style="color:red;">Need c ≥ 1</strong>`;
+      summaryResultsArea.innerHTML = '';
       return;
     }
-    const rho=lambdaVal/(cVal*muVal);
-    resHTML+=`<p>ρ=${rho.toFixed(4)}</p>`;
-    let sum=0;
-    for(let n=0;n<cVal;n++){
-      sum+= (Math.pow(cVal*rho,n))/ factorial(n);
+    const rho = lambdaVal / (cVal * muVal);
+    resHTML += `<p>ρ = ${rho.toFixed(4)}</p>`;
+    let sum = 0;
+    for(let n = 0; n < cVal; n++){
+      sum += (Math.pow(cVal * rho, n)) / factorial(n);
     }
-    let lastTerm = Math.pow(cVal*rho,cVal)/ (factorial(cVal)*(1-rho));
-    let p0=1/(sum+lastTerm);
-    let pBusyAll= p0*lastTerm;
-    let Lq= pBusyAll*(rho/(1-rho));
-    let L= Lq + cVal*rho;
-    let Wq=Lq/lambdaVal;
-    let W=L/lambdaVal;
+    let lastTerm = Math.pow(cVal * rho, cVal) / (factorial(cVal) * (1 - rho));
+    let p0 = 1 / (sum + lastTerm);
+    let pBusyAll = p0 * lastTerm;
+    let Lq = pBusyAll * (rho / (1 - rho));
+    let L = Lq + cVal * rho;
+    let Wq = Lq / lambdaVal;
+    let W = L / lambdaVal;
 
-    resHTML+=`
+    resHTML += `
       <ul>
-        <li>p0=${p0.toFixed(4)}</li>
-        <li>P(all busy)=${pBusyAll.toFixed(4)}</li>
-        <li>Lq=${Lq.toFixed(4)}</li>
-        <li>L=${L.toFixed(4)}</li>
-        <li>Wq=${Wq.toFixed(4)}</li>
-        <li>W=${W.toFixed(4)}</li>
+        <li>p0 = ${p0.toFixed(4)}</li>
+        <li>P(all busy) = ${pBusyAll.toFixed(4)}</li>
+        <li>Lq = ${Lq.toFixed(4)}</li>
+        <li>L = ${L.toFixed(4)}</li>
+        <li>Wq = ${Wq.toFixed(4)}</li>
+        <li>W = ${W.toFixed(4)}</li>
       </ul>
     `;
+    summaryHTML += `<p>For an M/M/c system, the utilization (ρ = λ/(cμ)) is ${rho.toFixed(4)}. p0 indicates the chance that the system is empty, and P(all busy) shows how often all servers are in use. High values of Lq or Wq may suggest adding servers or increasing service rate.</p>`;
+    summaryResultsArea.innerHTML = summaryHTML;
   }
-  else if(model==='mmck'){
-    if(isNaN(cVal)||cVal<1){
-      queueResultsArea.innerHTML=`<strong style="color:red;">Need c≥1</strong>`;
+  else if(model === 'mmck'){
+    if(isNaN(cVal) || cVal < 1){
+      queueResultsArea.innerHTML = `<strong style="color:red;">Need c ≥ 1</strong>`;
+      summaryResultsArea.innerHTML = '';
       return;
     }
-    if(isNaN(kVal)||kVal<cVal){
-      queueResultsArea.innerHTML=`<strong style="color:red;">K≥c</strong>`;
+    if(isNaN(kVal) || kVal < cVal){
+      queueResultsArea.innerHTML = `<strong style="color:red;">K must be greater than or equal to c</strong>`;
+      summaryResultsArea.innerHTML = '';
       return;
     }
-    const rho=lambdaVal/(cVal*muVal);
-    resHTML+=`<p>ρ=${rho.toFixed(4)}</p>`;
-    let A=cVal*rho;
-    let p0Sum=0;
-    for(let n=0;n<cVal;n++){
-      p0Sum += Math.pow(A,n)/ factorial(n);
+    const rho = lambdaVal / (cVal * muVal);
+    resHTML += `<p>ρ = ${rho.toFixed(4)}</p>`;
+    let A = cVal * rho;
+    let p0Sum = 0;
+    for(let n = 0; n < cVal; n++){
+      p0Sum += Math.pow(A, n) / factorial(n);
     }
-    let p0Tail=Math.pow(A,cVal)/factorial(cVal);
-    let geoTerm=0;
-    if(Math.abs(1-rho)<1e-12){
-      geoTerm=(kVal-cVal+1);
-    }else{
-      geoTerm=(1- Math.pow(rho,(kVal-cVal+1)))/(1-rho);
-    }
-    p0Sum+= p0Tail* geoTerm;
-    let p0=1/p0Sum;
-    function p(n){
-      if(n<cVal){
-        return p0* ( Math.pow(A,n)/ factorial(n));
-      } else {
-        return p0* ( Math.pow(A,cVal)/ factorial(cVal)) * Math.pow(rho,n-cVal);
-      }
-    }
-    let pK=p(kVal);
-    let lambdaEff= lambdaVal*(1-pK);
-
-    let Lsum=0; for(let n=0;n<=kVal;n++){
-      Lsum+= n*p(n);
-    }
-    let L=Lsum;
-
-    let Ls=0; for(let n=0;n<=kVal;n++){
-      Ls+= Math.min(n,cVal)* p(n);
-    }
-    let Lq=L-Ls;
-    let W=0; let Wq=0;
-    if(lambdaEff>1e-12){
-      W=L/ lambdaEff;
-      Wq=Lq/ lambdaEff;
-    }
-    resHTML+=`
-      <ul>
-        <li>p0=${p0.toFixed(6)}</li>
-        <li>pK=${pK.toFixed(6)}</li>
-        <li>λeff=${lambdaEff.toFixed(4)}</li>
-        <li>L=${L.toFixed(4)}</li>
-        <li>Lq=${Lq.toFixed(4)}</li>
-        <li>W=${W.toFixed(4)}</li>
-        <li>Wq=${Wq.toFixed(4)}</li>
-      </ul>
-    `;
-  }
-  else if(model==='mm1finite'){
-    if(isNaN(nVal)||nVal<1){
-      queueResultsArea.innerHTML=`<strong style="color:red;">Need N≥1</strong>`;
-      return;
-    }
-    const rho=lambdaVal/muVal;
-    let p0=0;
-    if(Math.abs(rho-1)>1e-12){
-      let s=0; for(let k=0;k<=nVal;k++){
-        s+= Math.pow(rho,k);
-      }
-      p0=1/s;
+    let p0Tail = Math.pow(A, cVal) / factorial(cVal);
+    let geoTerm = 0;
+    if(Math.abs(1 - rho) < 1e-12){
+      geoTerm = (kVal - cVal + 1);
     } else {
-      p0=1/(nVal+1);
+      geoTerm = (1 - Math.pow(rho, (kVal - cVal + 1))) / (1 - rho);
     }
-    function p(n){ return p0* Math.pow(rho,n); }
-
-    let Lsum=0; for(let i=0;i<=nVal;i++){ Lsum+= i*p(i);}
-    let L=Lsum;
-    let pN=p(nVal);
-    let lambdaEff=lambdaVal*(1-pN);
-
-    let W=0;
-    if(lambdaEff>1e-12){ W=L/lambdaEff; }
-
-    let LqSum=0; for(let i=1;i<=nVal;i++){
-      LqSum+=(i-1)* p(i);
+    p0Sum += p0Tail * geoTerm;
+    let p0 = 1 / p0Sum;
+    function p(n) {
+      if(n < cVal){
+        return p0 * (Math.pow(A, n) / factorial(n));
+      } else {
+        return p0 * (Math.pow(A, cVal) / factorial(cVal)) * Math.pow(rho, n - cVal);
+      }
     }
-    let Lq=LqSum;
-    let Wq=0;
-    if(lambdaEff>0){ Wq=Lq/ lambdaEff; }
-
-    resHTML+=`
+    let pK = p(kVal);
+    let lambdaEff = lambdaVal * (1 - pK);
+    let Lsum = 0;
+    for(let n = 0; n <= kVal; n++){
+      Lsum += n * p(n);
+    }
+    let L = Lsum;
+    let Ls = 0;
+    for(let n = 0; n <= kVal; n++){
+      Ls += Math.min(n, cVal) * p(n);
+    }
+    let Lq = L - Ls;
+    let W = 0, Wq = 0;
+    if(lambdaEff > 1e-12){
+      W = L / lambdaEff;
+      Wq = Lq / lambdaEff;
+    }
+    resHTML += `
       <ul>
-        <li>ρ=${rho.toFixed(4)}</li>
-        <li>p0=${p0.toFixed(6)}</li>
-        <li>L=${L.toFixed(4)}</li>
-        <li>Lq=${Lq.toFixed(4)}</li>
-        <li>p(N)=${pN.toFixed(6)}</li>
-        <li>λeff=${lambdaEff.toFixed(4)}</li>
-        <li>W=${W.toFixed(4)}</li>
-        <li>Wq=${Wq.toFixed(4)}</li>
+        <li>p0 = ${p0.toFixed(6)}</li>
+        <li>pK = ${pK.toFixed(6)}</li>
+        <li>λeff = ${lambdaEff.toFixed(4)}</li>
+        <li>L = ${L.toFixed(4)}</li>
+        <li>Lq = ${Lq.toFixed(4)}</li>
+        <li>W = ${W.toFixed(4)}</li>
+        <li>Wq = ${Wq.toFixed(4)}</li>
       </ul>
     `;
+    summaryHTML += `<p>The M/M/c/K model accounts for a finite capacity (K). Here, ρ = ${rho.toFixed(4)} and pK (the probability of a full system) affects the effective arrival rate. Consider expanding capacity or improving service if blocking is high.</p>`;
+    summaryResultsArea.innerHTML = summaryHTML;
   }
-  else if(model==='mg1'){
-    const rho=lambdaVal/muVal;
-    resHTML+=`<p>ρ=${rho.toFixed(4)}</p>`;
-    if(rho>=1){
-      resHTML+=`<p style="color:red;">ρ≥1 => unstable</p>`;
-    }else{
-      const c2=scvVal;
-      const Lq= (rho*rho*(1+c2))/(2*(1-rho));
-      const L=Lq+rho;
-      const Wq=Lq/lambdaVal;
-      const W=Wq+1/muVal;
-      resHTML+=`
+  else if(model === 'mm1finite'){
+    if(isNaN(nVal) || nVal < 1){
+      queueResultsArea.innerHTML = `<strong style="color:red;">Need N ≥ 1</strong>`;
+      summaryResultsArea.innerHTML = '';
+      return;
+    }
+    const rho = lambdaVal / muVal;
+    let p0 = 0;
+    if(Math.abs(rho - 1) > 1e-12){
+      let s = 0;
+      for(let k = 0; k <= nVal; k++){
+        s += Math.pow(rho, k);
+      }
+      p0 = 1 / s;
+    } else {
+      p0 = 1 / (nVal + 1);
+    }
+    function p(n){ return p0 * Math.pow(rho, n); }
+    let Lsum = 0;
+    for(let i = 0; i <= nVal; i++){
+      Lsum += i * p(i);
+    }
+    let L = Lsum;
+    let pN = p(nVal);
+    let lambdaEff = lambdaVal * (1 - pN);
+    let W = 0;
+    if(lambdaEff > 1e-12){ W = L / lambdaEff; }
+    let LqSum = 0;
+    for(let i = 1; i <= nVal; i++){
+      LqSum += (i - 1) * p(i);
+    }
+    let Lq = LqSum;
+    let Wq = 0;
+    if(lambdaEff > 0){ Wq = Lq / lambdaEff; }
+
+    resHTML += `
+      <ul>
+        <li>ρ = ${rho.toFixed(4)}</li>
+        <li>p0 = ${p0.toFixed(6)}</li>
+        <li>L = ${L.toFixed(4)}</li>
+        <li>Lq = ${Lq.toFixed(4)}</li>
+        <li>p(N) = ${pN.toFixed(6)}</li>
+        <li>λeff = ${lambdaEff.toFixed(4)}</li>
+        <li>W = ${W.toFixed(4)}</li>
+        <li>Wq = ${Wq.toFixed(4)}</li>
+      </ul>
+    `;
+    summaryHTML += `<p>This is an M/M/1 queue with a finite population (N = ${nVal}). Here, ρ = ${rho.toFixed(4)}. The effective arrival rate (λeff) is reduced by the probability of the system being full (p(N)). Consider adjusting population size or service parameters if performance is poor.</p>`;
+    summaryResultsArea.innerHTML = summaryHTML;
+  }
+  else if(model === 'mg1'){
+    const rho = lambdaVal / muVal;
+    resHTML += `<p>ρ = ${rho.toFixed(4)}</p>`;
+    if(rho >= 1){
+      resHTML += `<p style="color:red;">ρ ≥ 1 => unstable</p>`;
+      summaryHTML += `<p>The utilization (ρ) is ${rho.toFixed(4)}, indicating instability as arrivals meet or exceed service capacity. Increase service rate or manage arrivals to stabilize the system.</p>`;
+    } else {
+      const c2 = scvVal;
+      const Lq = (rho * rho * (1 + c2)) / (2 * (1 - rho));
+      const L = Lq + rho;
+      const Wq = Lq / lambdaVal;
+      const W = Wq + 1 / muVal;
+      resHTML += `
         <ul>
-          <li>Lq=${Lq.toFixed(4)}</li>
-          <li>L=${L.toFixed(4)}</li>
-          <li>Wq=${Wq.toFixed(4)}</li>
-          <li>W=${W.toFixed(4)}</li>
+          <li>Lq = ${Lq.toFixed(4)}</li>
+          <li>L = ${L.toFixed(4)}</li>
+          <li>Wq = ${Wq.toFixed(4)}</li>
+          <li>W = ${W.toFixed(4)}</li>
         </ul>
       `;
+      summaryHTML += `<p>For the M/G/1 model, which considers service time variability (SCV = ${scvVal}), the utilization is ${rho.toFixed(4)}. Lq and Wq are higher when variability increases. If these metrics are unsatisfactory, reducing variability or increasing service rate may help.</p>`;
     }
+    summaryResultsArea.innerHTML = summaryHTML;
   }
 
-  queueResultsArea.innerHTML=resHTML;
+  queueResultsArea.innerHTML = resHTML;
 });
 
 /*************************************************************
@@ -477,21 +516,23 @@ computeQueueBtn.addEventListener('click',()=>{
 *************************************************************/
 // 1) Build capacity row
 function buildCapacityRow(){
+  const capacityRow = document.getElementById('capacityRow');
   while(capacityRow.firstChild){
     capacityRow.removeChild(capacityRow.firstChild);
   }
-  const colCount= cfdHeaderRow.children.length;
-  for(let col=0; col< colCount; col++){
-    const th=document.createElement('th');
-    if(col===0){
-      th.textContent="Capacity";
+  const cfdHeaderRow = document.getElementById('cfdHeaderRow');
+  const colCount = cfdHeaderRow.children.length;
+  for(let col = 0; col < colCount; col++){
+    const th = document.createElement('th');
+    if(col === 0){
+      th.textContent = "Capacity";
       th.classList.add('readOnlyCell');
     } else {
-      const inp=document.createElement('input');
-      inp.type='number';
-      inp.step='any';
-      inp.style.width='80px';
-      inp.value='0';
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.step = 'any';
+      inp.style.width = '80px';
+      inp.value = '0';
       th.appendChild(inp);
     }
     capacityRow.appendChild(th);
@@ -499,23 +540,25 @@ function buildCapacityRow(){
 }
 
 // 2) Add row => Month# read-only, rest are user typed
-function addCfdRow(optionalData=[]){
-  const rowCount= cfdTbody.rows.length;
-  const tr=document.createElement('tr');
-  const colCount= cfdHeaderRow.children.length;
-  for(let col=0; col<colCount; col++){
-    const td=document.createElement('td');
-    const ip=document.createElement('input');
-    ip.type='number';
-    ip.step='any';
-    ip.style.width='80px';
-    if(col===0){
-      ip.value=(rowCount+1).toString();
-      ip.disabled=true;
+function addCfdRow(optionalData = []){
+  const cfdTbody = document.getElementById('cfdTbody');
+  const cfdHeaderRow = document.getElementById('cfdHeaderRow');
+  const rowCount = cfdTbody.rows.length;
+  const tr = document.createElement('tr');
+  const colCount = cfdHeaderRow.children.length;
+  for(let col = 0; col < colCount; col++){
+    const td = document.createElement('td');
+    const ip = document.createElement('input');
+    ip.type = 'number';
+    ip.step = 'any';
+    ip.style.width = '80px';
+    if(col === 0){
+      ip.value = (rowCount + 1).toString();
+      ip.disabled = true;
       td.classList.add('readOnlyCell');
     } else {
-      let val= optionalData[col]!==undefined ? optionalData[col]:'';
-      ip.value= val;
+      let val = optionalData[col] !== undefined ? optionalData[col] : '';
+      ip.value = val;
     }
     td.appendChild(ip);
     tr.appendChild(td);
@@ -527,185 +570,196 @@ function addCfdRow(optionalData=[]){
   // build capacity row once
   buildCapacityRow();
   // add a few sample rows
-  for(let i=0;i<2;i++){
+  for(let i = 0; i < 2; i++){
     addCfdRow();
   }
 })();
 
 const addStageBtn = document.getElementById('addStageBtn');
-const removeStageBtn= document.getElementById('removeStageBtn');
-const addRowBtn= document.getElementById('addRowBtn');
-const pasteProcessBtn= document.getElementById('pasteProcessBtn');
-const computeFromCapBtn= document.getElementById('computeFromCapBtn');
-const generateCfdBtn= document.getElementById('generateCfdBtn');
-const exportCsvBtn= document.getElementById('exportCsvBtn');
-const pasteArea2= document.getElementById('pasteArea');
+const removeStageBtn = document.getElementById('removeStageBtn');
+const addRowBtn = document.getElementById('addRowBtn');
+const pasteProcessBtn = document.getElementById('pasteProcessBtn');
+const computeFromCapBtn = document.getElementById('computeFromCapBtn');
+const generateCfdBtn = document.getElementById('generateCfdBtn');
+const exportCsvBtn = document.getElementById('exportCsvBtn');
+const pasteArea2 = document.getElementById('pasteArea');
 
-addRowBtn.addEventListener('click', ()=> addCfdRow([]));
+addRowBtn.addEventListener('click', () => addCfdRow([]));
 
 // 3) Add/Remove Stage
-addStageBtn.addEventListener('click', ()=>{
-  const colCount= cfdHeaderRow.children.length;
-  const newTh=document.createElement('th');
-  newTh.contentEditable='true';
-  newTh.textContent=`Stage ${colCount}`;
+addStageBtn.addEventListener('click', () => {
+  const cfdHeaderRow = document.getElementById('cfdHeaderRow');
+  const capacityRow = document.getElementById('capacityRow');
+  const colCount = cfdHeaderRow.children.length;
+  const newTh = document.createElement('th');
+  newTh.contentEditable = 'true';
+  newTh.textContent = `Stage ${colCount}`;
   cfdHeaderRow.appendChild(newTh);
 
   // capacity cell
-  const capTh=document.createElement('th');
-  const capInp=document.createElement('input');
-  capInp.type='number';
-  capInp.step='any';
-  capInp.style.width='80px';
-  capInp.value='0';
+  const capTh = document.createElement('th');
+  const capInp = document.createElement('input');
+  capInp.type = 'number';
+  capInp.step = 'any';
+  capInp.style.width = '80px';
+  capInp.value = '0';
   capTh.appendChild(capInp);
   capacityRow.appendChild(capTh);
 
   // each row add a new cell
-  const rows=cfdTbody.querySelectorAll('tr');
-  rows.forEach(r=>{
-    const td=document.createElement('td');
-    const ip=document.createElement('input');
-    ip.type='number';
-    ip.step='any';
-    ip.style.width='80px';
+  const cfdTbody = document.getElementById('cfdTbody');
+  const rows = cfdTbody.querySelectorAll('tr');
+  rows.forEach(r => {
+    const td = document.createElement('td');
+    const ip = document.createElement('input');
+    ip.type = 'number';
+    ip.step = 'any';
+    ip.style.width = '80px';
     td.appendChild(ip);
     r.appendChild(td);
   });
 });
 
-removeStageBtn.addEventListener('click', ()=>{
-  if(cfdHeaderRow.children.length<=1){
+removeStageBtn.addEventListener('click', () => {
+  const cfdHeaderRow = document.getElementById('cfdHeaderRow');
+  const capacityRow = document.getElementById('capacityRow');
+  if(cfdHeaderRow.children.length <= 1){
     alert("Cannot remove all stages. Need at least 1 stage + Month #");
     return;
   }
   cfdHeaderRow.removeChild(cfdHeaderRow.lastChild);
   capacityRow.removeChild(capacityRow.lastChild);
-  const rows=cfdTbody.querySelectorAll('tr');
-  rows.forEach(r=>{
+  const cfdTbody = document.getElementById('cfdTbody');
+  const rows = cfdTbody.querySelectorAll('tr');
+  rows.forEach(r => {
     r.removeChild(r.lastChild);
   });
 });
 
 // 4) Paste from Excel
-pasteProcessBtn.addEventListener('click', ()=>{
-  const text= pasteArea2.value.trim();
-  if(!text)return;
-  let lines=text.split(/\r?\n/);
-  if(!lines.length)return;
+pasteProcessBtn.addEventListener('click', () => {
+  const text = pasteArea2.value.trim();
+  if(!text) return;
+  let lines = text.split(/\r?\n/);
+  if(!lines.length) return;
 
-  let delim='\t';
-  if(!text.includes('\t') && text.includes(',')) delim=',';
+  let delim = '\t';
+  if(!text.includes('\t') && text.includes(',')) delim = ',';
 
-  let parsed= lines.map(line=> line.split(delim));
+  let parsed = lines.map(line => line.split(delim));
   // detect if first row is textual => header
-  let firstRow=parsed[0];
-  let numericCount=0;
-  firstRow.forEach(cell=>{
+  let firstRow = parsed[0];
+  let numericCount = 0;
+  firstRow.forEach(cell => {
     if(!isNaN(parseFloat(cell))) numericCount++;
   });
-  let isHeader=(numericCount< firstRow.length/2);
+  let isHeader = (numericCount < firstRow.length / 2);
 
   // rebuild cfdHeaderRow from scratch
+  const cfdHeaderRow = document.getElementById('cfdHeaderRow');
+  const capacityRow = document.getElementById('capacityRow');
   while(cfdHeaderRow.firstChild) cfdHeaderRow.removeChild(cfdHeaderRow.firstChild);
   while(capacityRow.firstChild) capacityRow.removeChild(capacityRow.firstChild);
-  cfdTbody.innerHTML='';
+  const cfdTbody = document.getElementById('cfdTbody');
+  cfdTbody.innerHTML = '';
 
   // first col => Month #
-  const thMonth=document.createElement('th');
-  thMonth.textContent="Month #";
+  const thMonth = document.createElement('th');
+  thMonth.textContent = "Month #";
   thMonth.classList.add('readOnlyCell');
   cfdHeaderRow.appendChild(thMonth);
 
-  let stageNames=[];
+  let stageNames = [];
   if(isHeader){
-    stageNames= parsed[0];
+    stageNames = parsed[0];
     parsed.shift();
   } else {
     // generic
-    stageNames=[];
-    for(let i=0;i< firstRow.length;i++){
+    stageNames = [];
+    for(let i = 0; i < firstRow.length; i++){
       stageNames.push(`Stage ${i+1}`);
     }
   }
   // build stage columns
-  stageNames.forEach((nm,i)=>{
-    const th=document.createElement('th');
-    th.contentEditable='true';
-    th.textContent= nm.trim()||("Stage "+(i+1));
+  stageNames.forEach((nm, i) => {
+    const th = document.createElement('th');
+    th.contentEditable = 'true';
+    th.textContent = nm.trim() || ("Stage " + (i+1));
     cfdHeaderRow.appendChild(th);
   });
 
   buildCapacityRow();
 
-  parsed.forEach((arr, rowIdx)=>{
-    const tr=document.createElement('tr');
+  parsed.forEach((arr, rowIdx) => {
+    const tr = document.createElement('tr');
     // col0 => Month#
     {
-      const td=document.createElement('td');
-      const ip=document.createElement('input');
-      ip.type='number';
-      ip.disabled=true;
-      ip.style.width='80px';
-      ip.value=(rowIdx+1).toString();
+      const td = document.createElement('td');
+      const ip = document.createElement('input');
+      ip.type = 'number';
+      ip.disabled = true;
+      ip.style.width = '80px';
+      ip.value = (rowIdx + 1).toString();
       td.classList.add('readOnlyCell');
       td.appendChild(ip);
       tr.appendChild(td);
     }
     // stages
-    for(let i=0;i<stageNames.length;i++){
-      const td=document.createElement('td');
-      const ip=document.createElement('input');
-      ip.type='number';
-      ip.step='any';
-      ip.style.width='80px';
-      let val=parseFloat(arr[i]);
-      if(isNaN(val)) val=0;
-      ip.value=val;
+    for(let i = 0; i < stageNames.length; i++){
+      const td = document.createElement('td');
+      const ip = document.createElement('input');
+      ip.type = 'number';
+      ip.step = 'any';
+      ip.style.width = '80px';
+      let val = parseFloat(arr[i]);
+      if(isNaN(val)) val = 0;
+      ip.value = val;
       td.appendChild(ip);
       tr.appendChild(td);
     }
     cfdTbody.appendChild(tr);
   });
 
-  pasteArea2.value='';
+  pasteArea2.value = '';
 });
 
 // 5) Compute Flow from Capacity
-computeFromCapBtn.addEventListener('click', ()=>{
-  const colCount= cfdHeaderRow.children.length;
+computeFromCapBtn.addEventListener('click', () => {
+  const cfdHeaderRow = document.getElementById('cfdHeaderRow');
+  const colCount = cfdHeaderRow.children.length;
   // read capacities
-  let capacities=[];
-  for(let col=1; col<colCount; col++){
-    let th= capacityRow.children[col];
+  let capacities = [];
+  for(let col = 1; col < colCount; col++){
+    let th = document.getElementById('capacityRow').children[col];
     if(!th){ capacities.push(0); continue; }
-    let inp=th.querySelector('input');
-    let val=parseFloat(inp.value);
-    if(isNaN(val)) val=0;
+    let inp = th.querySelector('input');
+    let val = parseFloat(inp.value);
+    if(isNaN(val)) val = 0;
     capacities.push(val);
   }
-  const rows=cfdTbody.querySelectorAll('tr');
-  let prevRowVals= Array(colCount).fill(0);
+  const cfdTbody = document.getElementById('cfdTbody');
+  const rows = cfdTbody.querySelectorAll('tr');
+  let prevRowVals = Array(colCount).fill(0);
 
-  rows.forEach((row, rowIndex)=>{
-    const cells=row.querySelectorAll('td input');
-    for(let col=2; col<colCount; col++){
+  rows.forEach((row, rowIndex) => {
+    const cells = row.querySelectorAll('td input');
+    for(let col = 2; col < colCount; col++){
       // skip col=1 if we want stage1 user-edited only
-      const prevStageVal= parseFloat(cells[col-1].value)||0;
-      const capacityVal= capacities[col-1]||0;
-      let newVal=0;
-      if(rowIndex===0){
-        newVal= Math.min(prevStageVal, capacityVal);
+      const prevStageVal = parseFloat(cells[col-1].value) || 0;
+      const capacityVal = capacities[col-1] || 0;
+      let newVal = 0;
+      if(rowIndex === 0){
+        newVal = Math.min(prevStageVal, capacityVal);
       } else {
-        let prevRowVal= prevRowVals[col];
-        newVal= Math.min(prevStageVal, prevRowVal + capacityVal);
+        let prevRowVal = prevRowVals[col];
+        newVal = Math.min(prevStageVal, prevRowVal + capacityVal);
       }
-      cells[col].value=newVal.toString();
+      cells[col].value = newVal.toString();
     }
     // update prevRowVals
-    for(let c=1;c<colCount;c++){
-      let v=parseFloat(cells[c].value)||0;
-      prevRowVals[c]=v;
+    for(let c = 1; c < colCount; c++){
+      let v = parseFloat(cells[c].value) || 0;
+      prevRowVals[c] = v;
     }
   });
 
@@ -713,185 +767,185 @@ computeFromCapBtn.addEventListener('click', ()=>{
 });
 
 // 6) Generate CFD => stacked area up to sum of final row
-const cfdChart=document.getElementById('cfdChart');
-const cfdLegend=document.getElementById('cfdLegend');
+const cfdChart = document.getElementById('cfdChart');
+const cfdLegend = document.getElementById('cfdLegend');
 generateCfdBtn.addEventListener('click', generateCfdChart);
 
 function generateCfdChart(){
-  let { headers, data }= getCfdData();
-  if(data.length===0)return;
+  let { headers, data } = getCfdData();
+  if(data.length === 0) return;
 
-  const colCount= headers.length;
-  const stageCount= colCount-1; // skipping col0 => Month#
-
+  const colCount = headers.length;
+  const stageCount = colCount - 1; // skipping col0 => Month#
   // Each stage => one stacked layer
   // We'll find maxStack from the sum of all stages in the final row
-  let layers=[];
-  for(let j=0;j<stageCount;j++){
+  let layers = [];
+  for(let j = 0; j < stageCount; j++){
     layers.push([]);
   }
-  let maxStack=0;
+  let maxStack = 0;
 
-  data.forEach((rowObj, rowIdx)=>{
-    let xVal=rowIdx+1; // month index
-    let cSum=0;
+  data.forEach((rowObj, rowIdx) => {
+    let xVal = rowIdx + 1; // month index
+    let cSum = 0;
     // rowObj.values => [month#, stage1, stage2, ...]
-    for(let j=1;j<colCount;j++){
-      let y0=cSum;
-      let y1=y0+ rowObj.values[j];
-      layers[j-1].push({x:xVal, y0, y1});
-      cSum=y1;
+    for(let j = 1; j < colCount; j++){
+      let y0 = cSum;
+      let y1 = y0 + rowObj.values[j];
+      layers[j-1].push({ x: xVal, y0, y1 });
+      cSum = y1;
     }
-    if(cSum>maxStack) maxStack=cSum;
+    if(cSum > maxStack) maxStack = cSum;
   });
 
   while(cfdChart.firstChild){ cfdChart.removeChild(cfdChart.firstChild); }
 
-  const margin=40, chartWidth=700, chartHeight=300;
-  cfdChart.setAttribute('width', chartWidth+ margin*2);
-  cfdChart.setAttribute('height',chartHeight+ margin*2);
+  const margin = 40, chartWidth = 700, chartHeight = 300;
+  cfdChart.setAttribute('width', chartWidth + margin * 2);
+  cfdChart.setAttribute('height', chartHeight + margin * 2);
 
-  let maxTime=data.length;
+  let maxTime = data.length;
 
   function xScale(x){
-    if(maxTime<=1)return margin;
-    return margin + ((x-1)/(maxTime-1))*chartWidth;
+    if(maxTime <= 1) return margin;
+    return margin + ((x - 1) / (maxTime - 1)) * chartWidth;
   }
   function yScale(val){
-    if(maxStack<=0)return margin+chartHeight;
-    return margin+chartHeight- (val/maxStack)*chartHeight;
+    if(maxStack <= 0) return margin + chartHeight;
+    return margin + chartHeight - (val / maxStack) * chartHeight;
   }
 
   // axes
-  let xAxis=document.createElementNS('http://www.w3.org/2000/svg','line');
+  let xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   xAxis.setAttribute('x1', margin);
-  xAxis.setAttribute('y1', margin+chartHeight);
-  xAxis.setAttribute('x2', margin+chartWidth);
-  xAxis.setAttribute('y2', margin+chartHeight);
-  xAxis.setAttribute('stroke','#333');
+  xAxis.setAttribute('y1', margin + chartHeight);
+  xAxis.setAttribute('x2', margin + chartWidth);
+  xAxis.setAttribute('y2', margin + chartHeight);
+  xAxis.setAttribute('stroke', '#333');
   cfdChart.appendChild(xAxis);
 
-  let yAxis=document.createElementNS('http://www.w3.org/2000/svg','line');
+  let yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   yAxis.setAttribute('x1', margin);
   yAxis.setAttribute('y1', margin);
   yAxis.setAttribute('x2', margin);
-  yAxis.setAttribute('y2', margin+chartHeight);
-  yAxis.setAttribute('stroke','#333');
+  yAxis.setAttribute('y2', margin + chartHeight);
+  yAxis.setAttribute('stroke', '#333');
   cfdChart.appendChild(yAxis);
 
   // stacked areas
-  let colors=['#2196F3','#4CAF50','#FFC107','#E91E63','#9C27B0',
-              '#FF9800','#009688','#673AB7','#607D8B','#795548'];
-  for(let j=0;j<stageCount;j++){
-    let arr=layers[j];
-    let path='';
-    arr.forEach((pt, i)=>{
-      let px=xScale(pt.x), py=yScale(pt.y1);
-      if(i===0) path+=`M${px},${py}`;
-      else path+=`L${px},${py}`;
+  let colors = ['#2196F3','#4CAF50','#FFC107','#E91E63','#9C27B0',
+                '#FF9800','#009688','#673AB7','#607D8B','#795548'];
+  for(let j = 0; j < stageCount; j++){
+    let arr = layers[j];
+    let path = '';
+    arr.forEach((pt, i) => {
+      let px = xScale(pt.x), py = yScale(pt.y1);
+      if(i === 0) path += `M${px},${py}`;
+      else path += `L${px},${py}`;
     });
-    for(let i=arr.length-1; i>=0;i--){
-      let pt2=arr[i];
-      let px2=xScale(pt2.x), py2=yScale(pt2.y0);
-      path+=`L${px2},${py2}`;
+    for(let i = arr.length - 1; i >= 0; i--){
+      let pt2 = arr[i];
+      let px2 = xScale(pt2.x), py2 = yScale(pt2.y0);
+      path += `L${px2},${py2}`;
     }
-    path+='Z';
-    let shape=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path += 'Z';
+    let shape = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     shape.setAttribute('d', path);
-    let col=colors[j%colors.length];
-    shape.setAttribute('fill',col);
-    shape.setAttribute('fill-opacity','0.7');
-    shape.setAttribute('stroke','#333');
-    shape.setAttribute('stroke-width','0.5');
+    let col = colors[j % colors.length];
+    shape.setAttribute('fill', col);
+    shape.setAttribute('fill-opacity', '0.7');
+    shape.setAttribute('stroke', '#333');
+    shape.setAttribute('stroke-width', '0.5');
     cfdChart.appendChild(shape);
   }
 
   // X ticks
-  let step=1;
-  if(maxTime>12) step= Math.ceil(maxTime/12);
-  for(let i=1;i<=maxTime;i+=step){
-    let px=xScale(i);
-    let xtick=document.createElementNS('http://www.w3.org/2000/svg','line');
-    xtick.setAttribute('x1',px);
-    xtick.setAttribute('y1',margin+chartHeight);
-    xtick.setAttribute('x2',px);
-    xtick.setAttribute('y2',margin+chartHeight+5);
-    xtick.setAttribute('stroke','#333');
+  let step = 1;
+  if(maxTime > 12) step = Math.ceil(maxTime / 12);
+  for(let i = 1; i <= maxTime; i += step){
+    let px = xScale(i);
+    let xtick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    xtick.setAttribute('x1', px);
+    xtick.setAttribute('y1', margin + chartHeight);
+    xtick.setAttribute('x2', px);
+    xtick.setAttribute('y2', margin + chartHeight + 5);
+    xtick.setAttribute('stroke', '#333');
     cfdChart.appendChild(xtick);
 
-    let xlbl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    xlbl.setAttribute('x',px-5);
-    xlbl.setAttribute('y',margin+chartHeight+15);
-    xlbl.setAttribute('font-size','10');
-    xlbl.textContent=i.toString();
+    let xlbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xlbl.setAttribute('x', px - 5);
+    xlbl.setAttribute('y', margin + chartHeight + 15);
+    xlbl.setAttribute('font-size', '10');
+    xlbl.textContent = i.toString();
     cfdChart.appendChild(xlbl);
   }
 
   // Y ticks
-  let tickCount=5;
-  for(let i=0;i<=tickCount;i++){
-    let val=(maxStack/tickCount)*i;
-    let py=yScale(val);
-    let ytick=document.createElementNS('http://www.w3.org/2000/svg','line');
-    ytick.setAttribute('x1',margin-5);
-    ytick.setAttribute('y1',py);
-    ytick.setAttribute('x2',margin);
-    ytick.setAttribute('y2',py);
-    ytick.setAttribute('stroke','#333');
+  let tickCount = 5;
+  for(let i = 0; i <= tickCount; i++){
+    let val = (maxStack / tickCount) * i;
+    let py = yScale(val);
+    let ytick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    ytick.setAttribute('x1', margin - 5);
+    ytick.setAttribute('y1', py);
+    ytick.setAttribute('x2', margin);
+    ytick.setAttribute('y2', py);
+    ytick.setAttribute('stroke', '#333');
     cfdChart.appendChild(ytick);
 
-    let ylbl=document.createElementNS('http://www.w3.org/2000/svg','text');
-    ylbl.setAttribute('x',margin-30);
-    ylbl.setAttribute('y',py+4);
-    ylbl.setAttribute('font-size','10');
-    ylbl.textContent= val.toFixed(0);
+    let ylbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    ylbl.setAttribute('x', margin - 30);
+    ylbl.setAttribute('y', py + 4);
+    ylbl.setAttribute('font-size', '10');
+    ylbl.textContent = val.toFixed(0);
     cfdChart.appendChild(ylbl);
   }
 
   // Legend
-  cfdLegend.innerHTML='';
-  for(let i=1;i<headers.length;i++){
-    let stName=headers[i];
-    let col=colors[(i-1)%colors.length];
-    cfdLegend.innerHTML+= 
-      `<span><span style="display:inline-block;width:12px;height:12px;background:${col};margin-right:5px;"></span>${stName}</span> `;
+  cfdLegend.innerHTML = '';
+  for(let i = 1; i < headers.length; i++){
+    let stName = headers[i];
+    let col = colors[(i - 1) % colors.length];
+    cfdLegend.innerHTML += `<span><span style="display:inline-block;width:12px;height:12px;background:${col};margin-right:5px;"></span>${stName}</span> `;
   }
 }
 
 function getCfdData(){
-  let headers=[];
-  for(let i=0;i< cfdHeaderRow.children.length;i++){
+  const cfdHeaderRow = document.getElementById('cfdHeaderRow');
+  let headers = [];
+  for(let i = 0; i < cfdHeaderRow.children.length; i++){
     headers.push(cfdHeaderRow.children[i].textContent.trim());
   }
-  let data=[];
-  const rows=cfdTbody.querySelectorAll('tr');
-  rows.forEach((r, idx)=>{
-    const ipCells=r.querySelectorAll('td input');
-    let rowVals=[];
-    ipCells.forEach((inp, c)=>{
-      let v=parseFloat(inp.value);
-      if(isNaN(v)) v=0;
+  let data = [];
+  const cfdTbody = document.getElementById('cfdTbody');
+  const rows = cfdTbody.querySelectorAll('tr');
+  rows.forEach((r, idx) => {
+    const ipCells = r.querySelectorAll('td input');
+    let rowVals = [];
+    ipCells.forEach((inp, c) => {
+      let v = parseFloat(inp.value);
+      if(isNaN(v)) v = 0;
       rowVals.push(v);
     });
-    data.push({values:rowVals});
+    data.push({ values: rowVals });
   });
   return { headers, data };
 }
 
 // 7) Export CSV
-exportCsvBtn.addEventListener('click', ()=>{
-  let { headers, data }= getCfdData();
-  let csvLines=[];
+exportCsvBtn.addEventListener('click', () => {
+  const { headers, data } = getCfdData();
+  let csvLines = [];
   csvLines.push(headers.join(','));
-  data.forEach(row=>{
+  data.forEach(row => {
     csvLines.push(row.values.join(','));
   });
-  let csvContent= csvLines.join('\n');
-  let blob=new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
-  let url=URL.createObjectURL(blob);
-  let link=document.createElement('a');
-  link.href=url;
-  link.download='CFD_Restored.csv';
+  let csvContent = csvLines.join('\n');
+  let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  let url = URL.createObjectURL(blob);
+  let link = document.createElement('a');
+  link.href = url;
+  link.download = 'CFD_Restored.csv';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
