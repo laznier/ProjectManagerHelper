@@ -6,14 +6,14 @@
   <meta name="description" content="Tutorials for Project Manager Helper—coming soon!" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Link to your existing style.css in the main repository -->
+  <!-- Link to your existing stylesheet -->
   <link rel="stylesheet" href="../style.css" />
 
   <style>
-    /* Navigation Bar (from main index page) */
+    /* Navigation Bar */
     .topnav {
       background-color: #333;
-      overflow-x: auto; 
+      overflow-x: auto;
       white-space: nowrap;
       -webkit-overflow-scrolling: touch;
     }
@@ -62,7 +62,7 @@
       color: #333;
     }
 
-    /* Hero Section for Tutorials Page */
+    /* Hero Section */
     .hero {
       position: relative;
       background: url('../images/hero-background.jpg') center/cover no-repeat;
@@ -81,22 +81,40 @@
       position: relative;
       z-index: 1;
     }
-    
-    /* Responsive Video Container for Tutorial Videos */
+
+    /* Video Grid Layout */
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+      gap: 20px; /* Space between videos */
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
     .video-container {
       position: relative;
       padding-bottom: 56.25%; /* 16:9 aspect ratio */
       height: 0;
       overflow: hidden;
       max-width: 100%;
-      margin: 2rem auto;
     }
+
     .video-container iframe {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #333;
+      color: white;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -110,7 +128,7 @@
   </div>
 </header>
 
-<!-- Navigation Bar with Dropdown Menus -->
+<!-- Navigation Bar -->
 <nav class="topnav">
   <ul>
     <li><a href="/">Home</a></li>
@@ -133,54 +151,34 @@
         <li><a href="../queueing/">Queueing Theory and CFD</a></li>
       </ul>
     </li>
-    <li class="dropdown">
-      <a href="../templates/" class="parent-link">Templates</a>
-      <ul class="dropdown-menu">
-        <li class="go-parent"><a href="../templates/">Go to Templates</a></li>
-        <li><a href="../templates/learning_curve.xlsx">Learning Curve</a></li>
-        <li><a href="../templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
-      </ul>
-    </li>
-    <li class="dropdown">
-      <a href="../tutorials/" class="parent-link">Tutorials</a>
-      <ul class="dropdown-menu">
-        <li class="go-parent"><a href="../tutorials/">Go to Tutorials</a></li>
-      </ul>
-    </li>
   </ul>
 </nav>
 
-
 <!-- Main Content: Tutorial Videos -->
 <main>
-  <section style="padding: 2rem; text-align: center;">
+  <section style="text-align: center;">
     <h2>Tutorial Videos</h2>
     <p>We’re currently working on new tutorial videos to help you get the most out of our PM tools.</p>
     <p>Stay tuned for updates!</p>
-    
-    <!-- First Video -->
-    <div class="video-container">
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/-bsMkM-oJyk?si=Rud_-wjyBqhy--In" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-    </div>
-    
-    <!-- Second Video -->
-    <div class="video-container">
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/8d5B47qEisY?si=ItsfoJyEFF891GLr" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-    </div>
-    <!-- Third Video -->
-    <div class="video-container">
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/YQhHAIdXKeg?si=5OY7f1WVjDDivmb4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-    </div>
-     <!-- Fourth Video -->
-    <div class="video-container">
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/oMByqpzxtMg?si=a5Ddl5n76K7KjCHS" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-    </div>
 
-       <!-- Fifth Video -->
-    <div class="video-container">
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/Gn-EpihE0I0?si=GLDuguBe95cQarmw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    <!-- Video Grid -->
+    <div class="video-grid">
+      <div class="video-container">
+        <iframe src="https://www.youtube.com/embed/-bsMkM-oJyk?si=Rud_-wjyBqhy--In" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="video-container">
+        <iframe src="https://www.youtube.com/embed/8d5B47qEisY?si=ItsfoJyEFF891GLr" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="video-container">
+        <iframe src="https://www.youtube.com/embed/YQhHAIdXKeg?si=5OY7f1WVjDDivmb4" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="video-container">
+        <iframe src="https://www.youtube.com/embed/oMByqpzxtMg?si=a5Ddl5n76K7KjCHS" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div class="video-container">
+        <iframe src="https://www.youtube.com/embed/Gn-EpihE0I0?si=GLDuguBe95cQarmw" frameborder="0" allowfullscreen></iframe>
+      </div>
     </div>
-    
   </section>
 </main>
 
@@ -189,69 +187,5 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
-<!-- Desktop Portal + Mobile Toggle Script (from main index page) -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const canHover = window.matchMedia('(hover: hover)').matches;
-  const dropdowns = document.querySelectorAll('.dropdown');
-
-  if (canHover) {
-    // Desktop Hover: Portal Approach
-    dropdowns.forEach(drop => {
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      drop.addEventListener('mouseenter', () => {
-        const rect = drop.getBoundingClientRect();
-        document.body.appendChild(dropdownMenu);
-        dropdownMenu.style.position = 'fixed';
-        dropdownMenu.style.top = rect.bottom + 'px';
-        dropdownMenu.style.left = rect.left + 'px';
-        dropdownMenu.style.display = 'block';
-        dropdownMenu.style.zIndex = '10000000';
-      });
-      drop.addEventListener('mouseleave', () => {
-        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-          drop.appendChild(dropdownMenu);
-          dropdownMenu.style.position = '';
-          dropdownMenu.style.top = '';
-          dropdownMenu.style.left = '';
-          dropdownMenu.style.display = 'none';
-        }
-      });
-      dropdownMenu.addEventListener('mouseleave', () => {
-        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-          drop.appendChild(dropdownMenu);
-          dropdownMenu.style.position = '';
-          dropdownMenu.style.top = '';
-          dropdownMenu.style.left = '';
-          dropdownMenu.style.display = 'none';
-        }
-      });
-    });
-    window.addEventListener('scroll', () => {
-      dropdowns.forEach(drop => {
-        const dropdownMenu = drop.querySelector('.dropdown-menu');
-        if (dropdownMenu.style.position === 'fixed') {
-          drop.appendChild(dropdownMenu);
-          dropdownMenu.style.position = '';
-          dropdownMenu.style.top = '';
-          dropdownMenu.style.left = '';
-          dropdownMenu.style.display = 'none';
-        }
-      });
-    });
-  } else {
-    // Mobile: Simple Toggle In-Place
-    dropdowns.forEach(drop => {
-      const parentLink = drop.querySelector('.parent-link');
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      dropdownMenu.style.display = 'none';
-      parentLink.addEventListener('click', e => {
-        e.preventDefault();
-        dropdownMenu.style.display = (dropdownMenu.style.display === 'block') ? 'none' : 'block';
-      });
-    });
-  }
-});
-</script>
 </body>
 </html>
