@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Advanced Earned Value Management</title>
+  <title>Advanced EVM: Planned vs. Actual + Forecast Cost</title>
   <style>
     body {
       font-family: sans-serif;
@@ -62,12 +62,12 @@
   </style>
 </head>
 <body>
-  <!-- Back to Main Page button -->
+
+<!-- Back to Main Page button -->
 <button onclick="window.location.href='https://projectmanagerhelper.com'">
   Back to Main Page
 </button>
-
-  <h1>Advanced EVM (with concurrency): Planned vs. Actual Cost & ROI with EVM Forecasts</h1>
+  <h1>Advanced EVM: Planned vs. Actual + Forecast Cost</h1>
 
   <!-- JSON Import Section -->
   <h3>Import Project Data (JSON)</h3>
@@ -278,11 +278,10 @@
   <h2>Projects Comparison & Forecast</h2>
   <div id="comparisonResults"></div>
 
-  <h2>Planned vs. Actual Cost (Concurrency-Based)</h2>
+  <h2>Planned vs. Actual + Forecast Cost (Concurrency-Based)</h2>
   <div id="timeSeriesGraphContainer"></div>
 
-  <h2>ROI Over Time</h2>
-  <div id="roiChartContainer"></div>
+  <!-- ROI Over Time section removed entirely -->
 
   <h2>Insights</h2>
   <div id="insightsOutput"></div>
@@ -290,14 +289,17 @@
   <div class="assumptions-box">
     <strong>Assumptions:</strong>
     <ul>
-      <li>Calculated as of the Current Day input (day-by-day concurrency for partial completions).</li>
-      <li>All costs are evenly distributed across each activity’s duration.</li>
+      <li>Calculated as of the Current Day input (day-by-day concurrency for partial completions up to Current Day).</li>
       <li>Dependencies handle FS, FF, SS, SF with lead/lag (no cycles).</li>
-      <li>Partial completions are spread uniformly up to the current day.</li>
-      <li>After the current day, we rely on EVM metrics (SPI, CPI) to forecast final schedule & cost.</li>
+      <li>All costs are evenly distributed across each activity’s duration (planned and actual up to Current Day).</li>
+      <li>After the Current Day, the actual cost line switches to a single EVM-based forecast line using:
+        <ul>
+          <li>Forecast Finish Day = currentDay + ((plannedDuration - currentDay) / SPI)</li>
+          <li>EAC = AC<sub>cd</sub> + (BAC – EV<sub>cd</sub>) / CPI</li>
+        </ul>
+      </li>
       <li>SV = EV – PV, CV = EV – AC, SPI = EV / PV, CPI = EV / AC.</li>
-      <li>EAC = AC + (BAC – EV)/CPI, Schedule Forecast ≈ (Planned Duration) / SPI, Cost Forecast ≈ (Planned Cost) / CPI.</li>
-      <li>ROI(d) = ((EV(d) – AC(d)) / AC(d)) × 100%, if AC(d) &gt; 0.</li>
+      <li>The red vertical line is at the maximum current day among all projects for each chart.</li>
     </ul>
   </div>
 
@@ -412,7 +414,7 @@ document.getElementById('importProjectBtn').addEventListener('click', () => {
       document.getElementById('projectsContainer').appendChild(c);
     }
   } catch(err){
-    alert('Invalid JSON. See console.');
+    alert('Invalid JSON. Check console.');
     console.error(err);
   }
 });
@@ -423,7 +425,7 @@ document.getElementById('addManualProjectBtn').addEventListener('click', () => {
 });
 
 /*****************************************************************
- * 2) SCHEDULING (FS, FF, SS, SF) BFS
+ * BFS SCHEDULING (FS, FF, SS, SF)
  *****************************************************************/
 function scheduleProject(projDiv) {
   const currentDay=parseFloat(projDiv.querySelector('.currentDay').value)||0;
@@ -468,8 +470,7 @@ function scheduleProject(projDiv) {
   tasks.forEach(t=>{
     t.preds.forEach(p=>{
       if(nameToTask[p.name]){
-        let predTask=nameToTask[p.name];
-        predTask.succ.push(t.name);
+        nameToTask[p.name].succ.push(t.name);
       }
     });
   });
@@ -520,10 +521,10 @@ function computeSuccessorES(predTask,succTask){
 }
 
 /*****************************************************************
- * 3) DAY-BY-DAY concurrency up to current day
+ * DAY-BY-DAY concurrency up to currentDay
  *****************************************************************/
 function computeDayByDay(tasks, currentDay) {
-  // find max EF => plannedDuration
+  // find plannedDuration => max EF
   let plannedDuration=0;
   tasks.forEach(t=>{
     if(t.EF>plannedDuration) plannedDuration=t.EF;
@@ -533,7 +534,7 @@ function computeDayByDay(tasks, currentDay) {
   let dailyAC=new Array(plannedDuration+1).fill(0);
   let dailyEV=new Array(plannedDuration+1).fill(0);
 
-  // planned cost
+  // distribute planned cost
   tasks.forEach(t=>{
     let costPerDay=(t.duration>0)?(t.budget/t.duration):0;
     for(let d=Math.floor(t.ES); d<Math.floor(t.EF); d++){
@@ -543,32 +544,21 @@ function computeDayByDay(tasks, currentDay) {
     }
   });
 
-  // actual cost & EV
+  // actual cost & EV up to current day
   tasks.forEach(t=>{
     let fracComplete=t.pctComplete/100;
     let usedAC=t.actualCost*fracComplete;
     let usedEV=t.budget*fracComplete;
-    let remainAC=t.actualCost*(1-fracComplete);
-    let remainEV=t.budget*(1-fracComplete);
 
     for(let d=Math.floor(t.ES); d<Math.floor(t.EF); d++){
-      if(d<0 || d>=dailyAC.length) continue;
+      if(d<0||d>=dailyAC.length) continue;
       if(d<currentDay){
-        // portion up to current day
         let durUpToCD=Math.min(currentDay,t.EF)-t.ES;
         if(durUpToCD<0) durUpToCD=0;
         if(durUpToCD>t.duration) durUpToCD=t.duration;
         if(durUpToCD>0){
           dailyAC[d]+= (usedAC/durUpToCD);
           dailyEV[d]+= (usedEV/durUpToCD);
-        }
-      } else {
-        // naive approach after current day
-        let durAfterCD=t.EF-currentDay;
-        if(durAfterCD<0) durAfterCD=0;
-        if(durAfterCD>0){
-          dailyAC[d]+= (remainAC/durAfterCD);
-          dailyEV[d]+= (remainEV/durAfterCD);
         }
       }
     }
@@ -581,23 +571,21 @@ function computeDayByDay(tasks, currentDay) {
     dailyEV[d]+=dailyEV[d-1];
   }
 
-  // sum of budgets => plannedCost
+  // sum budgets => plannedCost
   let plannedCost= tasks.reduce((acc,t)=> acc+t.budget,0);
 
   return {dailyPlan,dailyAC,dailyEV,plannedDuration,plannedCost};
 }
 
 /*****************************************************************
- * 4) MAIN CALC
+ * MAIN CALC + EVM FORECAST
  *****************************************************************/
 document.getElementById('calcAllBtn').addEventListener('click', () => {
   const projectDivs=document.querySelectorAll('.project-container');
   let results=[];
 
   projectDivs.forEach((projDiv, idx)=>{
-    // 1) BFS scheduling
     let {tasks, currentDay}=scheduleProject(projDiv);
-    // 2) day-by-day concurrency
     let {dailyPlan,dailyAC,dailyEV,plannedDuration,plannedCost}=computeDayByDay(tasks,currentDay);
 
     // measure final at current day
@@ -612,37 +600,37 @@ document.getElementById('calcAllBtn').addEventListener('click', () => {
     let SPI=(PVcd>0)?(EVcd/PVcd):1;
     let CPI=(ACcd>0)?(EVcd/ACcd):1;
 
-    // EAC => AC + (BAC - EV)/CPI
-    let ACsoFar=ACcd; 
-    let BAC=plannedCost; 
-    let EAC= ACsoFar + ((BAC - EVcd)/(CPI||1));
+    // EAC => ACcd + (BAC - EVcd)/CPI
+    let BAC=plannedCost;
+    let EAC=ACcd + ((BAC - EVcd)/(CPI||1));
 
-    // schedule forecast => plannedDuration / SPI
-    let scheduleForecast=(SPI>0)?(plannedDuration/SPI):plannedDuration;
+    // forecastFinishDay => currentDay + (remainingDur / SPI)
+    let remainDur=(plannedDuration>currentDay)?(plannedDuration - currentDay):0;
+    let forecastFinishDay=currentDay + (remainDur/(SPI||1));
 
-    // cost forecast => plannedCost / CPI
-    let costForecast=(CPI>0)?(plannedCost/CPI):plannedCost;
-
+    // Store project results
     results.push({
-      name: projDiv.querySelector('.projectName').value || ("Project "+(idx+1)),
+      name:projDiv.querySelector('.projectName').value || ("Project "+(idx+1)),
       tasks,
       dailyPlan,dailyAC,dailyEV,
       plannedDuration,plannedCost,
       currentDay,
       PVcd,ACcd,EVcd,
       SV,CV,SPI,CPI,
-      EAC, scheduleForecast, costForecast
+      EAC,
+      forecastFinishDay
     });
   });
 
   displayComparisonForecast(results);
   drawCostChart(results);
-  drawROIChart(results);
+
+  // ROI code removed, so no call to drawROIChart
   window.projectResults=results;
 });
 
 /*****************************************************************
- * 5) COMPARISON TABLE
+ * COMPARISON TABLE
  *****************************************************************/
 function displayComparisonForecast(results){
   let html=`<table>
@@ -658,9 +646,8 @@ function displayComparisonForecast(results){
       <th>CV</th>
       <th>SPI</th>
       <th>CPI</th>
-      <th>Schedule<br>Forecast</th>
-      <th>Cost<br>Forecast</th>
       <th>EAC</th>
+      <th>Forecast<br>Finish Day</th>
     </tr>
   </thead>
   <tbody>`;
@@ -677,9 +664,8 @@ function displayComparisonForecast(results){
       <td>${r.CV.toFixed(2)}</td>
       <td>${r.SPI.toFixed(2)}</td>
       <td>${r.CPI.toFixed(2)}</td>
-      <td>${r.scheduleForecast.toFixed(2)}</td>
-      <td>${r.costForecast.toFixed(2)}</td>
       <td>${r.EAC.toFixed(2)}</td>
+      <td>${r.forecastFinishDay.toFixed(2)}</td>
     </tr>`;
   });
   html+=`</tbody></table>`;
@@ -687,7 +673,7 @@ function displayComparisonForecast(results){
 }
 
 /*****************************************************************
- * 6) CHART: PLANNED vs. ACTUAL COST
+ * CHART: PLANNED vs. ACTUAL + FORECAST
  *****************************************************************/
 const projectColors=["green","blue","red","purple","orange","teal"];
 
@@ -703,20 +689,27 @@ function drawCostChart(results) {
   svg.setAttribute("width",width);
   svg.setAttribute("height",height);
 
-  // find global maxDay, global maxVal
-  let globalMaxDay=0, globalMaxVal=0;
+  // find max X among all forecastFinishDay or plannedDuration
+  let globalMaxX=0, globalMaxVal=0;
+  let allCurrentDays=[];
   results.forEach(r=>{
-    let maxD=r.plannedDuration;
-    if(maxD>globalMaxDay) globalMaxDay=maxD;
+    let localMaxX = Math.max(r.plannedDuration, r.forecastFinishDay);
+    if(localMaxX>globalMaxX) globalMaxX=localMaxX;
+
     let localMaxPlan=Math.max(...r.dailyPlan);
-    let localMaxAC=Math.max(...r.dailyAC);
-    let localMax=Math.max(localMaxPlan,localMaxAC);
+    let localMaxAC=Math.max(...r.dailyAC, r.EAC);
+    let localMax=Math.max(localMaxPlan, localMaxAC);
     if(localMax>globalMaxVal) globalMaxVal=localMax;
+
+    allCurrentDays.push(r.currentDay);
   });
 
+  // single vertical red line at max current day among all projects
+  let globalCD = Math.max(...allCurrentDays);
+
   function xScale(d){
-    if(globalMaxDay<=0)return margin;
-    return margin+(d/globalMaxDay)*(width-2*margin);
+    if(globalMaxX<=0)return margin;
+    return margin+(d/globalMaxX)*(width-2*margin);
   }
   function yScale(v){
     if(globalMaxVal<=0)return height-margin;
@@ -743,7 +736,7 @@ function drawCostChart(results) {
   // ticks
   let xTicks=5;
   for(let i=0;i<=xTicks;i++){
-    let dVal=(i/xTicks)*globalMaxDay;
+    let dVal=(i/xTicks)*globalMaxX;
     let x=xScale(dVal);
     const tk=document.createElementNS(svgNS,"line");
     tk.setAttribute("x1",x);
@@ -794,75 +787,121 @@ function drawCostChart(results) {
   yLabel.textContent="Cost";
   svg.appendChild(yLabel);
 
-  // lines
+  // single red vertical line at globalCD
+  let xCD=xScale(globalCD);
+  const cdLine=document.createElementNS(svgNS,"line");
+  cdLine.setAttribute("x1",xCD);
+  cdLine.setAttribute("y1",margin);
+  cdLine.setAttribute("x2",xCD);
+  cdLine.setAttribute("y2",height-margin);
+  cdLine.setAttribute("stroke","red");
+  cdLine.setAttribute("stroke-dasharray","3,3");
+  cdLine.setAttribute("stroke-width","2");
+  svg.appendChild(cdLine);
+
+  // For each project, we draw:
+  // 1) planned cost (dotted) from day 0.. plannedDuration
+  // 2) actual cost from day 0.. currentDay
+  // 3) forecast cost from currentDay.. forecastFinishDay
   results.forEach((proj, idx)=>{
     const color=projectColors[idx % projectColors.length];
-    drawLine(proj.dailyPlan,color,true,proj.plannedDuration);
-    drawLine(proj.dailyAC,color,false,proj.plannedDuration);
-
-    // vertical line
-    let cx=xScale(proj.currentDay);
-    const vLine=document.createElementNS(svgNS,"line");
-    vLine.setAttribute("x1",cx);
-    vLine.setAttribute("y1",margin);
-    vLine.setAttribute("x2",cx);
-    vLine.setAttribute("y2",height-margin);
-    vLine.setAttribute("stroke",color);
-    vLine.setAttribute("stroke-dasharray","4,4");
-    vLine.setAttribute("stroke-width","2");
-    svg.appendChild(vLine);
-  });
-
-  // legend top-left
-  results.forEach((proj, i)=>{
-    const color=projectColors[i % projectColors.length];
-    let lx=margin+10;
-    let ly=margin+10 + i*40;
+    // planned
+    drawPlanned(proj, color);
 
     // actual
-    const line1=document.createElementNS(svgNS,"line");
-    line1.setAttribute("x1",lx);
-    line1.setAttribute("y1",ly);
-    line1.setAttribute("x2",lx+30);
-    line1.setAttribute("y2",ly);
-    line1.setAttribute("stroke",color);
-    line1.setAttribute("stroke-width","2");
-    svg.appendChild(line1);
+    drawActual(proj, color);
 
-    const lbl1=document.createElementNS(svgNS,"text");
-    lbl1.setAttribute("x",lx+35);
-    lbl1.setAttribute("y",ly+4);
-    lbl1.setAttribute("font-size","12");
-    lbl1.textContent=proj.name+" Actual";
-    svg.appendChild(lbl1);
+    // forecast
+    drawForecast(proj, color);
+  });
 
-    // planned
-    const line2=document.createElementNS(svgNS,"line");
-    line2.setAttribute("x1",lx);
-    line2.setAttribute("y1",ly+15);
-    line2.setAttribute("x2",lx+30);
-    line2.setAttribute("y2",ly+15);
-    line2.setAttribute("stroke",color);
-    line2.setAttribute("stroke-width","2");
-    line2.setAttribute("stroke-dasharray","5,5");
-    svg.appendChild(line2);
+  // legend top-left, 3 labels: planned, actual, forecast
+  results.forEach((proj, i)=>{
+    let color=projectColors[i % projectColors.length];
+    let lx=margin+10;
+    let ly=margin+10 + i*60;
 
-    const lbl2=document.createElementNS(svgNS,"text");
-    lbl2.setAttribute("x",lx+35);
-    lbl2.setAttribute("y",ly+19);
-    lbl2.setAttribute("font-size","12");
-    lbl2.textContent=proj.name+" Plan";
-    svg.appendChild(lbl2);
+    // 1) planned
+    const linePlan=document.createElementNS(svgNS,"line");
+    linePlan.setAttribute("x1",lx);
+    linePlan.setAttribute("y1",ly);
+    linePlan.setAttribute("x2",lx+30);
+    linePlan.setAttribute("y2",ly);
+    linePlan.setAttribute("stroke",color);
+    linePlan.setAttribute("stroke-width","2");
+    linePlan.setAttribute("stroke-dasharray","2,6"); // dotted
+    svg.appendChild(linePlan);
+
+    const lblPlan=document.createElementNS(svgNS,"text");
+    lblPlan.setAttribute("x",lx+35);
+    lblPlan.setAttribute("y",ly+4);
+    lblPlan.setAttribute("font-size","12");
+    lblPlan.textContent=proj.name+" Planned";
+    svg.appendChild(lblPlan);
+
+    // 2) actual
+    const lineAct=document.createElementNS(svgNS,"line");
+    lineAct.setAttribute("x1",lx);
+    lineAct.setAttribute("y1",ly+15);
+    lineAct.setAttribute("x2",lx+30);
+    lineAct.setAttribute("y2",ly+15);
+    lineAct.setAttribute("stroke",color);
+    lineAct.setAttribute("stroke-width","2");
+    svg.appendChild(lineAct);
+
+    const lblAct=document.createElementNS(svgNS,"text");
+    lblAct.setAttribute("x",lx+35);
+    lblAct.setAttribute("y",ly+19);
+    lblAct.setAttribute("font-size","12");
+    lblAct.textContent=proj.name+" Actual";
+    svg.appendChild(lblAct);
+
+    // 3) forecast
+    const lineF=document.createElementNS(svgNS,"line");
+    lineF.setAttribute("x1",lx);
+    lineF.setAttribute("y1",ly+30);
+    lineF.setAttribute("x2",lx+30);
+    lineF.setAttribute("y2",ly+30);
+    lineF.setAttribute("stroke",color);
+    lineF.setAttribute("stroke-width","2");
+    lineF.setAttribute("stroke-dasharray","4,4");
+    lineF.setAttribute("opacity","0.6");
+    svg.appendChild(lineF);
+
+    const lblF=document.createElementNS(svgNS,"text");
+    lblF.setAttribute("x",lx+35);
+    lblF.setAttribute("y",ly+34);
+    lblF.setAttribute("font-size","12");
+    lblF.textContent=proj.name+" Forecast";
+    svg.appendChild(lblF);
   });
 
   container.appendChild(svg);
 
-  function drawLine(arr,color,dashed,plannedDuration){
+  function xScaleF(d){ return xScale(d); }
+  function yScaleF(v){ return yScale(v); }
+
+  function drawPlanned(proj, color){
+    let path="M"+ xScaleF(0) +" "+ yScaleF(proj.dailyPlan[0]);
+    for(let d=1; d<=proj.plannedDuration; d++){
+      let yVal = (d<proj.dailyPlan.length)? proj.dailyPlan[d] : proj.dailyPlan[proj.dailyPlan.length-1];
+      path+="L"+ xScaleF(d)+" "+ yScaleF(yVal)+" ";
+    }
+    const p=document.createElementNS(svgNS,"path");
+    p.setAttribute("d",path);
+    p.setAttribute("stroke",color);
+    p.setAttribute("stroke-width","2");
+    p.setAttribute("fill","none");
+    p.setAttribute("stroke-dasharray","2,6"); // dotted style
+    svg.appendChild(p);
+  }
+
+  function drawActual(proj, color){
     let path="";
-    for(let d=0; d<=plannedDuration; d++){
-      if(d< arr.length){
-        let x=xScale(d);
-        let y=yScale(arr[d]);
+    for(let d=0; d<=proj.currentDay; d++){
+      if(d<proj.dailyAC.length){
+        let x=xScaleF(d);
+        let y=yScaleF(proj.dailyAC[d]);
         path+=(d===0?"M":"L")+x+" "+y+" ";
       }
     }
@@ -871,250 +910,111 @@ function drawCostChart(results) {
     p.setAttribute("stroke",color);
     p.setAttribute("stroke-width","2");
     p.setAttribute("fill","none");
-    if(dashed){
-      p.setAttribute("stroke-dasharray","5,5");
-    }
     svg.appendChild(p);
   }
-}
 
-/*****************************************************************
- * 7) ROI CHART
- *****************************************************************/
-function drawROIChart(results){
-  const container=document.getElementById('roiChartContainer');
-  container.innerHTML="";
+  function drawForecast(proj, color){
+    // single line from (currentDay, ACcd) to (forecastFinishDay, EAC)
+    let cdInt=Math.floor(proj.currentDay);
+    let ACcd= (cdInt<proj.dailyAC.length)? proj.dailyAC[cdInt] : proj.dailyAC[proj.dailyAC.length-1];
+    let x1=xScaleF(proj.currentDay);
+    let y1=yScaleF(ACcd);
 
-  if(!results.length)return;
+    let x2=xScaleF(proj.forecastFinishDay);
+    let y2=yScaleF(proj.EAC);
 
-  const width=700, height=300, margin=50;
-  const svgNS="http://www.w3.org/2000/svg";
-  const svg=document.createElementNS(svgNS,"svg");
-  svg.setAttribute("width",width);
-  svg.setAttribute("height",height);
-
-  // find globalMaxDay
-  let globalMaxDay=0;
-  results.forEach(r=>{
-    if(r.plannedDuration>globalMaxDay) globalMaxDay=r.plannedDuration;
-  });
-
-  // build daily ROI
-  let allVals=[];
-  results.forEach((proj,idx)=>{
-    let arr=[];
-    for(let d=0; d<=proj.plannedDuration; d++){
-      let ac=(d<proj.dailyAC.length)?(proj.dailyAC[d]):0;
-      let ev=(d<proj.dailyEV.length)?(proj.dailyEV[d]):0;
-      let roi=0;
-      if(ac>0){
-        roi=((ev-ac)/ac)*100;
-      }
-      arr.push(roi);
-      allVals.push(roi);
-    }
-    proj.dailyROI=arr;
-  });
-
-  let minROI=Math.min(...allVals);
-  let maxROI=Math.max(...allVals);
-
-  function xScale(d){
-    if(globalMaxDay<=0)return margin;
-    return margin+(d/globalMaxDay)*(width-2*margin);
-  }
-  function yScale(v){
-    if(minROI===maxROI)return height-margin;
-    return height-margin-((v-minROI)/(maxROI-minROI))*(height-2*margin);
-  }
-
-  // axes
-  const xAxis=document.createElementNS(svgNS,"line");
-  xAxis.setAttribute("x1",margin);
-  xAxis.setAttribute("y1",height-margin);
-  xAxis.setAttribute("x2",width-margin);
-  xAxis.setAttribute("y2",height-margin);
-  xAxis.setAttribute("stroke","#000");
-  svg.appendChild(xAxis);
-
-  const yAxis=document.createElementNS(svgNS,"line");
-  yAxis.setAttribute("x1",margin);
-  yAxis.setAttribute("y1",margin);
-  yAxis.setAttribute("x2",margin);
-  yAxis.setAttribute("y2",height-margin);
-  yAxis.setAttribute("stroke","#000");
-  svg.appendChild(yAxis);
-
-  // ticks
-  let xTicks=5;
-  for(let i=0;i<=xTicks;i++){
-    let dVal=(i/xTicks)*globalMaxDay;
-    let x=xScale(dVal);
-    const tk=document.createElementNS(svgNS,"line");
-    tk.setAttribute("x1",x);
-    tk.setAttribute("y1",height-margin);
-    tk.setAttribute("x2",x);
-    tk.setAttribute("y2",height-margin+5);
-    tk.setAttribute("stroke","#000");
-    svg.appendChild(tk);
-
-    const lbl=document.createElementNS(svgNS,"text");
-    lbl.setAttribute("x",x);
-    lbl.setAttribute("y",height-margin+18);
-    lbl.setAttribute("text-anchor","middle");
-    lbl.textContent=Math.round(dVal);
-    svg.appendChild(lbl);
-  }
-
-  let yTicks=5;
-  for(let i=0;i<=yTicks;i++){
-    let val=minROI+(i/yTicks)*(maxROI-minROI);
-    let y=yScale(val);
-    const tk=document.createElementNS(svgNS,"line");
-    tk.setAttribute("x1",margin-5);
-    tk.setAttribute("y1",y);
-    tk.setAttribute("x2",margin);
-    tk.setAttribute("y2",y);
-    tk.setAttribute("stroke","#000");
-    svg.appendChild(tk);
-
-    const lbl=document.createElementNS(svgNS,"text");
-    lbl.setAttribute("x",margin-10);
-    lbl.setAttribute("y",y+5);
-    lbl.setAttribute("text-anchor","end");
-    lbl.textContent=Math.round(val);
-    svg.appendChild(lbl);
-  }
-
-  // axis labels
-  const xLabel=document.createElementNS(svgNS,"text");
-  xLabel.setAttribute("x",width/2);
-  xLabel.setAttribute("y",height-5);
-  xLabel.setAttribute("text-anchor","middle");
-  xLabel.textContent="Time (days)";
-  svg.appendChild(xLabel);
-
-  const yLabel=document.createElementNS(svgNS,"text");
-  yLabel.setAttribute("x",margin);
-  yLabel.setAttribute("y",margin-10);
-  yLabel.textContent="ROI (%)";
-  svg.appendChild(yLabel);
-
-  // lines
-  results.forEach((proj,idx)=>{
-    let color=projectColors[idx % projectColors.length];
-    let arr=proj.dailyROI;
-    let path="";
-    for(let d=0; d<=proj.plannedDuration; d++){
-      let x=xScale(d);
-      let y=yScale(arr[d]);
-      path+=(d===0?"M":"L")+x+" "+y+" ";
-    }
-    const p=document.createElementNS(svgNS,"path");
-    p.setAttribute("d",path);
-    p.setAttribute("stroke",color);
-    p.setAttribute("stroke-width","2");
-    p.setAttribute("fill","none");
-    svg.appendChild(p);
-  });
-
-  // legend top-left
-  results.forEach((proj, i)=>{
-    let color=projectColors[i % projectColors.length];
-    let lx=50;
-    let ly=50 + i*20;
-    const line=document.createElementNS(svgNS,"line");
-    line.setAttribute("x1",lx);
-    line.setAttribute("y1",ly);
-    line.setAttribute("x2",lx+30);
-    line.setAttribute("y2",ly);
+    let path="M"+x1+" "+y1+" L"+x2+" "+y2;
+    const line=document.createElementNS(svgNS,"path");
+    line.setAttribute("d",path);
     line.setAttribute("stroke",color);
     line.setAttribute("stroke-width","2");
+    line.setAttribute("fill","none");
+    line.setAttribute("stroke-dasharray","4,4");
+    line.setAttribute("opacity","0.6");
     svg.appendChild(line);
-
-    const lbl=document.createElementNS(svgNS,"text");
-    lbl.setAttribute("x",lx+35);
-    lbl.setAttribute("y",ly+4);
-    lbl.setAttribute("font-size","12");
-    lbl.textContent=proj.name;
-    svg.appendChild(lbl);
-  });
-
-  container.appendChild(svg);
+  }
 }
 
 /*****************************************************************
- * 8) INSIGHTS
+ * INSIGHTS
  *****************************************************************/
 document.getElementById('generateInsightsBtn').addEventListener('click', () => {
-  if(!window.projectResults||!window.projectResults.length){
+  if(!window.projectResults || !window.projectResults.length){
     alert('Calculate first');
     return;
   }
-  let txt=generateInsights(window.projectResults);
-  document.getElementById('insightsOutput').textContent=txt;
+  let txt = generateInsights(window.projectResults);
+  document.getElementById('insightsOutput').textContent = txt;
 });
 
 function generateInsights(results){
-  if(!results.length)return "";
+  if(!results.length) return "";
 
-  // We'll do a side-by-side comparison:
-  // 1) For each project, compute how many days ahead/behind schedule:
-  //    dayDiff = plannedDuration - scheduleForecast
-  //    if dayDiff>0 => finishing earlier
-  //    if dayDiff<0 => behind
-  // 2) For each project, how much cost saved/over
-  //    costDiff = plannedCost - costForecast
-  //    if costDiff>0 => saving money
-  //    if costDiff<0 => over budget
-  // 3) We'll pick best schedule by largest positive dayDiff
-  // 4) We'll pick best cost by largest positive costDiff
-  // 5) We'll mention which project has the highest EV, etc.
+  let text = "Insights:\n\n";
 
-  let text="Insights:\n\n";
+  // We'll compare schedule, cost, and EV for each project
+  let bestScheduleProj = null, bestScheduleVal = -Infinity;
+  let bestCostProj     = null, bestCostVal     = -Infinity;
+  let bestEVProj       = null, bestEVVal       = -Infinity;
 
-  let bestScheduleProject=null, bestScheduleValue=-999999;
-  let bestCostProject=null, bestCostValue=-999999;
-  let bestEVProject=null, bestEVValue=-999999;
+  // Evaluate each project’s dayDiff (plannedDuration – forecastFinishDay),
+  // costDiff (plannedCost – EAC), and EVcd to see which is best.
+  results.forEach(r => {
+    let dayDiff   = r.plannedDuration - r.forecastFinishDay; 
+    let costDiff  = r.plannedCost - r.EAC;
+    let currentEV = r.EVcd;
 
-  results.forEach(r=>{
-    let dayDiff=r.plannedDuration - r.scheduleForecast; 
-    let costDiff=r.plannedCost - r.costForecast;
-    let currentEV= r.EVcd; // or total EV ?
-
-    // if dayDiff> bestScheduleValue => best schedule
-    if(dayDiff>bestScheduleValue){
-      bestScheduleValue=dayDiff;
-      bestScheduleProject=r;
+    // Best schedule performance => largest dayDiff
+    if(dayDiff > bestScheduleVal){
+      bestScheduleVal   = dayDiff;
+      bestScheduleProj  = r;
     }
-    // if costDiff> bestCostValue => best cost
-    if(costDiff>bestCostValue){
-      bestCostValue=costDiff;
-      bestCostProject=r;
+    // Best cost performance => largest costDiff
+    if(costDiff > bestCostVal){
+      bestCostVal   = costDiff;
+      bestCostProj  = r;
     }
-    // if currentEV> bestEVValue => best EV
-    if(currentEV>bestEVValue){
-      bestEVValue=currentEV;
-      bestEVProject=r;
+    // Highest EV => largest EVcd
+    if(currentEV > bestEVVal){
+      bestEVVal  = currentEV;
+      bestEVProj = r;
     }
   });
 
   // Summarize each project
-  results.forEach(r=>{
-    let dayDiff=r.plannedDuration - r.scheduleForecast;
-    let costDiff=r.plannedCost - r.costForecast;
+  results.forEach(r => {
+    let dayDiff  = r.plannedDuration - r.forecastFinishDay;
+    let costDiff = r.plannedCost - r.EAC;
     text += `Project: ${r.name}\n`;
     text += `  Days ahead/behind: ${dayDiff.toFixed(2)} ` +
-            (dayDiff>0 ? "(ahead)" : (dayDiff<0 ? "(behind)" : "(on track)")) + "\n";
+            (dayDiff > 0 ? "(ahead)" : (dayDiff < 0 ? "(behind)" : "(on track)")) + "\n";
     text += `  Cost saving/over: ${costDiff.toFixed(2)} ` +
-            (costDiff>0 ? "(saving)" : (costDiff<0 ? "(over)" : "(even)")) + "\n";
+            (costDiff > 0 ? "(saving)" : (costDiff < 0 ? "(over)" : "(even)")) + "\n";
     text += `  Current EV(@CD): ${r.EVcd.toFixed(2)}\n\n`;
   });
 
+  // Final summary lines, checking if the "best" objects exist
   text += "\nSummary:\n";
-  text += `• Best Schedule Performance: ${bestScheduleProject.name} (Days ahead: ${(bestScheduleValue).toFixed(2)})\n`;
-  text += `• Best Cost Performance: ${bestCostProject.name} (Cost saving: ${(bestCostValue).toFixed(2)})\n`;
-  text += `• Highest Earned Value: ${bestEVProject.name} (EV: ${bestEVValue.toFixed(2)})\n`;
+  if(bestScheduleProj){
+    text += `• Best Schedule Performance: ${bestScheduleProj.name} ` +
+            `(Days ahead: ${bestScheduleVal.toFixed(2)})\n`;
+  } else {
+    text += "• Best Schedule Performance: N/A\n";
+  }
+
+  if(bestCostProj){
+    text += `• Best Cost Performance: ${bestCostProj.name} ` +
+            `(Cost saving: ${bestCostVal.toFixed(2)})\n`;
+  } else {
+    text += "• Best Cost Performance: N/A\n";
+  }
+
+  if(bestEVProj){
+    text += `• Highest Earned Value: ${bestEVProj.name} ` +
+            `(EV: ${bestEVVal.toFixed(2)})\n`;
+  } else {
+    text += "• Highest Earned Value: N/A\n";
+  }
 
   return text;
 }
