@@ -1,256 +1,1118 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Earned Value Calculator (Hover Definitions)</title>
+  <title>Concurrency EVM: Planned vs. Actual Cost & ROI with EVM Forecasts</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       margin: 20px;
       background: #f7f7f7;
     }
-    h1 {
+    h1, h2, h3 {
       margin-bottom: 0.5em;
-    }
-    label {
-      font-weight: bold;
-    }
-    input[type="number"] {
-      width: 120px;
-      margin: 0.3em 0;
-      padding: 0.2em;
-      box-sizing: border-box;
     }
     table {
       border-collapse: collapse;
       margin-bottom: 1em;
+      background: #fff;
+      width: 100%;
     }
     th, td {
       border: 1px solid #ccc;
       padding: 0.5em;
       text-align: left;
     }
+    input, textarea, select {
+      width: 95%;
+      padding: 0.3em;
+      box-sizing: border-box;
+    }
     button {
-      margin: 0.5em 0;
-      padding: 0.5em 1em;
+      margin: 0.3em 0.5em 0.8em 0;
+      padding: 0.4em 0.8em;
       cursor: pointer;
       font-size: 1em;
     }
-    #results {
-      background: #fff;
+    .project-container {
       border: 1px solid #ccc;
+      background: #fff;
       padding: 1em;
-      border-radius: 4px;
-      width: 480px;
-      margin-top: 1em;
+      margin-bottom: 1em;
     }
-    .result-item {
-      margin: 0.2em 0;
-    }
-    .result-label {
+    .project-header {
       font-weight: bold;
-      display: inline-block;
-      width: 220px;
+      margin-bottom: 0.5em;
     }
-    .note {
-      font-size: 0.9em;
-      color: #666;
+    #insightsOutput {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 1em;
+      white-space: pre-wrap;
       margin-top: 1em;
-      width: 480px;
+    }
+    .assumptions-box {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 1em;
+      margin-top: 1em;
+      font-size: 0.9em;
+      color: #444;
     }
   </style>
 </head>
 <body>
+  <h1>Concurrency EVM: Planned vs. Actual Cost & ROI with EVM Forecasts</h1>
 
-  <button id="backButton" onclick="window.location.href='https://projectmanagerhelper.com'">Back to Main Page</button>
+  <!-- JSON Import Section -->
+  <h3>Import Project Data (JSON)</h3>
+  <textarea id="jsonImport">[
+  {
+    "name": "Example Project",
+    "currentDay": 15,
+    "activities": [
+      {
+        "name": "A",
+        "duration": 4,
+        "predecessors": [],
+        "dependencies": [],
+        "budget": 200,
+        "actualCost": 180,
+        "percentComplete": 100
+      },
+      {
+        "name": "B",
+        "duration": 7,
+        "predecessors": [],
+        "dependencies": [],
+        "budget": 400,
+        "actualCost": 420,
+        "percentComplete": 100
+      },
+      {
+        "name": "C",
+        "duration": 2,
+        "predecessors": [
+          "A|FS|0",
+          "B|FS|0"
+        ],
+        "dependencies": [
+          { "predecessor": "A", "type": "FS", "lag": 0 },
+          { "predecessor": "B", "type": "FS", "lag": 0 }
+        ],
+        "budget": 150,
+        "actualCost": 130,
+        "percentComplete": 100
+      },
+      {
+        "name": "D",
+        "duration": 5,
+        "predecessors": [
+          "B|FS|0"
+        ],
+        "dependencies": [
+          { "predecessor": "B", "type": "FS", "lag": 0 }
+        ],
+        "budget": 250,
+        "actualCost": 200,
+        "percentComplete": 100
+      },
+      {
+        "name": "E",
+        "duration": 10,
+        "predecessors": [
+          "C|FS|0"
+        ],
+        "dependencies": [
+          { "predecessor": "C", "type": "FS", "lag": 0 }
+        ],
+        "budget": 300,
+        "actualCost": 150,
+        "percentComplete": 50
+      },
+      {
+        "name": "F",
+        "duration": 13,
+        "predecessors": [
+          "C|FS|0",
+          "D|FS|0"
+        ],
+        "dependencies": [
+          { "predecessor": "C", "type": "FS", "lag": 0 },
+          { "predecessor": "D", "type": "FS", "lag": 0 }
+        ],
+        "budget": 500,
+        "actualCost": 250,
+        "percentComplete": 25
+      },
+      {
+        "name": "G",
+        "duration": 4,
+        "predecessors": [
+          "E|FS|0",
+          "F|FS|0"
+        ],
+        "dependencies": [
+          { "predecessor": "E", "type": "FS", "lag": 0 },
+          { "predecessor": "F", "type": "FS", "lag": 0 }
+        ],
+        "budget": 200,
+        "actualCost": 0,
+        "percentComplete": 0
+      }
+    ]
+  },
+  {
+    "name": "Another Example Project",
+    "currentDay": 15,
+    "activities": [
+      {
+        "name": "A",
+        "duration": 4,
+        "predecessors": [],
+        "dependencies": [],
+        "budget": 220,
+        "actualCost": 210,
+        "percentComplete": 100
+      },
+      {
+        "name": "B",
+        "duration": 7,
+        "predecessors": [
+          "A|FS|1"
+        ],
+        "dependencies": [],
+        "budget": 420,
+        "actualCost": 350,
+        "percentComplete": 100
+      },
+      {
+        "name": "C",
+        "duration": 2,
+        "predecessors": [
+          "A|SS|1",
+          "B|FS|2"
+        ],
+        "dependencies": [
+          { "predecessor": "A", "type": "SS", "lag": 1 },
+          { "predecessor": "B", "type": "FS", "lag": 2 }
+        ],
+        "budget": 150,
+        "actualCost": 100,
+        "percentComplete": 100
+      },
+      {
+        "name": "D",
+        "duration": 5,
+        "predecessors": [
+          "B|FF|-1"
+        ],
+        "dependencies": [
+          { "predecessor": "B", "type": "FF", "lag": -1 }
+        ],
+        "budget": 250,
+        "actualCost": 120,
+        "percentComplete": 100
+      },
+      {
+        "name": "E",
+        "duration": 10,
+        "predecessors": [
+          "C|SF|0"
+        ],
+        "dependencies": [
+          { "predecessor": "C", "type": "SF", "lag": 0 }
+        ],
+        "budget": 300,
+        "actualCost": 140,
+        "percentComplete": 40
+      },
+      {
+        "name": "F",
+        "duration": 13,
+        "predecessors": [
+          "C|SS|0",
+          "D|SS|1"
+        ],
+        "dependencies": [
+          { "predecessor": "C", "type": "SS", "lag": 0 },
+          { "predecessor": "D", "type": "SS", "lag": 1 }
+        ],
+        "budget": 500,
+        "actualCost": 200,
+        "percentComplete": 30
+      },
+      {
+        "name": "G",
+        "duration": 4,
+        "predecessors": [
+          "E|FS|0",
+          "F|FF|0"
+        ],
+        "dependencies": [
+          { "predecessor": "E", "type": "FS", "lag": 0 },
+          { "predecessor": "F", "type": "FF", "lag": 0 }
+        ],
+        "budget": 250,
+        "actualCost": 0,
+        "percentComplete": 0
+      }
+    ]
+  }
+]</textarea>
+  <br>
+  <button id="importProjectBtn">Import Projects</button>
+  <button id="addManualProjectBtn">Add Manual Project</button>
+  <br><br>
 
-<h1>Earned Value Calculator</h1>
-<p>Enter your project’s key parameters below. Hover over any label to see its definition or formula. Then click <strong>Calculate</strong> to view EVM metrics, forecasts, and EACs.</p>
+  <div id="projectsContainer"></div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Parameter</th>
-      <th>Value</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>
-        <label for="ev"
-          title="Earned Value (EV): The monetary value of the work actually completed.">
-          Earned Value (EV)
-        </label>
-      </td>
-      <td><input type="number" id="ev" placeholder="e.g. 1000" step="0.01"></td>
-    </tr>
-    <tr>
-      <td>
-        <label for="pv"
-          title="Planned Value (PV): The authorized budget for the work planned to be done at this point.">
-          Planned Value (PV)
-        </label>
-      </td>
-      <td><input type="number" id="pv" placeholder="e.g. 1200" step="0.01"></td>
-    </tr>
-    <tr>
-      <td>
-        <label for="ac"
-          title="Actual Cost (AC): The total cost actually incurred in performing the work.">
-          Actual Cost (AC)
-        </label>
-      </td>
-      <td><input type="number" id="ac" placeholder="e.g. 1100" step="0.01"></td>
-    </tr>
-    <tr>
-      <td>
-        <label for="bac"
-          title="Budget at Completion (BAC): The total planned budget for the entire project.">
-          Budget at Completion (BAC)
-        </label>
-      </td>
-      <td><input type="number" id="bac" placeholder="e.g. 5000" step="0.01"></td>
-    </tr>
-    <tr>
-      <td>
-        <label for="origSched"
-          title="Original Schedule (OS): The project's planned total duration (e.g., 12 months).">
-          Original Schedule (OS)
-        </label>
-      </td>
-      <td><input type="number" id="origSched" placeholder="e.g. 5" step="0.01"></td>
-    </tr>
-    <tr>
-      <td>
-        <label for="origCostEst"
-          title="Original Cost Estimate (OCE): The project's originally planned total cost.">
-          Original Cost Estimate (OCE)
-        </label>
-      </td>
-      <td><input type="number" id="origCostEst" placeholder="e.g. 200" step="0.01"></td>
-    </tr>
-  </tbody>
-</table>
+  <button id="calcAllBtn">Calculate All Projects</button>
+  <button id="generateInsightsBtn">Generate Insights</button>
 
-<button id="calculateBtn">Calculate</button>
+  <h2>Projects Comparison & Forecast</h2>
+  <div id="comparisonResults"></div>
 
-<div id="results" style="display:none;">
-  <!-- Basic EVM metrics -->
-  <div class="result-item">
-    <span class="result-label"
-      title="Schedule Variance (SV) = EV - PV. Positive means ahead of schedule; negative means behind.">
-      SV
-    </span>
-    <span id="svValue"></span>
+  <h2>Planned vs. Actual Cost (Concurrency-Based)</h2>
+  <div id="timeSeriesGraphContainer"></div>
+
+  <h2>ROI Over Time</h2>
+  <div id="roiChartContainer"></div>
+
+  <h2>Insights</h2>
+  <div id="insightsOutput"></div>
+
+  <div class="assumptions-box">
+    <strong>Assumptions:</strong>
+    <ul>
+      <li>Calculated as of the Current Day input (day-by-day concurrency for partial completions).</li>
+      <li>All costs are evenly distributed across each activity’s duration.</li>
+      <li>Dependencies handle FS, FF, SS, SF with lead/lag (no cycles).</li>
+      <li>Partial completions are spread uniformly up to the current day.</li>
+      <li>After the current day, we rely on EVM metrics (SPI, CPI) to forecast final schedule & cost.</li>
+      <li>SV = EV – PV, CV = EV – AC, SPI = EV / PV, CPI = EV / AC.</li>
+      <li>EAC = AC + (BAC – EV)/CPI, Schedule Forecast ≈ (Planned Duration) / SPI, Cost Forecast ≈ (Planned Cost) / CPI.</li>
+      <li>ROI(d) = ((EV(d) – AC(d)) / AC(d)) × 100%, if AC(d) &gt; 0.</li>
+    </ul>
   </div>
-  <div class="result-item">
-    <span class="result-label"
-      title="Cost Variance (CV) = EV - AC. Positive means under budget; negative means over.">
-      CV
-    </span>
-    <span id="cvValue"></span>
-  </div>
-  <div class="result-item">
-    <span class="result-label"
-      title="Schedule Performance Index (SPI) = EV / PV. >1 is ahead of schedule; <1 is behind.">
-      SPI
-    </span>
-    <span id="spiValue"></span>
-  </div>
-  <div class="result-item">
-    <span class="result-label"
-      title="Cost Performance Index (CPI) = EV / AC. >1 is under budget; <1 is over.">
-      CPI
-    </span>
-    <span id="cpiValue"></span>
-  </div>
-
-  <!-- Forecasts (assuming same trend) -->
-  <div class="result-item">
-    <span class="result-label"
-      title="Schedule Forecast = Original Schedule / SPI (assumes same schedule performance trend).">
-      Schedule Forecast
-    </span>
-    <span id="schedForecastValue"></span>
-  </div>
-  <div class="result-item">
-    <span class="result-label"
-      title="Cost Forecast = Original Cost Estimate / CPI (assumes same cost performance trend).">
-      Cost Forecast
-    </span>
-    <span id="costForecastValue"></span>
-  </div>
-
-  <!-- EAC: AC + (BAC - EV) / (CPI x SPI) -->
-  <div class="result-item">
-    <span class="result-label"
-      title="EAC = AC + (BAC - EV) / (CPI × SPI). Assumes future work is influenced by both cost & schedule performance.">
-      EAC
-    </span>
-    <span id="eac1Value"></span>
-  </div>
-
-  <!-- EAC(*): AC + (BAC - EV) -->
-  <div class="result-item">
-    <span class="result-label"
-      title="EAC(*) = AC + (BAC - EV). Assumes future work proceeds at the planned rate.">
-      EAC(*)
-    </span>
-    <span id="eac2Value"></span>
-  </div>
-</div>
-
-<p class="note">
-  <strong>*</strong> EAC(*) assumes future work proceeds at the planned rate.
-</p>
 
 <script>
-  document.getElementById('calculateBtn').addEventListener('click', () => {
-    // 1. Gather inputs
-    const ev = parseFloat(document.getElementById('ev').value) || 0;
-    const pv = parseFloat(document.getElementById('pv').value) || 0;
-    const ac = parseFloat(document.getElementById('ac').value) || 0;
-    const bac = parseFloat(document.getElementById('bac').value) || 0;
-    const origSched = parseFloat(document.getElementById('origSched').value) || 0;
-    const origCostEst = parseFloat(document.getElementById('origCostEst').value) || 0;
+/*****************************************************************
+ * 1) PROJECT UI & JSON IMPORT
+ *****************************************************************/
+function createProjectContainer(projectData) {
+  const div = document.createElement('div');
+  div.className = 'project-container';
 
-    // 2. Compute EVM basics
-    const sv = ev - pv;          // Schedule Variance
-    const cv = ev - ac;          // Cost Variance
-    const spi = (pv === 0) ? 0 : (ev / pv);   // Schedule Performance Index
-    const cpi = (ac === 0) ? 0 : (ev / ac);   // Cost Performance Index
+  let curDay = 5;
+  let projectName = "Project";
+  if (projectData && projectData.currentDay!==undefined) {
+    curDay = projectData.currentDay;
+  }
+  if (projectData && projectData.name) {
+    projectName = projectData.name;
+  }
 
-    // 3. Forecasts (assuming same trend)
-    let schedForecast = (spi > 0 && origSched > 0) ? (origSched / spi) : 0;
-    let costForecast = (cpi > 0 && origCostEst > 0) ? (origCostEst / cpi) : 0;
+  div.innerHTML = `
+    <div class="project-header">
+      Project Name: <input type="text" class="projectName" value="${projectName}" style="width:100px;">
+      Current Day: <input type="number" class="currentDay" value="${curDay}" style="width:60px;">
+      <button class="addActivityBtn">Add Activity</button>
+      <button class="removeProjectBtn">Remove Project</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Activity</th>
+          <th>Duration (days)</th>
+          <th>Predecessors<br><small>(e.g., B|SS|2)</small></th>
+          <th>Budget</th>
+          <th>Actual Cost</th>
+          <th>% Complete (0-100)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  `;
 
-    // 4. EAC: AC + (BAC - EV) / (CPI × SPI)
-    let eac1 = 0;
-    if (cpi > 0 && spi > 0) {
-      eac1 = ac + (bac - ev) / (cpi * spi);
-    }
-
-    // 5. EAC(*): future work at planned rate = AC + (BAC - EV)
-    let eac2 = ac + (bac - ev);
-
-    // 6. Display results
-    document.getElementById('svValue').textContent = sv.toFixed(2);
-    document.getElementById('cvValue').textContent = cv.toFixed(2);
-    document.getElementById('spiValue').textContent = spi.toFixed(2);
-    document.getElementById('cpiValue').textContent = cpi.toFixed(2);
-
-    document.getElementById('schedForecastValue').textContent =
-      (schedForecast > 0) ? schedForecast.toFixed(2) : "N/A";
-    document.getElementById('costForecastValue').textContent =
-      (costForecast > 0) ? costForecast.toFixed(2) : "N/A";
-
-    document.getElementById('eac1Value').textContent =
-      (eac1 > 0) ? eac1.toFixed(2) : "N/A";
-    document.getElementById('eac2Value').textContent = eac2.toFixed(2);
-
-    document.getElementById('results').style.display = 'block';
+  const addBtn = div.querySelector('.addActivityBtn');
+  addBtn.addEventListener('click', () => {
+    addActivityRow(div.querySelector('tbody'));
   });
-</script>
+  const removeBtn = div.querySelector('.removeProjectBtn');
+  removeBtn.addEventListener('click', () => {
+    div.remove();
+  });
 
+  if (projectData && Array.isArray(projectData.activities)) {
+    const tbody = div.querySelector('tbody');
+    projectData.activities.forEach(a => {
+      addActivityRow(tbody, a);
+    });
+  } else {
+    addActivityRow(div.querySelector('tbody'));
+  }
+
+  return div;
+}
+
+function addActivityRow(tbody, activityData) {
+  let name="", duration=5, preds="", budget=200, ac=100, pct=50;
+  if (activityData) {
+    if (activityData.name) name=activityData.name;
+    if (activityData.duration) duration=activityData.duration;
+    if (activityData.predecessors) {
+      if (Array.isArray(activityData.predecessors)) {
+        preds=activityData.predecessors.join(",");
+      } else {
+        preds=activityData.predecessors;
+      }
+    }
+    if (activityData.budget!==undefined) budget=activityData.budget;
+    if (activityData.actualCost!==undefined) ac=activityData.actualCost;
+    if (activityData.percentComplete!==undefined) pct=activityData.percentComplete;
+  }
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><input type="text" class="actName" value="${name}" style="width:60px;"></td>
+    <td><input type="number" class="actDuration" value="${duration}" style="width:60px;"></td>
+    <td><input type="text" class="actPreds" value="${preds}" style="width:90px;"></td>
+    <td><input type="number" class="actBudget" value="${budget}" style="width:80px;"></td>
+    <td><input type="number" class="actAC" value="${ac}" style="width:80px;"></td>
+    <td><input type="number" class="actPct" value="${pct}" style="width:60px;"></td>
+    <td><button class="removeRowBtn">Remove</button></td>
+  `;
+  tr.querySelector('.removeRowBtn').addEventListener('click', () => {
+    tr.remove();
+  });
+  tbody.appendChild(tr);
+}
+
+document.getElementById('importProjectBtn').addEventListener('click', () => {
+  const txt = document.getElementById('jsonImport').value.trim();
+  if(!txt){
+    alert('No JSON provided.');
+    return;
+  }
+  try{
+    const data=JSON.parse(txt);
+    if(Array.isArray(data)){
+      data.forEach(proj => {
+        const c=createProjectContainer(proj);
+        document.getElementById('projectsContainer').appendChild(c);
+      });
+    } else {
+      const c=createProjectContainer(data);
+      document.getElementById('projectsContainer').appendChild(c);
+    }
+  } catch(err){
+    alert('Invalid JSON. See console.');
+    console.error(err);
+  }
+});
+
+document.getElementById('addManualProjectBtn').addEventListener('click', () => {
+  const c=createProjectContainer({});
+  document.getElementById('projectsContainer').appendChild(c);
+});
+
+/*****************************************************************
+ * 2) SCHEDULING (FS, FF, SS, SF) BFS
+ *****************************************************************/
+function scheduleProject(projDiv) {
+  const currentDay=parseFloat(projDiv.querySelector('.currentDay').value)||0;
+  const rows=projDiv.querySelectorAll('tbody tr');
+  let tasks=[];
+  let nameToTask={};
+
+  rows.forEach(row=>{
+    const name=row.querySelector('.actName').value.trim()||"";
+    const duration=parseFloat(row.querySelector('.actDuration').value)||0;
+    const predsStr=row.querySelector('.actPreds').value.trim();
+    const budget=parseFloat(row.querySelector('.actBudget').value)||0;
+    const actualCost=parseFloat(row.querySelector('.actAC').value)||0;
+    const pctComplete=parseFloat(row.querySelector('.actPct').value)||0;
+    let preds=[];
+    if(predsStr){
+      const arr=predsStr.split(',');
+      arr.forEach(pr=>{
+        let segs=pr.split('|');
+        if(segs.length>=2){
+          let predName=segs[0].trim();
+          let depType=segs[1].trim().toUpperCase();
+          let lag=0;
+          if(segs.length>=3){
+            lag=parseFloat(segs[2])||0;
+          }
+          preds.push({name:predName,type:depType,lag});
+        }
+      });
+    }
+    let t={
+      name,duration,budget,actualCost,pctComplete,
+      preds, ES:0, EF:0
+    };
+    tasks.push(t);
+    nameToTask[name]=t;
+  });
+
+  // BFS
+  let inDegree={};
+  tasks.forEach(t=>{ inDegree[t.name]=t.preds.length; t.succ=[]; });
+  tasks.forEach(t=>{
+    t.preds.forEach(p=>{
+      if(nameToTask[p.name]){
+        let predTask=nameToTask[p.name];
+        predTask.succ.push(t.name);
+      }
+    });
+  });
+
+  let queue=[];
+  for(let nm in inDegree){
+    if(inDegree[nm]===0) queue.push(nm);
+  }
+  while(queue.length>0){
+    let curName=queue.shift();
+    let curTask=nameToTask[curName];
+    curTask.EF=curTask.ES+curTask.duration;
+    if(curTask.succ){
+      curTask.succ.forEach(sn=>{
+        let sTask=nameToTask[sn];
+        let newES=computeSuccessorES(curTask,sTask);
+        if(newES>sTask.ES){
+          sTask.ES=newES;
+        }
+        sTask.EF=sTask.ES+sTask.duration;
+        inDegree[sn]--;
+        if(inDegree[sn]===0){
+          queue.push(sn);
+        }
+      });
+    }
+  }
+  return {tasks, currentDay};
+}
+
+function computeSuccessorES(predTask,succTask){
+  let dep=succTask.preds.find(d=>d.name===predTask.name);
+  if(!dep) return succTask.ES;
+  let lag=dep.lag||0;
+  let type=dep.type||"FS";
+  switch(type.toUpperCase()){
+    case "FS":
+      return predTask.EF+lag;
+    case "SS":
+      return predTask.ES+lag;
+    case "FF":
+      return (predTask.EF+lag)-succTask.duration;
+    case "SF":
+      return (predTask.ES+lag)-succTask.duration;
+    default:
+      return predTask.EF+lag;
+  }
+}
+
+/*****************************************************************
+ * 3) DAY-BY-DAY concurrency up to current day
+ *****************************************************************/
+function computeDayByDay(tasks, currentDay) {
+  // find max EF => plannedDuration
+  let plannedDuration=0;
+  tasks.forEach(t=>{
+    if(t.EF>plannedDuration) plannedDuration=t.EF;
+  });
+
+  let dailyPlan=new Array(plannedDuration+1).fill(0);
+  let dailyAC=new Array(plannedDuration+1).fill(0);
+  let dailyEV=new Array(plannedDuration+1).fill(0);
+
+  // planned cost
+  tasks.forEach(t=>{
+    let costPerDay=(t.duration>0)?(t.budget/t.duration):0;
+    for(let d=Math.floor(t.ES); d<Math.floor(t.EF); d++){
+      if(d>=0 && d<dailyPlan.length){
+        dailyPlan[d]+=costPerDay;
+      }
+    }
+  });
+
+  // actual cost & EV
+  tasks.forEach(t=>{
+    let fracComplete=t.pctComplete/100;
+    let usedAC=t.actualCost*fracComplete;
+    let usedEV=t.budget*fracComplete;
+    let remainAC=t.actualCost*(1-fracComplete);
+    let remainEV=t.budget*(1-fracComplete);
+
+    for(let d=Math.floor(t.ES); d<Math.floor(t.EF); d++){
+      if(d<0 || d>=dailyAC.length) continue;
+      if(d<currentDay){
+        // portion up to current day
+        let durUpToCD=Math.min(currentDay,t.EF)-t.ES;
+        if(durUpToCD<0) durUpToCD=0;
+        if(durUpToCD>t.duration) durUpToCD=t.duration;
+        if(durUpToCD>0){
+          dailyAC[d]+= (usedAC/durUpToCD);
+          dailyEV[d]+= (usedEV/durUpToCD);
+        }
+      } else {
+        // naive approach after current day
+        let durAfterCD=t.EF-currentDay;
+        if(durAfterCD<0) durAfterCD=0;
+        if(durAfterCD>0){
+          dailyAC[d]+= (remainAC/durAfterCD);
+          dailyEV[d]+= (remainEV/durAfterCD);
+        }
+      }
+    }
+  });
+
+  // cumulative
+  for(let d=1; d<dailyPlan.length; d++){
+    dailyPlan[d]+=dailyPlan[d-1];
+    dailyAC[d]+=dailyAC[d-1];
+    dailyEV[d]+=dailyEV[d-1];
+  }
+
+  // sum of budgets => plannedCost
+  let plannedCost= tasks.reduce((acc,t)=> acc+t.budget,0);
+
+  return {dailyPlan,dailyAC,dailyEV,plannedDuration,plannedCost};
+}
+
+/*****************************************************************
+ * 4) MAIN CALC
+ *****************************************************************/
+document.getElementById('calcAllBtn').addEventListener('click', () => {
+  const projectDivs=document.querySelectorAll('.project-container');
+  let results=[];
+
+  projectDivs.forEach((projDiv, idx)=>{
+    // 1) BFS scheduling
+    let {tasks, currentDay}=scheduleProject(projDiv);
+    // 2) day-by-day concurrency
+    let {dailyPlan,dailyAC,dailyEV,plannedDuration,plannedCost}=computeDayByDay(tasks,currentDay);
+
+    // measure final at current day
+    let cdInt=Math.min(Math.floor(currentDay), plannedDuration);
+    let PVcd=dailyPlan[cdInt]||0;
+    let ACcd=dailyAC[cdInt]||0;
+    let EVcd=dailyEV[cdInt]||0;
+
+    // EVM metrics
+    let SV=EVcd - PVcd;
+    let CV=EVcd - ACcd;
+    let SPI=(PVcd>0)?(EVcd/PVcd):1;
+    let CPI=(ACcd>0)?(EVcd/ACcd):1;
+
+    // EAC => AC + (BAC - EV)/CPI
+    let ACsoFar=ACcd; 
+    let BAC=plannedCost; 
+    let EAC= ACsoFar + ((BAC - EVcd)/(CPI||1));
+
+    // schedule forecast => plannedDuration / SPI
+    let scheduleForecast=(SPI>0)?(plannedDuration/SPI):plannedDuration;
+
+    // cost forecast => plannedCost / CPI
+    let costForecast=(CPI>0)?(plannedCost/CPI):plannedCost;
+
+    results.push({
+      name: projDiv.querySelector('.projectName').value || ("Project "+(idx+1)),
+      tasks,
+      dailyPlan,dailyAC,dailyEV,
+      plannedDuration,plannedCost,
+      currentDay,
+      PVcd,ACcd,EVcd,
+      SV,CV,SPI,CPI,
+      EAC, scheduleForecast, costForecast
+    });
+  });
+
+  displayComparisonForecast(results);
+  drawCostChart(results);
+  drawROIChart(results);
+  window.projectResults=results;
+});
+
+/*****************************************************************
+ * 5) COMPARISON TABLE
+ *****************************************************************/
+function displayComparisonForecast(results){
+  let html=`<table>
+  <thead>
+    <tr>
+      <th>Project</th>
+      <th>Planned<br>Duration</th>
+      <th>Planned<br>Cost</th>
+      <th>PV(@CD)</th>
+      <th>AC(@CD)</th>
+      <th>EV(@CD)</th>
+      <th>SV</th>
+      <th>CV</th>
+      <th>SPI</th>
+      <th>CPI</th>
+      <th>Schedule<br>Forecast</th>
+      <th>Cost<br>Forecast</th>
+      <th>EAC</th>
+    </tr>
+  </thead>
+  <tbody>`;
+
+  results.forEach(r=>{
+    html+=`<tr>
+      <td>${r.name}</td>
+      <td>${r.plannedDuration.toFixed(2)}</td>
+      <td>${r.plannedCost.toFixed(2)}</td>
+      <td>${r.PVcd.toFixed(2)}</td>
+      <td>${r.ACcd.toFixed(2)}</td>
+      <td>${r.EVcd.toFixed(2)}</td>
+      <td>${r.SV.toFixed(2)}</td>
+      <td>${r.CV.toFixed(2)}</td>
+      <td>${r.SPI.toFixed(2)}</td>
+      <td>${r.CPI.toFixed(2)}</td>
+      <td>${r.scheduleForecast.toFixed(2)}</td>
+      <td>${r.costForecast.toFixed(2)}</td>
+      <td>${r.EAC.toFixed(2)}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById('comparisonResults').innerHTML=html;
+}
+
+/*****************************************************************
+ * 6) CHART: PLANNED vs. ACTUAL COST
+ *****************************************************************/
+const projectColors=["green","blue","red","purple","orange","teal"];
+
+function drawCostChart(results) {
+  const container=document.getElementById('timeSeriesGraphContainer');
+  container.innerHTML="";
+
+  if(!results.length)return;
+
+  const width=700, height=300, margin=50;
+  const svgNS="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(svgNS,"svg");
+  svg.setAttribute("width",width);
+  svg.setAttribute("height",height);
+
+  // find global maxDay, global maxVal
+  let globalMaxDay=0, globalMaxVal=0;
+  results.forEach(r=>{
+    let maxD=r.plannedDuration;
+    if(maxD>globalMaxDay) globalMaxDay=maxD;
+    let localMaxPlan=Math.max(...r.dailyPlan);
+    let localMaxAC=Math.max(...r.dailyAC);
+    let localMax=Math.max(localMaxPlan,localMaxAC);
+    if(localMax>globalMaxVal) globalMaxVal=localMax;
+  });
+
+  function xScale(d){
+    if(globalMaxDay<=0)return margin;
+    return margin+(d/globalMaxDay)*(width-2*margin);
+  }
+  function yScale(v){
+    if(globalMaxVal<=0)return height-margin;
+    return height-margin-(v/globalMaxVal)*(height-2*margin);
+  }
+
+  // axes
+  const xAxis=document.createElementNS(svgNS,"line");
+  xAxis.setAttribute("x1",margin);
+  xAxis.setAttribute("y1",height-margin);
+  xAxis.setAttribute("x2",width-margin);
+  xAxis.setAttribute("y2",height-margin);
+  xAxis.setAttribute("stroke","#000");
+  svg.appendChild(xAxis);
+
+  const yAxis=document.createElementNS(svgNS,"line");
+  yAxis.setAttribute("x1",margin);
+  yAxis.setAttribute("y1",margin);
+  yAxis.setAttribute("x2",margin);
+  yAxis.setAttribute("y2",height-margin);
+  yAxis.setAttribute("stroke","#000");
+  svg.appendChild(yAxis);
+
+  // ticks
+  let xTicks=5;
+  for(let i=0;i<=xTicks;i++){
+    let dVal=(i/xTicks)*globalMaxDay;
+    let x=xScale(dVal);
+    const tk=document.createElementNS(svgNS,"line");
+    tk.setAttribute("x1",x);
+    tk.setAttribute("y1",height-margin);
+    tk.setAttribute("x2",x);
+    tk.setAttribute("y2",height-margin+5);
+    tk.setAttribute("stroke","#000");
+    svg.appendChild(tk);
+
+    const lbl=document.createElementNS(svgNS,"text");
+    lbl.setAttribute("x",x);
+    lbl.setAttribute("y",height-margin+18);
+    lbl.setAttribute("text-anchor","middle");
+    lbl.textContent=Math.round(dVal);
+    svg.appendChild(lbl);
+  }
+  let yTicks=5;
+  for(let i=0;i<=yTicks;i++){
+    let val=(i/yTicks)*globalMaxVal;
+    let y=yScale(val);
+    const tk=document.createElementNS(svgNS,"line");
+    tk.setAttribute("x1",margin-5);
+    tk.setAttribute("y1",y);
+    tk.setAttribute("x2",margin);
+    tk.setAttribute("y2",y);
+    tk.setAttribute("stroke","#000");
+    svg.appendChild(tk);
+
+    const lbl=document.createElementNS(svgNS,"text");
+    lbl.setAttribute("x",margin-10);
+    lbl.setAttribute("y",y+5);
+    lbl.setAttribute("text-anchor","end");
+    lbl.textContent=Math.round(val);
+    svg.appendChild(lbl);
+  }
+
+  // axis labels
+  const xLabel=document.createElementNS(svgNS,"text");
+  xLabel.setAttribute("x",width/2);
+  xLabel.setAttribute("y",height-5);
+  xLabel.setAttribute("text-anchor","middle");
+  xLabel.textContent="Time (days)";
+  svg.appendChild(xLabel);
+
+  const yLabel=document.createElementNS(svgNS,"text");
+  yLabel.setAttribute("x",margin);
+  yLabel.setAttribute("y",margin-10);
+  yLabel.textContent="Cost";
+  svg.appendChild(yLabel);
+
+  // lines
+  results.forEach((proj, idx)=>{
+    const color=projectColors[idx % projectColors.length];
+    drawLine(proj.dailyPlan,color,true,proj.plannedDuration);
+    drawLine(proj.dailyAC,color,false,proj.plannedDuration);
+
+    // vertical line
+    let cx=xScale(proj.currentDay);
+    const vLine=document.createElementNS(svgNS,"line");
+    vLine.setAttribute("x1",cx);
+    vLine.setAttribute("y1",margin);
+    vLine.setAttribute("x2",cx);
+    vLine.setAttribute("y2",height-margin);
+    vLine.setAttribute("stroke",color);
+    vLine.setAttribute("stroke-dasharray","4,4");
+    vLine.setAttribute("stroke-width","2");
+    svg.appendChild(vLine);
+  });
+
+  // legend top-left
+  results.forEach((proj, i)=>{
+    const color=projectColors[i % projectColors.length];
+    let lx=margin+10;
+    let ly=margin+10 + i*40;
+
+    // actual
+    const line1=document.createElementNS(svgNS,"line");
+    line1.setAttribute("x1",lx);
+    line1.setAttribute("y1",ly);
+    line1.setAttribute("x2",lx+30);
+    line1.setAttribute("y2",ly);
+    line1.setAttribute("stroke",color);
+    line1.setAttribute("stroke-width","2");
+    svg.appendChild(line1);
+
+    const lbl1=document.createElementNS(svgNS,"text");
+    lbl1.setAttribute("x",lx+35);
+    lbl1.setAttribute("y",ly+4);
+    lbl1.setAttribute("font-size","12");
+    lbl1.textContent=proj.name+" Actual";
+    svg.appendChild(lbl1);
+
+    // planned
+    const line2=document.createElementNS(svgNS,"line");
+    line2.setAttribute("x1",lx);
+    line2.setAttribute("y1",ly+15);
+    line2.setAttribute("x2",lx+30);
+    line2.setAttribute("y2",ly+15);
+    line2.setAttribute("stroke",color);
+    line2.setAttribute("stroke-width","2");
+    line2.setAttribute("stroke-dasharray","5,5");
+    svg.appendChild(line2);
+
+    const lbl2=document.createElementNS(svgNS,"text");
+    lbl2.setAttribute("x",lx+35);
+    lbl2.setAttribute("y",ly+19);
+    lbl2.setAttribute("font-size","12");
+    lbl2.textContent=proj.name+" Plan";
+    svg.appendChild(lbl2);
+  });
+
+  container.appendChild(svg);
+
+  function drawLine(arr,color,dashed,plannedDuration){
+    let path="";
+    for(let d=0; d<=plannedDuration; d++){
+      if(d< arr.length){
+        let x=xScale(d);
+        let y=yScale(arr[d]);
+        path+=(d===0?"M":"L")+x+" "+y+" ";
+      }
+    }
+    const p=document.createElementNS(svgNS,"path");
+    p.setAttribute("d",path);
+    p.setAttribute("stroke",color);
+    p.setAttribute("stroke-width","2");
+    p.setAttribute("fill","none");
+    if(dashed){
+      p.setAttribute("stroke-dasharray","5,5");
+    }
+    svg.appendChild(p);
+  }
+}
+
+/*****************************************************************
+ * 7) ROI CHART
+ *****************************************************************/
+function drawROIChart(results){
+  const container=document.getElementById('roiChartContainer');
+  container.innerHTML="";
+
+  if(!results.length)return;
+
+  const width=700, height=300, margin=50;
+  const svgNS="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(svgNS,"svg");
+  svg.setAttribute("width",width);
+  svg.setAttribute("height",height);
+
+  // find globalMaxDay
+  let globalMaxDay=0;
+  results.forEach(r=>{
+    if(r.plannedDuration>globalMaxDay) globalMaxDay=r.plannedDuration;
+  });
+
+  // build daily ROI
+  let allVals=[];
+  results.forEach((proj,idx)=>{
+    let arr=[];
+    for(let d=0; d<=proj.plannedDuration; d++){
+      let ac=(d<proj.dailyAC.length)?(proj.dailyAC[d]):0;
+      let ev=(d<proj.dailyEV.length)?(proj.dailyEV[d]):0;
+      let roi=0;
+      if(ac>0){
+        roi=((ev-ac)/ac)*100;
+      }
+      arr.push(roi);
+      allVals.push(roi);
+    }
+    proj.dailyROI=arr;
+  });
+
+  let minROI=Math.min(...allVals);
+  let maxROI=Math.max(...allVals);
+
+  function xScale(d){
+    if(globalMaxDay<=0)return margin;
+    return margin+(d/globalMaxDay)*(width-2*margin);
+  }
+  function yScale(v){
+    if(minROI===maxROI)return height-margin;
+    return height-margin-((v-minROI)/(maxROI-minROI))*(height-2*margin);
+  }
+
+  // axes
+  const xAxis=document.createElementNS(svgNS,"line");
+  xAxis.setAttribute("x1",margin);
+  xAxis.setAttribute("y1",height-margin);
+  xAxis.setAttribute("x2",width-margin);
+  xAxis.setAttribute("y2",height-margin);
+  xAxis.setAttribute("stroke","#000");
+  svg.appendChild(xAxis);
+
+  const yAxis=document.createElementNS(svgNS,"line");
+  yAxis.setAttribute("x1",margin);
+  yAxis.setAttribute("y1",margin);
+  yAxis.setAttribute("x2",margin);
+  yAxis.setAttribute("y2",height-margin);
+  yAxis.setAttribute("stroke","#000");
+  svg.appendChild(yAxis);
+
+  // ticks
+  let xTicks=5;
+  for(let i=0;i<=xTicks;i++){
+    let dVal=(i/xTicks)*globalMaxDay;
+    let x=xScale(dVal);
+    const tk=document.createElementNS(svgNS,"line");
+    tk.setAttribute("x1",x);
+    tk.setAttribute("y1",height-margin);
+    tk.setAttribute("x2",x);
+    tk.setAttribute("y2",height-margin+5);
+    tk.setAttribute("stroke","#000");
+    svg.appendChild(tk);
+
+    const lbl=document.createElementNS(svgNS,"text");
+    lbl.setAttribute("x",x);
+    lbl.setAttribute("y",height-margin+18);
+    lbl.setAttribute("text-anchor","middle");
+    lbl.textContent=Math.round(dVal);
+    svg.appendChild(lbl);
+  }
+
+  let yTicks=5;
+  for(let i=0;i<=yTicks;i++){
+    let val=minROI+(i/yTicks)*(maxROI-minROI);
+    let y=yScale(val);
+    const tk=document.createElementNS(svgNS,"line");
+    tk.setAttribute("x1",margin-5);
+    tk.setAttribute("y1",y);
+    tk.setAttribute("x2",margin);
+    tk.setAttribute("y2",y);
+    tk.setAttribute("stroke","#000");
+    svg.appendChild(tk);
+
+    const lbl=document.createElementNS(svgNS,"text");
+    lbl.setAttribute("x",margin-10);
+    lbl.setAttribute("y",y+5);
+    lbl.setAttribute("text-anchor","end");
+    lbl.textContent=Math.round(val);
+    svg.appendChild(lbl);
+  }
+
+  // axis labels
+  const xLabel=document.createElementNS(svgNS,"text");
+  xLabel.setAttribute("x",width/2);
+  xLabel.setAttribute("y",height-5);
+  xLabel.setAttribute("text-anchor","middle");
+  xLabel.textContent="Time (days)";
+  svg.appendChild(xLabel);
+
+  const yLabel=document.createElementNS(svgNS,"text");
+  yLabel.setAttribute("x",margin);
+  yLabel.setAttribute("y",margin-10);
+  yLabel.textContent="ROI (%)";
+  svg.appendChild(yLabel);
+
+  // lines
+  results.forEach((proj,idx)=>{
+    let color=projectColors[idx % projectColors.length];
+    let arr=proj.dailyROI;
+    let path="";
+    for(let d=0; d<=proj.plannedDuration; d++){
+      let x=xScale(d);
+      let y=yScale(arr[d]);
+      path+=(d===0?"M":"L")+x+" "+y+" ";
+    }
+    const p=document.createElementNS(svgNS,"path");
+    p.setAttribute("d",path);
+    p.setAttribute("stroke",color);
+    p.setAttribute("stroke-width","2");
+    p.setAttribute("fill","none");
+    svg.appendChild(p);
+  });
+
+  // legend top-left
+  results.forEach((proj, i)=>{
+    let color=projectColors[i % projectColors.length];
+    let lx=50;
+    let ly=50 + i*20;
+    const line=document.createElementNS(svgNS,"line");
+    line.setAttribute("x1",lx);
+    line.setAttribute("y1",ly);
+    line.setAttribute("x2",lx+30);
+    line.setAttribute("y2",ly);
+    line.setAttribute("stroke",color);
+    line.setAttribute("stroke-width","2");
+    svg.appendChild(line);
+
+    const lbl=document.createElementNS(svgNS,"text");
+    lbl.setAttribute("x",lx+35);
+    lbl.setAttribute("y",ly+4);
+    lbl.setAttribute("font-size","12");
+    lbl.textContent=proj.name;
+    svg.appendChild(lbl);
+  });
+
+  container.appendChild(svg);
+}
+
+/*****************************************************************
+ * 8) INSIGHTS
+ *****************************************************************/
+document.getElementById('generateInsightsBtn').addEventListener('click', () => {
+  if(!window.projectResults||!window.projectResults.length){
+    alert('Calculate first');
+    return;
+  }
+  let txt=generateInsights(window.projectResults);
+  document.getElementById('insightsOutput').textContent=txt;
+});
+
+function generateInsights(results){
+  if(!results.length)return "";
+
+  // We'll do a side-by-side comparison:
+  // 1) For each project, compute how many days ahead/behind schedule:
+  //    dayDiff = plannedDuration - scheduleForecast
+  //    if dayDiff>0 => finishing earlier
+  //    if dayDiff<0 => behind
+  // 2) For each project, how much cost saved/over
+  //    costDiff = plannedCost - costForecast
+  //    if costDiff>0 => saving money
+  //    if costDiff<0 => over budget
+  // 3) We'll pick best schedule by largest positive dayDiff
+  // 4) We'll pick best cost by largest positive costDiff
+  // 5) We'll mention which project has the highest EV, etc.
+
+  let text="Insights:\n\n";
+
+  let bestScheduleProject=null, bestScheduleValue=-999999;
+  let bestCostProject=null, bestCostValue=-999999;
+  let bestEVProject=null, bestEVValue=-999999;
+
+  results.forEach(r=>{
+    let dayDiff=r.plannedDuration - r.scheduleForecast; 
+    let costDiff=r.plannedCost - r.costForecast;
+    let currentEV= r.EVcd; // or total EV ?
+
+    // if dayDiff> bestScheduleValue => best schedule
+    if(dayDiff>bestScheduleValue){
+      bestScheduleValue=dayDiff;
+      bestScheduleProject=r;
+    }
+    // if costDiff> bestCostValue => best cost
+    if(costDiff>bestCostValue){
+      bestCostValue=costDiff;
+      bestCostProject=r;
+    }
+    // if currentEV> bestEVValue => best EV
+    if(currentEV>bestEVValue){
+      bestEVValue=currentEV;
+      bestEVProject=r;
+    }
+  });
+
+  // Summarize each project
+  results.forEach(r=>{
+    let dayDiff=r.plannedDuration - r.scheduleForecast;
+    let costDiff=r.plannedCost - r.costForecast;
+    text += `Project: ${r.name}\n`;
+    text += `  Days ahead/behind: ${dayDiff.toFixed(2)} ` +
+            (dayDiff>0 ? "(ahead)" : (dayDiff<0 ? "(behind)" : "(on track)")) + "\n";
+    text += `  Cost saving/over: ${costDiff.toFixed(2)} ` +
+            (costDiff>0 ? "(saving)" : (costDiff<0 ? "(over)" : "(even)")) + "\n";
+    text += `  Current EV(@CD): ${r.EVcd.toFixed(2)}\n\n`;
+  });
+
+  text += "\nSummary:\n";
+  text += `• Best Schedule Performance: ${bestScheduleProject.name} (Days ahead: ${(bestScheduleValue).toFixed(2)})\n`;
+  text += `• Best Cost Performance: ${bestCostProject.name} (Cost saving: ${(bestCostValue).toFixed(2)})\n`;
+  text += `• Highest Earned Value: ${bestEVProject.name} (EV: ${bestEVValue.toFixed(2)})\n`;
+
+  return text;
+}
+</script>
 </body>
 </html>
