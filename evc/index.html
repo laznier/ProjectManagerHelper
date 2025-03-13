@@ -111,54 +111,6 @@
     ],
     "suggestedRisk": 9,
     "riskName": "Delay in 3"
-  },
-  {
-    "name": "4",
-    "duration": 12,
-    "predecessors": [
-      "2"
-    ],
-    "dependencies": [
-      {
-        "predecessor": "2",
-        "type": "FS",
-        "lag": 0
-      }
-    ],
-    "suggestedRisk": 1,
-    "riskName": "Delay in 4"
-  },
-  {
-    "name": "5",
-    "duration": 18,
-    "predecessors": [
-      "3"
-    ],
-    "dependencies": [
-      {
-        "predecessor": "3",
-        "type": "FS",
-        "lag": 0
-      }
-    ],
-    "suggestedRisk": 9,
-    "riskName": "Delay in 5"
-  },
-  {
-    "name": "6",
-    "duration": 16,
-    "predecessors": [
-      "5"
-    ],
-    "dependencies": [
-      {
-        "predecessor": "5",
-        "type": "FS",
-        "lag": 0
-      }
-    ],
-    "suggestedRisk": 7,
-    "riskName": "Delay in 6"
   }
 ]</textarea>
   <br>
@@ -261,22 +213,47 @@ function createProjectContainer(projectData) {
 
 function addActivityRow(tbody, activityData) {
   let name="", duration=5, preds="", budget=200, ac=100, pct=50;
+
+  // Convert dependencies array => "X|TYPE|lag" strings
+  // If present, this overrides or merges with activityData.predecessors
   if (activityData) {
-    if (activityData.name) name=activityData.name;
-    if (activityData.duration) duration=activityData.duration;
-    if (activityData.predecessors) {
-      if (Array.isArray(activityData.predecessors)) {
-        preds=activityData.predecessors.join(",");
-      } else {
-        preds=activityData.predecessors;
-      }
+    if (activityData.name) name = activityData.name;
+    if (activityData.duration) duration = activityData.duration;
+
+    // Build the final string for "Predecessors" cell
+    // from either .dependencies or .predecessors
+    let combinedPreds = [];
+
+    // If we have an explicit dependencies array (with type, lag, etc.)
+    if (activityData.dependencies && Array.isArray(activityData.dependencies)) {
+      activityData.dependencies.forEach(dep => {
+        let depType = dep.type ? dep.type.toUpperCase() : "FS";
+        let lag = dep.lag || 0;
+        combinedPreds.push(`${dep.predecessor}|${depType}|${lag}`);
+      });
     }
-    if (activityData.budget!==undefined) budget=activityData.budget;
-    if (activityData.actualCost!==undefined) ac=activityData.actualCost;
-    if (activityData.percentComplete!==undefined) pct=activityData.percentComplete;
+    // If there's also a simple .predecessors array, we can add them too
+    // or ignore them if you want. This example merges them:
+    if (activityData.predecessors && Array.isArray(activityData.predecessors)) {
+      // They might just be activity names, no type or lag
+      activityData.predecessors.forEach(p => {
+        // If it's not already in combinedPreds, add it with default FS|0
+        // or if you prefer to skip, comment this out
+        if (!combinedPreds.some(cp => cp.startsWith(p+"|"))) {
+          combinedPreds.push(`${p}|FS|0`);
+        }
+      });
+    }
+
+    preds = combinedPreds.join(",");
+
+    if (activityData.budget !== undefined) budget = activityData.budget;
+    if (activityData.actualCost !== undefined) ac = activityData.actualCost;
+    if (activityData.percentComplete !== undefined) pct = activityData.percentComplete;
   }
-  const tr=document.createElement('tr');
-  tr.innerHTML=`
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
     <td><input type="text" class="actName" value="${name}" style="width:60px;"></td>
     <td><input type="number" class="actDuration" value="${duration}" style="width:60px;"></td>
     <td><input type="text" class="actPreds" value="${preds}" style="width:90px;"></td>
@@ -291,7 +268,7 @@ function addActivityRow(tbody, activityData) {
   tbody.appendChild(tr);
 }
 
-// -------------------------- CHANGED THIS SECTION ---------------------------
+// -------------------------- JSON Import Logic ---------------------------
 document.getElementById('importProjectBtn').addEventListener('click', () => {
   const txt = document.getElementById('jsonImport').value.trim();
   if(!txt){
@@ -325,7 +302,6 @@ document.getElementById('importProjectBtn').addEventListener('click', () => {
     console.error(err);
   }
 });
-// -------------------------------------------------------------------------
 
 document.getElementById('addManualProjectBtn').addEventListener('click', () => {
   const c=createProjectContainer({});
@@ -455,7 +431,7 @@ function computeDayByDay(tasks, currentDay) {
   // Actual cost & EV up to current day
   tasks.forEach(t=>{
     let fracComplete = t.pctComplete/100;
-    // AC is the full actualCost, spread across the duration (not scaled by pctComplete).
+    // AC is the full actualCost, spread across the duration
     let usedAC = t.actualCost; 
     let usedEV = t.budget * fracComplete;
 
