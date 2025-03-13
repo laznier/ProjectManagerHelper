@@ -292,6 +292,7 @@
       <li>Calculated as of the Current Day input (day-by-day concurrency for partial completions up to Current Day).</li>
       <li>Dependencies handle FS, FF, SS, SF with lead/lag (no cycles).</li>
       <li>All costs are evenly distributed across each activity’s duration (planned and actual up to Current Day).</li>
+      <li>Day count starts at day 0.</li>
       <li>After the Current Day, the actual cost line switches to a single EVM-based forecast line using:
         <ul>
           <li>Forecast Finish Day = currentDay + ((plannedDuration - currentDay) / SPI)</li>
