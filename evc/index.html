@@ -73,196 +73,92 @@
   <h3>Import Project Data (JSON)</h3>
   <textarea id="jsonImport">[
   {
-    "name": "Example Project",
-    "currentDay": 15,
-    "activities": [
-      {
-        "name": "A",
-        "duration": 4,
-        "predecessors": [],
-        "dependencies": [],
-        "budget": 200,
-        "actualCost": 180,
-        "percentComplete": 100
-      },
-      {
-        "name": "B",
-        "duration": 7,
-        "predecessors": [],
-        "dependencies": [],
-        "budget": 400,
-        "actualCost": 420,
-        "percentComplete": 100
-      },
-      {
-        "name": "C",
-        "duration": 2,
-        "predecessors": [
-          "A|FS|0",
-          "B|FS|0"
-        ],
-        "dependencies": [
-          { "predecessor": "A", "type": "FS", "lag": 0 },
-          { "predecessor": "B", "type": "FS", "lag": 0 }
-        ],
-        "budget": 150,
-        "actualCost": 130,
-        "percentComplete": 100
-      },
-      {
-        "name": "D",
-        "duration": 5,
-        "predecessors": [
-          "B|FS|0"
-        ],
-        "dependencies": [
-          { "predecessor": "B", "type": "FS", "lag": 0 }
-        ],
-        "budget": 250,
-        "actualCost": 200,
-        "percentComplete": 100
-      },
-      {
-        "name": "E",
-        "duration": 10,
-        "predecessors": [
-          "C|FS|0"
-        ],
-        "dependencies": [
-          { "predecessor": "C", "type": "FS", "lag": 0 }
-        ],
-        "budget": 300,
-        "actualCost": 150,
-        "percentComplete": 50
-      },
-      {
-        "name": "F",
-        "duration": 13,
-        "predecessors": [
-          "C|FS|0",
-          "D|FS|0"
-        ],
-        "dependencies": [
-          { "predecessor": "C", "type": "FS", "lag": 0 },
-          { "predecessor": "D", "type": "FS", "lag": 0 }
-        ],
-        "budget": 500,
-        "actualCost": 250,
-        "percentComplete": 25
-      },
-      {
-        "name": "G",
-        "duration": 4,
-        "predecessors": [
-          "E|FS|0",
-          "F|FS|0"
-        ],
-        "dependencies": [
-          { "predecessor": "E", "type": "FS", "lag": 0 },
-          { "predecessor": "F", "type": "FS", "lag": 0 }
-        ],
-        "budget": 200,
-        "actualCost": 0,
-        "percentComplete": 0
-      }
-    ]
+    "name": "1",
+    "duration": 10,
+    "predecessors": [],
+    "dependencies": [],
+    "suggestedRisk": 7,
+    "riskName": "Delay in 1"
   },
   {
-    "name": "Another Example Project",
-    "currentDay": 15,
-    "activities": [
+    "name": "2",
+    "duration": 8,
+    "predecessors": [
+      "1"
+    ],
+    "dependencies": [
       {
-        "name": "A",
-        "duration": 4,
-        "predecessors": [],
-        "dependencies": [],
-        "budget": 220,
-        "actualCost": 210,
-        "percentComplete": 100
-      },
-      {
-        "name": "B",
-        "duration": 7,
-        "predecessors": [
-          "A|FS|1"
-        ],
-        "dependencies": [],
-        "budget": 420,
-        "actualCost": 350,
-        "percentComplete": 100
-      },
-      {
-        "name": "C",
-        "duration": 2,
-        "predecessors": [
-          "A|SS|1",
-          "B|FS|2"
-        ],
-        "dependencies": [
-          { "predecessor": "A", "type": "SS", "lag": 1 },
-          { "predecessor": "B", "type": "FS", "lag": 2 }
-        ],
-        "budget": 150,
-        "actualCost": 100,
-        "percentComplete": 100
-      },
-      {
-        "name": "D",
-        "duration": 5,
-        "predecessors": [
-          "B|FF|-1"
-        ],
-        "dependencies": [
-          { "predecessor": "B", "type": "FF", "lag": -1 }
-        ],
-        "budget": 250,
-        "actualCost": 120,
-        "percentComplete": 100
-      },
-      {
-        "name": "E",
-        "duration": 10,
-        "predecessors": [
-          "C|SF|0"
-        ],
-        "dependencies": [
-          { "predecessor": "C", "type": "SF", "lag": 0 }
-        ],
-        "budget": 300,
-        "actualCost": 140,
-        "percentComplete": 40
-      },
-      {
-        "name": "F",
-        "duration": 13,
-        "predecessors": [
-          "C|SS|0",
-          "D|SS|1"
-        ],
-        "dependencies": [
-          { "predecessor": "C", "type": "SS", "lag": 0 },
-          { "predecessor": "D", "type": "SS", "lag": 1 }
-        ],
-        "budget": 500,
-        "actualCost": 200,
-        "percentComplete": 30
-      },
-      {
-        "name": "G",
-        "duration": 4,
-        "predecessors": [
-          "E|FS|0",
-          "F|FF|0"
-        ],
-        "dependencies": [
-          { "predecessor": "E", "type": "FS", "lag": 0 },
-          { "predecessor": "F", "type": "FF", "lag": 0 }
-        ],
-        "budget": 250,
-        "actualCost": 0,
-        "percentComplete": 0
+        "predecessor": "1",
+        "type": "FS",
+        "lag": 0
       }
-    ]
+    ],
+    "suggestedRisk": 10,
+    "riskName": "Delay in 2"
+  },
+  {
+    "name": "3",
+    "duration": 6,
+    "predecessors": [
+      "2"
+    ],
+    "dependencies": [
+      {
+        "predecessor": "2",
+        "type": "FS",
+        "lag": 0
+      }
+    ],
+    "suggestedRisk": 9,
+    "riskName": "Delay in 3"
+  },
+  {
+    "name": "4",
+    "duration": 12,
+    "predecessors": [
+      "2"
+    ],
+    "dependencies": [
+      {
+        "predecessor": "2",
+        "type": "FS",
+        "lag": 0
+      }
+    ],
+    "suggestedRisk": 1,
+    "riskName": "Delay in 4"
+  },
+  {
+    "name": "5",
+    "duration": 18,
+    "predecessors": [
+      "3"
+    ],
+    "dependencies": [
+      {
+        "predecessor": "3",
+        "type": "FS",
+        "lag": 0
+      }
+    ],
+    "suggestedRisk": 9,
+    "riskName": "Delay in 5"
+  },
+  {
+    "name": "6",
+    "duration": 16,
+    "predecessors": [
+      "5"
+    ],
+    "dependencies": [
+      {
+        "predecessor": "5",
+        "type": "FS",
+        "lag": 0
+      }
+    ],
+    "suggestedRisk": 7,
+    "riskName": "Delay in 6"
   }
 ]</textarea>
   <br>
@@ -281,8 +177,6 @@
   <h2>Planned vs. Actual + Forecast Cost (Concurrency-Based)</h2>
   <div id="timeSeriesGraphContainer"></div>
 
-  <!-- ROI Over Time section removed entirely -->
-
   <h2>Insights</h2>
   <div id="insightsOutput"></div>
 
@@ -291,8 +185,7 @@
     <ul>
       <li>Calculated as of the Current Day input (day-by-day concurrency for partial completions up to Current Day).</li>
       <li>Dependencies handle FS, FF, SS, SF with lead/lag (no cycles).</li>
-      <li>All costs are evenly distributed across each activity’s duration (planned and actual up to Current Day).</li>
-      <li>Day count starts at day 0.</li>
+      <li>All costs are evenly distributed across each activity’s duration (planned cost and actual cost up to Current Day).</li>
       <li>After the Current Day, the actual cost line switches to a single EVM-based forecast line using:
         <ul>
           <li>Forecast Finish Day = currentDay + ((plannedDuration - currentDay) / SPI)</li>
@@ -301,6 +194,7 @@
       </li>
       <li>SV = EV – PV, CV = EV – AC, SPI = EV / PV, CPI = EV / AC.</li>
       <li>The red vertical line is at the maximum current day among all projects for each chart.</li>
+      <li><strong>Day count starts at day zero.</strong> For example, if your Current Day is 15, that refers to the end of day index 14 in zero-based calculations.</li>
     </ul>
   </div>
 
@@ -397,6 +291,7 @@ function addActivityRow(tbody, activityData) {
   tbody.appendChild(tr);
 }
 
+// -------------------------- CHANGED THIS SECTION ---------------------------
 document.getElementById('importProjectBtn').addEventListener('click', () => {
   const txt = document.getElementById('jsonImport').value.trim();
   if(!txt){
@@ -404,21 +299,33 @@ document.getElementById('importProjectBtn').addEventListener('click', () => {
     return;
   }
   try{
-    const data=JSON.parse(txt);
-    if(Array.isArray(data)){
-      data.forEach(proj => {
-        const c=createProjectContainer(proj);
-        document.getElementById('projectsContainer').appendChild(c);
-      });
-    } else {
-      const c=createProjectContainer(data);
+    const data = JSON.parse(txt);
+
+    if (Array.isArray(data) && data.length > 0) {
+      // Treat the entire array as a single project's activities
+      const singleProject = {
+        name: "Imported Project",
+        currentDay: 15,   // or any default you prefer
+        activities: data
+      };
+      const c = createProjectContainer(singleProject);
       document.getElementById('projectsContainer').appendChild(c);
+    } 
+    else if (data && data.activities) {
+      // It's a single project object with .activities
+      const c = createProjectContainer(data);
+      document.getElementById('projectsContainer').appendChild(c);
+    } 
+    else {
+      // Fallback: If it's something else, handle as needed or show an error
+      alert("Unrecognized JSON format. Expected an array of activities or a project object.");
     }
   } catch(err){
     alert('Invalid JSON. Check console.');
     console.error(err);
   }
 });
+// -------------------------------------------------------------------------
 
 document.getElementById('addManualProjectBtn').addEventListener('click', () => {
   const c=createProjectContainer({});
@@ -426,7 +333,7 @@ document.getElementById('addManualProjectBtn').addEventListener('click', () => {
 });
 
 /*****************************************************************
- * BFS SCHEDULING (FS, FF, SS, SF)
+ * 2) BFS SCHEDULING (FS, FF, SS, SF)
  *****************************************************************/
 function scheduleProject(projDiv) {
   const currentDay=parseFloat(projDiv.querySelector('.currentDay').value)||0;
@@ -465,7 +372,7 @@ function scheduleProject(projDiv) {
     nameToTask[name]=t;
   });
 
-  // BFS
+  // BFS to calculate ES/EF
   let inDegree={};
   tasks.forEach(t=>{ inDegree[t.name]=t.preds.length; t.succ=[]; });
   tasks.forEach(t=>{
@@ -522,7 +429,7 @@ function computeSuccessorES(predTask,succTask){
 }
 
 /*****************************************************************
- * DAY-BY-DAY concurrency up to currentDay
+ * 3) DAY-BY-DAY concurrency up to currentDay
  *****************************************************************/
 function computeDayByDay(tasks, currentDay) {
   // find plannedDuration => max EF
@@ -545,14 +452,15 @@ function computeDayByDay(tasks, currentDay) {
     }
   });
 
-  // actual cost & EV up to current day
+  // Actual cost & EV up to current day
   tasks.forEach(t=>{
-    let fracComplete=t.pctComplete/100;
-    let usedAC=t.actualCost*fracComplete;
-    let usedEV=t.budget*fracComplete;
+    let fracComplete = t.pctComplete/100;
+    // AC is the full actualCost, spread across the duration (not scaled by pctComplete).
+    let usedAC = t.actualCost; 
+    let usedEV = t.budget * fracComplete;
 
     for(let d=Math.floor(t.ES); d<Math.floor(t.EF); d++){
-      if(d<0||d>=dailyAC.length) continue;
+      if(d<0 || d>=dailyAC.length) continue;
       if(d<currentDay){
         let durUpToCD=Math.min(currentDay,t.EF)-t.ES;
         if(durUpToCD<0) durUpToCD=0;
@@ -579,7 +487,7 @@ function computeDayByDay(tasks, currentDay) {
 }
 
 /*****************************************************************
- * MAIN CALC + EVM FORECAST
+ * 4) MAIN CALC + EVM FORECAST
  *****************************************************************/
 document.getElementById('calcAllBtn').addEventListener('click', () => {
   const projectDivs=document.querySelectorAll('.project-container');
@@ -625,14 +533,9 @@ document.getElementById('calcAllBtn').addEventListener('click', () => {
 
   displayComparisonForecast(results);
   drawCostChart(results);
-
-  // ROI code removed, so no call to drawROIChart
   window.projectResults=results;
 });
 
-/*****************************************************************
- * COMPARISON TABLE
- *****************************************************************/
 function displayComparisonForecast(results){
   let html=`<table>
   <thead>
@@ -674,7 +577,7 @@ function displayComparisonForecast(results){
 }
 
 /*****************************************************************
- * CHART: PLANNED vs. ACTUAL + FORECAST
+ * 5) CHART: PLANNED vs. ACTUAL + FORECAST
  *****************************************************************/
 const projectColors=["green","blue","red","purple","orange","teal"];
 
@@ -734,7 +637,7 @@ function drawCostChart(results) {
   yAxis.setAttribute("stroke","#000");
   svg.appendChild(yAxis);
 
-  // ticks
+  // x ticks
   let xTicks=5;
   for(let i=0;i<=xTicks;i++){
     let dVal=(i/xTicks)*globalMaxX;
@@ -754,6 +657,8 @@ function drawCostChart(results) {
     lbl.textContent=Math.round(dVal);
     svg.appendChild(lbl);
   }
+
+  // y ticks
   let yTicks=5;
   for(let i=0;i<=yTicks;i++){
     let val=(i/yTicks)*globalMaxVal;
@@ -800,29 +705,21 @@ function drawCostChart(results) {
   cdLine.setAttribute("stroke-width","2");
   svg.appendChild(cdLine);
 
-  // For each project, we draw:
-  // 1) planned cost (dotted) from day 0.. plannedDuration
-  // 2) actual cost from day 0.. currentDay
-  // 3) forecast cost from currentDay.. forecastFinishDay
+  // For each project, we draw planned, actual, forecast lines
   results.forEach((proj, idx)=>{
     const color=projectColors[idx % projectColors.length];
-    // planned
     drawPlanned(proj, color);
-
-    // actual
     drawActual(proj, color);
-
-    // forecast
     drawForecast(proj, color);
   });
 
-  // legend top-left, 3 labels: planned, actual, forecast
+  // legend
   results.forEach((proj, i)=>{
     let color=projectColors[i % projectColors.length];
     let lx=margin+10;
     let ly=margin+10 + i*60;
 
-    // 1) planned
+    // planned
     const linePlan=document.createElementNS(svgNS,"line");
     linePlan.setAttribute("x1",lx);
     linePlan.setAttribute("y1",ly);
@@ -830,7 +727,7 @@ function drawCostChart(results) {
     linePlan.setAttribute("y2",ly);
     linePlan.setAttribute("stroke",color);
     linePlan.setAttribute("stroke-width","2");
-    linePlan.setAttribute("stroke-dasharray","2,6"); // dotted
+    linePlan.setAttribute("stroke-dasharray","2,6");
     svg.appendChild(linePlan);
 
     const lblPlan=document.createElementNS(svgNS,"text");
@@ -840,7 +737,7 @@ function drawCostChart(results) {
     lblPlan.textContent=proj.name+" Planned";
     svg.appendChild(lblPlan);
 
-    // 2) actual
+    // actual
     const lineAct=document.createElementNS(svgNS,"line");
     lineAct.setAttribute("x1",lx);
     lineAct.setAttribute("y1",ly+15);
@@ -857,7 +754,7 @@ function drawCostChart(results) {
     lblAct.textContent=proj.name+" Actual";
     svg.appendChild(lblAct);
 
-    // 3) forecast
+    // forecast
     const lineF=document.createElementNS(svgNS,"line");
     lineF.setAttribute("x1",lx);
     lineF.setAttribute("y1",ly+30);
@@ -893,7 +790,7 @@ function drawCostChart(results) {
     p.setAttribute("stroke",color);
     p.setAttribute("stroke-width","2");
     p.setAttribute("fill","none");
-    p.setAttribute("stroke-dasharray","2,6"); // dotted style
+    p.setAttribute("stroke-dasharray","2,6");
     svg.appendChild(p);
   }
 
@@ -937,7 +834,7 @@ function drawCostChart(results) {
 }
 
 /*****************************************************************
- * INSIGHTS
+ * 6) INSIGHTS
  *****************************************************************/
 document.getElementById('generateInsightsBtn').addEventListener('click', () => {
   if(!window.projectResults || !window.projectResults.length){
@@ -958,8 +855,6 @@ function generateInsights(results){
   let bestCostProj     = null, bestCostVal     = -Infinity;
   let bestEVProj       = null, bestEVVal       = -Infinity;
 
-  // Evaluate each project’s dayDiff (plannedDuration – forecastFinishDay),
-  // costDiff (plannedCost – EAC), and EVcd to see which is best.
   results.forEach(r => {
     let dayDiff   = r.plannedDuration - r.forecastFinishDay; 
     let costDiff  = r.plannedCost - r.EAC;
@@ -994,7 +889,7 @@ function generateInsights(results){
     text += `  Current EV(@CD): ${r.EVcd.toFixed(2)}\n\n`;
   });
 
-  // Final summary lines, checking if the "best" objects exist
+  // Final summary
   text += "\nSummary:\n";
   if(bestScheduleProj){
     text += `• Best Schedule Performance: ${bestScheduleProj.name} ` +
