@@ -3,7 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
-require('dotenv').config();
+require('dotenv').config({ path: 'config.env' }); // load from config.env generated in the workflow
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,9 +16,9 @@ app.use(express.static('public')); // serves files from the "public" folder
 app.post('/api/chat', async (req, res) => {
   const { message, conversation } = req.body;
   try {
-    // Call the OpenAI Chat API using conversation history for context
+    // Call the ChatGPT API using conversation history for context
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-3.5-turbo', // or your preferred model
+      model: 'gpt-3.5-turbo',
       messages: conversation
     }, {
       headers: {
@@ -39,7 +39,7 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/summary', async (req, res) => {
   const { conversation } = req.body;
   try {
-    // Build a prompt that instructs ChatGPT to summarize the conversation
+    // Build a prompt to instruct ChatGPT to summarize the conversation
     const summaryPrompt = [
       { role: 'system', content: 'Summarize the following conversation in a concise manner.' },
       { role: 'user', content: conversation.map(m => `${m.role}: ${m.content}`).join('\n') }
@@ -60,9 +60,9 @@ app.post('/api/summary', async (req, res) => {
 
     // Set up Nodemailer to send the summary email
     let transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST, // e.g., smtp.gmail.com
-      port: process.env.EMAIL_PORT, // e.g., 587
-      secure: false, // true for port 465, false for other ports
+      host: process.env.EMAIL_HOST, 
+      port: process.env.EMAIL_PORT, 
+      secure: false, 
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
