@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="google-site-verification" content="..." />
+  <meta charset="UTF-8">
+  <title>Project Manager Helper | Free PM Tools</title>
+  <meta name="description" content="Project Manager Helper offers free, easy-to-use tools..." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Link to external stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    /* Hero Section */
+    .hero {
+      position: relative;
+      background: url('images/hero-background.jpg') center/cover no-repeat;
+      color: #fff;
+      padding: 3rem 1rem;
+      text-align: center;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Navigation Bar with Horizontal Scrolling */
+    .topnav {
+      background-color: #333;
+      overflow-x: auto; 
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+    .topnav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .topnav ul li {
+      flex: none;
+      position: relative;
+    }
+    .topnav ul li a {
+      display: block;
+      padding: 14px 20px;
+      color: white;
+      text-decoration: none;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .topnav ul li a:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+
+    /* The sub-menu for mobile toggles in place, but for desktop we do a portal approach */
+    .dropdown-menu {
+      position: absolute; /* for desktop hover (portal approach) */
+      top: 100%;
+      left: 0;
+      display: none;
+      background-color: #333;
+      min-width: 150px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      z-index: 9999;
+    }
+    .dropdown-menu li a {
+      display: block;
+      padding: 10px 20px;
+      color: #fff;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .dropdown-menu li a:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+
+    /* Feature Slider */
+    .feature-slider {
+      width: 100%;
+      overflow: hidden;
+      background-color: #222;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .slider-wrapper {
+      display: flex;
+      transition: transform 0.5s ease;
+    }
+    .slide {
+      min-width: 100%;
+      height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+    }
+    .slide-video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+    .slide-content {
+      position: relative;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2rem;
+      border-radius: 10px;
+    }
+    .slider-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background-color: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 10;
+      border-radius: 50%;
+    }
+    .slider-arrow:hover {
+      background-color: rgba(255, 255, 255, 0.7);
+      color: #222;
+    }
+    .prev {
+      left: 10px;
+    }
+    .next {
+      right: 10px;
+    }
+
+    /* Final Slide: Continuous Scroll When Visible */
+    .final-slide {
+      background-color: #222;
+      height: 400px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      text-align: center;
+    }
+    .credits-scroll-wrapper {
+      width: 90%;
+      max-width: 600px;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      margin: 0 auto;
+    }
+    .credits-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      visibility: hidden;
+      animation: none;
+    }
+    .credits-list li {
+      margin: 1rem 0;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    @keyframes creditsScroll {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-100%); }
+    }
+
+    /* Tools Grid & Cards */
+    .tool-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .tool-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    .tool-card:hover {
+      transform: translateY(-5px);
+    }
+    .tool-card img {
+      max-width: 100%;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    .tool-card h2 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1.25rem;
+    }
+    .tool-card p {
+      padding: 0 1rem;
+      font-size: 0.95rem;
+    }
+    .tool-button {
+      display: inline-block;
+      margin: 1rem 0 1.5rem;
+      padding: 0.75rem 1.5rem;
+      background-color: #333;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .tool-button:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+
+    /* Feedback Section */
+    #feedback-section {
+      text-align: center;
+      padding: 3rem 1rem;
+      background-color: #f8f8f8;
+      margin-top: 2rem;
+    }
+    #feedback-section h2 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    #feedback-section p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      color: #555;
+    }
+    #feedback-section a {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background-color: #333;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    #feedback-section a:hover {
+      background-color: #555;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background-color: #eee;
+      margin-top: 2rem;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      /* Hide the desktop hover approach, do mobile toggles in place */
+      .dropdown-menu {
+        position: static; /* no absolute or fixed */
+        display: none;    /* toggled by JS */
+        background-color: #333;
+        margin-left: 20px; /* indent if desired */
+      }
+      .slide h2 {
+        font-size: 1.5rem;
+      }
+      .slide p {
+        font-size: 1rem;
+      }
+      .slider-arrow {
+        font-size: 1.2rem;
+        padding: 8px;
+      }
+      .tool-card {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Hero Section -->
+<header class="hero">
+  <div class="hero-content">
+    <h1>Project Manager Helper</h1>
+    <p>Streamline your projects with easy-to-use tools.</p>
+  </div>
+</header>
+
+<!-- Navigation Bar with Dropdown Menus -->
+<nav class="topnav">
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li class="dropdown">
+      <a href="#tools" class="parent-link">Tools</a>
+      <ul class="dropdown-menu">
+        <!-- On mobile, also provide a direct link to parent if needed: -->
+        <li class="go-parent"><a href="#tools">Go to Tools</a></li>
+        <li><a href="network-diagram/">Network Diagram Tool</a></li>
+        <li><a href="WSB-generator/">WBS Generator</a></li>
+        <li><a href="statistics/">Data Distribution Analysis</a></li>
+        <li><a href="evc/">Earned Value Calculator</a></li>
+        <li><a href="risk-register/">Risk Register &amp; Assessment</a></li>
+        <li><a href="statistics/">Simple Regression</a></li>
+        <li><a href="multi-regression/">Multivariable Regression</a></li>
+        <li><a href="monte-carlo/">Monte Carlo Simulation</a></li>
+        <li><a href="advanced-network-diagram/">Advanced Network Diagram</a></li>
+        <li><a href="advanced-scheduling/">Advanced Schedule Predictor</a></li>
+        <li><a href="calculators/">PM Financial Calculator</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/templates/" class="parent-link">Templates</a>
+      <ul class="dropdown-menu">
+        <li class="go-parent"><a href="/templates/">Go to Templates</a></li>
+        <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
+        <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
+      </ul>
+    </li>
+    <li class="dropdown">
+      <a href="/tutorials/" class="parent-link">Tutorials</a>
+      <ul class="dropdown-menu">
+        <li class="go-parent"><a href="/tutorials/">Go to Tutorials</a></li>
+  
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<!-- Feature Slider -->
+<section class="feature-slider">
+  <button class="slider-arrow prev" onclick="moveSlide(-1)">&#10094;</button>
+  <div class="slider-wrapper" id="slider">
+    <!-- Slide 1: Monte Carlo -->
+    <div class="slide">
+      <video autoplay loop muted playsinline class="slide-video">
+        <source src="videos/monte_carlo.mp4" type="video/mp4">
+      </video>
+      <div class="slide-content">
+        <h2>Will my project be completed on time and within budget?</h2>
+        <p>Find out the probability of completing your project on schedule and within budget using the Monte Carlo Simulation Tool.</p>
+      </div>
+    </div>
+    <!-- Slide 2: Network Diagram -->
+    <div class="slide">
+      <video autoplay loop muted playsinline class="slide-video">
+        <source src="videos/network.mp4" type="video/mp4">
+      </video>
+      <div class="slide-content">
+        <h2>Where can resources be allocated most effectively to expedite project completion?</h2>
+        <p>Identify float, crashable activities, and the critical path with the Network Diagram Tool.</p>
+      </div>
+    </div>
+    <!-- Slide 3: Weighted Average -->
+    <div class="slide">
+      <video autoplay loop muted playsinline class="slide-video">
+        <source src="videos/weighted_average.mp4" type="video/mp4">
+      </video>
+      <div class="slide-content">
+        <h2>Which project should I choose?</h2>
+        <p>Compare project options and calculate future value with the Weighted Average Calculator.</p>
+      </div>
+    </div>
+    <!-- Slide 4: Risk Management -->
+    <div class="slide">
+      <video autoplay loop muted playsinline class="slide-video">
+        <source src="videos/risk_assessment.mp4" type="video/mp4">
+      </video>
+      <div class="slide-content">
+        <h2>How do I manage project risk?</h2>
+        <p>Predict, model, and mitigate risks by combining the Risk Register, Monte Carlo Simulation, and Linear Regression Template.</p>
+      </div>
+    </div>
+    <!-- Final Slide: Scrolling Questions -->
+    <div class="slide final-slide">
+      <div class="credits-scroll-wrapper">
+        <ul class="credits-list" id="creditsList">
+          <li>...</li>
+          <li>Use Project Manager Helper to answer questions like</li>
+          <li>...</li>
+          <li>When will the project break even based on learning curve analysis?</li>
+          <li>What is the probability our final project cost will exceed the budget?</li>
+          <li>How can we estimate staffing levels using regression?</li>
+          <li>When will the project break even using learning curves?</li>
+          <li>How do we forecast cash flow trends with polynomial regression?</li>
+          <li>Which tasks carry the highest risk exposure?</li>
+          <li>How do we calculate cost variance using earned value?</li>
+          <li>Which tasks can be fast-tracked or crashed?</li>
+          <li>What’s the expected schedule slip if resources are reduced?</li>
+          <li>How do we compare project alternatives using NPV?</li>
+          <li>Which project has the higher return on investment?</li>
+          <li>What is the optimal way to allocate our finite resources?</li>
+          <li>...and many more...
+          <li>Check out our tutorials!</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <button class="slider-arrow next" onclick="moveSlide(1)">&#10095;</button>
+</section>
+
+<!-- Tools Section -->
+<main>
+  <section id="tools" class="tool-grid">
+    <div class="tool-card">
+      <img src="images/network.png" alt="Network Diagram" />
+      <h2>Network Diagram Tool</h2>
+      <p>Analyze your project's critical path and schedule.</p>
+      <a href="network-diagram/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/WSB.png" alt="WBS Generator" />
+      <h2>WBS Generator</h2>
+      <p>Create a work breakdown structure for your project.</p>
+      <a href="WSB-generator/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/statistics.PNG" alt="Simple Regression & Distribution" />
+      <h2>Simple Regression & Distribution</h2>
+      <p>Analyze data distribution and predict using simple linear and polynomial regression models.</p>
+      <a href="statistics/" class="tool-button">Open Tool</a>
+    </div>
+
+    <div class="tool-card">
+      <img src="images/advanced-network-diagram.PNG" alt="Advanced Network Diagram" />
+      <h2>Advanced Network Diagram</h2>
+      <p>Calculates complex activity dependencies.</p>
+      <a href="advanced-network-diagram/" class="tool-button">Open Tool</a>
+    </div>
+
+     <div class="tool-card">
+      <img src="images/advanced-scheduling.PNG" alt="Advanced Scheduling" />
+      <h2>Advanced Scheduling</h2>
+      <p>Uses output from Advanced Network Diagram to simulate complex interdependencies using Monte Carlo.</p>
+      <a href="advanced-scheduling/" class="tool-button">Open Tool</a>
+    </div>
+    
+    <div class="tool-card">
+      <img src="images/multi-regression.PNG" alt="Multiple Regression" />
+      <h2>Multiple Regression</h2>
+      <p>Predict using multivariable linear regression.</p>
+      <a href="multi-regression/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/evc.png" alt="Earned Value Calculator" />
+      <h2>Earned Value Calculator</h2>
+      <p>Calculate CPI, SPI, and EAC to track project performance.</p>
+      <a href="evc/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/risk_assessment.png" alt="Risk Register" />
+      <h2>Risk Register &amp; Assessment</h2>
+      <p>Identify, prioritize, and manage project risks efficiently.</p>
+      <a href="risk-register/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/monte_carlo.png" alt="Monte Carlo Simulations" />
+      <h2>Monte Carlo Simulation</h2>
+      <p>Predict project outcomes based on uncertainty and risks.</p>
+      <a href="monte-carlo/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/calculator.png" alt="PM Financial Calculator" />
+      <h2>PM Financial Calculator</h2>
+      <p>Evaluate projects using PV, FV, IRR, and Weighted Averages.</p>
+      <a href="calculators/" class="tool-button">Open Tool</a>
+    </div>
+  </section>
+</main>
+
+<!-- Feedback Section -->
+<section id="feedback-section">
+  <h2>Your Feedback</h2>
+  <p>Help us improve our tools. Share your ideas or user stories.</p>
+  <a href="feedback.html">Leave Feedback</a>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
+</footer>
+
+<!-- JavaScript for Slide Navigation -->
+<script>
+let currentSlide = 0;
+const slides = document.querySelectorAll(".slide");
+const totalSlides = slides.length;
+const creditsList = document.getElementById("creditsList");
+
+function moveSlide(direction) {
+  currentSlide += direction;
+  if (currentSlide < 0) currentSlide = 0;
+  if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+  document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
+
+  if (slides[currentSlide].classList.contains("final-slide")) {
+    startScrollingCredits();
+  } else {
+    stopScrollingCredits();
+  }
+}
+
+function startScrollingCredits() {
+  creditsList.style.visibility = "visible";
+  creditsList.style.animation = "none";
+  requestAnimationFrame(() => {
+    creditsList.style.animation = "creditsScroll 30s linear infinite";
+    creditsList.style.animationDelay = "0s";
+  });
+}
+
+function stopScrollingCredits() {
+  creditsList.style.animation = "none";
+  creditsList.style.visibility = "hidden";
+}
+</script>
+
+<!-- Desktop Portal + Mobile Toggle Approach -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Speed up videos
+  const allVideos = document.querySelectorAll("video");
+  allVideos.forEach(video => {
+    video.playbackRate = 1.2;
+  });
+
+  // Check if device can hover
+  const canHover = window.matchMedia('(hover: hover)').matches;
+
+  const dropdowns = document.querySelectorAll('.dropdown');
+
+  if (canHover) {
+    /* =============== DESKTOP HOVER: Portal Approach =============== */
+    dropdowns.forEach(drop => {
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+
+      // On mouse enter
+      drop.addEventListener('mouseenter', () => {
+        const rect = drop.getBoundingClientRect();
+        document.body.appendChild(dropdownMenu);
+        dropdownMenu.style.position = 'fixed';
+        dropdownMenu.style.top = rect.bottom + 'px';
+        dropdownMenu.style.left = rect.left + 'px';
+        dropdownMenu.style.display = 'block';
+        dropdownMenu.style.zIndex = '10000000';
+      });
+
+      // On mouse leave
+      drop.addEventListener('mouseleave', () => {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+
+      // Also if mouse leaves the menu
+      dropdownMenu.addEventListener('mouseleave', () => {
+        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+    });
+
+    // Hide on scroll
+    window.addEventListener('scroll', () => {
+      dropdowns.forEach(drop => {
+        const dropdownMenu = drop.querySelector('.dropdown-menu');
+        if (dropdownMenu.style.position === 'fixed') {
+          drop.appendChild(dropdownMenu);
+          dropdownMenu.style.position = '';
+          dropdownMenu.style.top = '';
+          dropdownMenu.style.left = '';
+          dropdownMenu.style.display = 'none';
+        }
+      });
+    });
+
+  } else {
+    /* =============== MOBILE: Simple Toggle In-Place =============== */
+    dropdowns.forEach(drop => {
+      const parentLink = drop.querySelector('.parent-link');
+      const dropdownMenu = drop.querySelector('.dropdown-menu');
+      // Start closed
+      dropdownMenu.style.display = 'none';
+
+      // On tap, toggle
+      parentLink.addEventListener('click', e => {
+        e.preventDefault(); 
+        if (dropdownMenu.style.display === 'block') {
+          // Close
+          dropdownMenu.style.display = 'none';
+        } else {
+          // Open
+          dropdownMenu.style.display = 'block';
+        }
+      });
+    });
+  }
+});
+</script>
+
+</body>
+</html>
