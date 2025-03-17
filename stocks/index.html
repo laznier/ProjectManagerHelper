@@ -180,20 +180,17 @@
     }
 
     // 2. Fetch historical stock data from Alpha Vantage (split-adjusted)
-    async function fetchHistoricalData(ticker) {
-      // Replace with your valid Alpha Vantage API key
-      const apiKey = 'YOUR_API_KEY';
-      // Use TIME_SERIES_DAILY_ADJUSTED to get split-adjusted data
-      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data["Error Message"] || !data["Time Series (Daily)"]) {
-        throw new Error("Error fetching data. Check ticker symbol or API key.");
-      }
-      return data["Time Series (Daily)"];
-    }
-
+   async function fetchHistoricalData(ticker) {
+  // Calls your backend endpoint, which securely uses your API key
+  const url = `/api/historical?ticker=${ticker}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  return data;
+}
+  
     // 3. Process historical data to extract split-adjusted prices within the desired period
     function processHistoricalData(timeSeries, periodMonths) {
       const dates = Object.keys(timeSeries).sort((a, b) => new Date(a) - new Date(b));
@@ -482,15 +479,17 @@
     }
 
     // ===== New Functions for Sentiment Analysis Forecast using Alpha Vantage =====
-    async function fetchSentimentData(ticker, periodMonths) {
-      // Use your valid Alpha Vantage API key here
-      const apiKey = 'YOUR_API_KEY';
-      const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${ticker}&apikey=${apiKey}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      if (!data.feed) {
-        throw new Error("No sentiment data available from Alpha Vantage.");
-      }
+ async function fetchSentimentData(ticker, periodMonths) {
+  const url = `/api/sentiment?ticker=${ticker}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  return data;
+}
+
+
       // Define the date range
       const now = new Date();
       const startDate = new Date(now);
