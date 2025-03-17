@@ -179,11 +179,12 @@
       return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
-    // 2. Fetch historical stock data from Alpha Vantage
+    // 2. Fetch historical stock data from Alpha Vantage (split-adjusted)
     async function fetchHistoricalData(ticker) {
       // Replace with your valid Alpha Vantage API key
       const apiKey = 'YOUR_API_KEY';
-      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
+      // Use TIME_SERIES_DAILY_ADJUSTED to get split-adjusted data
+      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -193,7 +194,7 @@
       return data["Time Series (Daily)"];
     }
 
-    // 3. Process historical data to extract prices within the desired period
+    // 3. Process historical data to extract split-adjusted prices within the desired period
     function processHistoricalData(timeSeries, periodMonths) {
       const dates = Object.keys(timeSeries).sort((a, b) => new Date(a) - new Date(b));
       const endDate = new Date(dates[dates.length - 1]);
@@ -204,9 +205,10 @@
       for(let date of dates) {
         const currentDate = new Date(date);
         if(currentDate >= startDate && currentDate <= endDate) {
+          // Use "5. adjusted close" to ensure we get split-adjusted data
           prices.push({
             date: currentDate,
-            close: parseFloat(timeSeries[date]["4. close"])
+            close: parseFloat(timeSeries[date]["5. adjusted close"])
           });
         }
       }
