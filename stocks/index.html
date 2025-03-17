@@ -513,23 +513,29 @@
       return sentiments;
     }
 
-    // Compute the sentiment trend classification
+    // Updated computeSentimentTrend function to handle single data point scenarios.
     function computeSentimentTrend(sentiments) {
-      if (!sentiments || sentiments.length < 2) return "Insufficient data";
-      // Assume sentiments are sorted chronologically.
+      if (!sentiments || sentiments.length === 0) return "Insufficient data";
+      
+      // Compute baseline from the first available data point.
       const start = sentiments[0].sentiment;
+      let baseline = "";
+      if (start >= 60) baseline = "Good";
+      else if (start <= 40) baseline = "Bad";
+      else baseline = "Neutral";
+      
+      // If there's only one data point, return the baseline.
+      if (sentiments.length === 1) {
+        return baseline + " Sentiment (Single Data Point)";
+      }
+      
+      // With multiple data points, calculate the trend.
       const end = sentiments[sentiments.length - 1].sentiment;
       const delta = end - start;
       let trend = "";
       if (delta > 5) trend = "Improving";
       else if (delta < -5) trend = "Declining";
       else trend = "Stable";
-      
-      // Baseline classification (assuming scale 0-100, where 60+ is good, below 40 is bad)
-      let baseline = "";
-      if (start >= 60) baseline = "Good";
-      else if (start <= 40) baseline = "Bad";
-      else baseline = "Neutral";
       
       if (trend === "Stable") return "Stable " + baseline + " Sentiment";
       else return baseline + " " + trend + " Sentiment";
