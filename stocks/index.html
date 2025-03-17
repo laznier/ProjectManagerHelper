@@ -182,7 +182,7 @@
     // 2. Fetch historical stock data from Alpha Vantage (split-adjusted)
     async function fetchHistoricalData(ticker) {
       // Replace with your valid Alpha Vantage API key
-      const apiKey = 'YOUR_API_KEY';
+      const apiKey = 'CVSI69YMDP0PPS9V';
       // Use TIME_SERIES_DAILY_ADJUSTED to get split-adjusted data
       const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
       
@@ -484,7 +484,7 @@
     // ===== New Functions for Sentiment Analysis Forecast using Alpha Vantage =====
     async function fetchSentimentData(ticker, periodMonths) {
       // Use your valid Alpha Vantage API key here
-      const apiKey = 'YOUR_API_KEY';
+      const apiKey = 'CVSI69YMDP0PPS9V';
       const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${ticker}&apikey=${apiKey}`;
       const response = await fetch(url);
       const data = await response.json();
