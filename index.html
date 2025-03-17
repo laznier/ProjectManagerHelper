@@ -312,21 +312,24 @@
   <ul>
     <li><a href="/">Home</a></li>
     <li class="dropdown">
-      <a href="#tools" class="parent-link">Tools</a>
+      <a href="#PM tools" class="parent-link">PM Tools</a>
       <ul class="dropdown-menu">
         <!-- On mobile, also provide a direct link to parent if needed: -->
-        <li class="go-parent"><a href="#tools">Go to Tools</a></li>
+        <li class="go-parent"><a href="#PM tools">Go to PM Tools</a></li>
+        <li><a href="stocks/">Stock Forecast</a></li>
         <li><a href="network-diagram/">Network Diagram Tool</a></li>
         <li><a href="WSB-generator/">WBS Generator</a></li>
         <li><a href="statistics/">Data Distribution Analysis</a></li>
-        <li><a href="evc/">Earned Value Calculator</a></li>
+        <li><a href="evc/">Earned Value Management</a></li>
         <li><a href="risk-register/">Risk Register &amp; Assessment</a></li>
         <li><a href="statistics/">Simple Regression</a></li>
         <li><a href="multi-regression/">Multivariable Regression</a></li>
         <li><a href="monte-carlo/">Monte Carlo Simulation</a></li>
         <li><a href="advanced-network-diagram/">Advanced Network Diagram</a></li>
         <li><a href="advanced-scheduling/">Advanced Schedule Predictor</a></li>
+        <li><a href="resources/">Resource Allocator and Gantt</a></li>
         <li><a href="calculators/">PM Financial Calculator</a></li>
+        <li><a href="queueing/">Queueing Theory and CFD</a></li>
       </ul>
     </li>
     <li class="dropdown">
@@ -421,7 +424,13 @@
 
 <!-- Tools Section -->
 <main>
-  <section id="tools" class="tool-grid">
+  <section id="PM tools" class="tool-grid">
+    <div class="tool-card">
+      <img src="images/stocks.PNG" alt="Stock Forecast" />
+      <h2>Network Diagram Tool</h2>
+      <p>Predict stock prices using Linear Regression and Monte Carlo Simulations.</p>
+      <a href="stocks/" class="tool-button">Open Tool</a>
+    </div>
     <div class="tool-card">
       <img src="images/network.png" alt="Network Diagram" />
       <h2>Network Diagram Tool</h2>
@@ -462,10 +471,16 @@
       <a href="multi-regression/" class="tool-button">Open Tool</a>
     </div>
     <div class="tool-card">
-      <img src="images/evc.png" alt="Earned Value Calculator" />
-      <h2>Earned Value Calculator</h2>
-      <p>Calculate CPI, SPI, and EAC to track project performance.</p>
+      <img src="images/evm.PNG" alt="Earned Value Calculator" />
+      <h2>Earned Value Management</h2>
+      <p>Compare project performace and forecast using EVM calculations.</p>
       <a href="evc/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/resources.png" alt="Resource Allocator and Gantt" />
+      <h2>Resource Allocator and Gantt</h2>
+      <p>Allocate resources and generenate interactive Gantt chart.</p>
+      <a href="resources/" class="tool-button">Open Tool</a>
     </div>
     <div class="tool-card">
       <img src="images/risk_assessment.png" alt="Risk Register" />
@@ -484,6 +499,12 @@
       <h2>PM Financial Calculator</h2>
       <p>Evaluate projects using PV, FV, IRR, and Weighted Averages.</p>
       <a href="calculators/" class="tool-button">Open Tool</a>
+    </div>
+    <div class="tool-card">
+      <img src="images/cfd.PNG" alt="Queueing Theory and CFD" />
+      <h2>Queueing Theory and CFD</h2>
+      <p>Improve efficiency & identify bottlenecks using Queueing Calculators.</p>
+      <a href="queueing/" class="tool-button">Open Tool</a>
     </div>
   </section>
 </main>
