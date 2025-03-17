@@ -468,6 +468,17 @@
       else return "Strong Buy";
     }
 
+    // --- Helper to parse Alpha Vantage time strings like "20250311T093008" into a valid Date
+    function parseAlphaDate(rawDateStr) {
+      const year = rawDateStr.substring(0, 4);
+      const month = rawDateStr.substring(4, 6);
+      const day = rawDateStr.substring(6, 8);
+      const hour = rawDateStr.substring(9, 11) || "00";
+      const min = rawDateStr.substring(11, 13) || "00";
+      const sec = rawDateStr.substring(13, 15) || "00";
+      return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}Z`);
+    }
+
     // ===== New Functions for Sentiment Analysis Forecast using Alpha Vantage =====
     async function fetchSentimentData(ticker, periodMonths) {
       // Use your valid Alpha Vantage API key here
@@ -483,32 +494,46 @@
       const startDate = new Date(now);
       startDate.setMonth(startDate.getMonth() - periodMonths);
       
-      // Filter articles published within the specified period
-      const filteredArticles = data.feed.filter(article => {
-        const articleDate = new Date(article.time_published);
-        return articleDate >= startDate;
-      });
-      
-      // Group by date (YYYY-MM-DD) and compute average sentiment per day.
+      // Build a dictionary of daily sentiment scores for the target ticker
       const sentimentByDate = {};
-      filteredArticles.forEach(article => {
-        const dateStr = article.time_published.split(" ")[0];
-        // Normalize sentiment: assuming raw score is between -1 and 1, map to 0-100.
-        const rawScore = parseFloat(article.ticker_sentiment.overall_sentiment_score);
+
+      for (const article of data.feed) {
+        // Parse date from "time_published" (e.g. "20250311T093008")
+        const parsedDate = parseAlphaDate(article.time_published);
+        if (isNaN(parsedDate.getTime())) continue; // invalid date, skip
+        if (parsedDate < startDate) continue;       // older than user-specified range
+
+        // Each article may have multiple tickers in "ticker_sentiment"
+        if (!article.ticker_sentiment) continue;
+        // Find the user ticker inside the array
+        const tickerItem = article.ticker_sentiment.find(
+          ts => ts.ticker.toUpperCase() === ticker.toUpperCase()
+        );
+        if (!tickerItem) continue; // this article doesn't mention the user ticker
+
+        // Parse the raw sentiment score for that ticker
+        const rawScore = parseFloat(tickerItem.ticker_sentiment_score);
+        if (isNaN(rawScore)) continue;
+
+        // Optionally, normalize from -1..+1 into 0..100
         const normalizedSentiment = ((rawScore + 1) / 2) * 100;
-        if (!sentimentByDate[dateStr]) {
-          sentimentByDate[dateStr] = [];
+
+        // Group by date (YYYY-MM-DD)
+        const dateKey = parsedDate.toISOString().split("T")[0];
+        if (!sentimentByDate[dateKey]) {
+          sentimentByDate[dateKey] = [];
         }
-        sentimentByDate[dateStr].push(normalizedSentiment);
-      });
-      
+        sentimentByDate[dateKey].push(normalizedSentiment);
+      }
+
+      // Compute daily average
       let sentiments = [];
       for (const dateStr in sentimentByDate) {
         const scores = sentimentByDate[dateStr];
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
         sentiments.push({ date: dateStr, sentiment: avg });
       }
-      // Sort by date ascending
+      // Sort by ascending date
       sentiments.sort((a, b) => new Date(a.date) - new Date(b.date));
       return sentiments;
     }
@@ -517,19 +542,19 @@
     function computeSentimentTrend(sentiments) {
       if (!sentiments || sentiments.length === 0) return "Insufficient data";
       
-      // Compute baseline from the first available data point.
+      // Baseline from the first data point
       const start = sentiments[0].sentiment;
       let baseline = "";
       if (start >= 60) baseline = "Good";
       else if (start <= 40) baseline = "Bad";
       else baseline = "Neutral";
       
-      // If there's only one data point, return the baseline.
+      // If there's only one data point, return the baseline
       if (sentiments.length === 1) {
         return baseline + " Sentiment (Single Data Point)";
       }
       
-      // With multiple data points, calculate the trend.
+      // With multiple data points, calculate the difference
       const end = sentiments[sentiments.length - 1].sentiment;
       const delta = end - start;
       let trend = "";
@@ -538,7 +563,7 @@
       else trend = "Stable";
       
       if (trend === "Stable") return "Stable " + baseline + " Sentiment";
-      else return baseline + " " + trend + " Sentiment";
+      return baseline + " " + trend + " Sentiment";
     }
 
     // Plot the sentiment over time
