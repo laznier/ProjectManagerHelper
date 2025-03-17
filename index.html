@@ -1,651 +1,777 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta name="google-site-verification" content="..." />
-  <meta charset="UTF-8">
-  <title>Project Manager Helper | Free PM Tools</title>
-  <meta name="description" content="Project Manager Helper offers free, easy-to-use tools..." />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Link to external stylesheet -->
-  <link rel="stylesheet" href="style.css" />
-
+  <title>Advanced Stock Price Prediction Tool</title>
+  <!-- Include Plotly for interactive charts -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
-    /* Hero Section */
-    .hero {
-      position: relative;
-      background: url('images/hero-background.jpg') center/cover no-repeat;
-      color: #fff;
-      padding: 3rem 1rem;
-      text-align: center;
-    }
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 0;
-    }
-    .hero-content {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* Navigation Bar with Horizontal Scrolling */
-    .topnav {
-      background-color: #333;
-      overflow-x: auto; 
-      white-space: nowrap;
-      -webkit-overflow-scrolling: touch;
-    }
-    .topnav ul {
-      list-style: none;
+    /* Basic Reset */
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      display: flex;
     }
-    .topnav ul li {
-      flex: none;
-      position: relative;
-    }
-    .topnav ul li a {
-      display: block;
-      padding: 14px 20px;
-      color: white;
-      text-decoration: none;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .topnav ul li a:hover {
-      background-color: #ddd;
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #f3f4f6, #ffffff);
       color: #333;
-    }
-
-    /* The sub-menu for mobile toggles in place, but for desktop we do a portal approach */
-    .dropdown-menu {
-      position: absolute; /* for desktop hover (portal approach) */
-      top: 100%;
-      left: 0;
-      display: none;
-      background-color: #333;
-      min-width: 150px;
-      list-style: none;
       margin: 0;
       padding: 0;
-      z-index: 9999;
     }
-    .dropdown-menu li a {
-      display: block;
-      padding: 10px 20px;
-      color: #fff;
-      text-decoration: none;
-      transition: background-color 0.3s ease;
-    }
-    .dropdown-menu li a:hover {
-      background-color: #ddd;
-      color: #333;
-    }
-
-    /* Feature Slider */
-    .feature-slider {
-      width: 100%;
-      overflow: hidden;
-      background-color: #222;
-      color: #fff;
-      text-align: center;
-      margin-bottom: 2rem;
-      position: relative;
-    }
-    .slider-wrapper {
-      display: flex;
-      transition: transform 0.5s ease;
-    }
-    .slide {
-      min-width: 100%;
-      height: 400px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      position: relative;
-    }
-    .slide-video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 0;
-    }
-    .slide-content {
-      position: relative;
-      z-index: 1;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2rem;
-      border-radius: 10px;
-    }
-    .slider-arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background-color: rgba(0, 0, 0, 0.5);
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      font-size: 1.5rem;
-      cursor: pointer;
-      z-index: 10;
-      border-radius: 50%;
-    }
-    .slider-arrow:hover {
-      background-color: rgba(255, 255, 255, 0.7);
-      color: #222;
-    }
-    .prev {
-      left: 10px;
-    }
-    .next {
-      right: 10px;
-    }
-
-    /* Final Slide: Continuous Scroll When Visible */
-    .final-slide {
-      background-color: #222;
-      height: 400px;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
-      text-align: center;
-    }
-    .credits-scroll-wrapper {
-      width: 90%;
-      max-width: 600px;
-      height: 100%;
-      overflow: hidden;
-      position: relative;
-      margin: 0 auto;
-    }
-    .credits-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-      visibility: hidden;
-      animation: none;
-    }
-    .credits-list li {
-      margin: 1rem 0;
-      font-size: 1rem;
-      line-height: 1.6;
-    }
-    @keyframes creditsScroll {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-100%); }
-    }
-
-    /* Tools Grid & Cards */
-    .tool-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .tool-card {
-      background: #fff;
-      border: 1px solid #ddd;
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background-color: #fff;
       border-radius: 8px;
-      width: 300px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 30px;
+    }
+    h1 {
       text-align: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease;
+      margin-bottom: 20px;
+      font-weight: 600;
     }
-    .tool-card:hover {
-      transform: translateY(-5px);
-    }
-    .tool-card img {
-      max-width: 100%;
-      border-top-left-radius: 8px;
-      border-top-right-radius: 8px;
-    }
-    .tool-card h2 {
-      margin: 1rem 0 0.5rem;
-      font-size: 1.25rem;
-    }
-    .tool-card p {
-      padding: 0 1rem;
+    p {
       font-size: 0.95rem;
-    }
-    .tool-button {
-      display: inline-block;
-      margin: 1rem 0 1.5rem;
-      padding: 0.75rem 1.5rem;
-      background-color: #333;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 4px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .tool-button:hover {
-      background-color: #ddd;
-      color: #333;
-    }
-
-    /* Feedback Section */
-    #feedback-section {
-      text-align: center;
-      padding: 3rem 1rem;
-      background-color: #f8f8f8;
-      margin-top: 2rem;
-    }
-    #feedback-section h2 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-    }
-    #feedback-section p {
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
+      line-height: 1.4;
+      margin-bottom: 20px;
       color: #555;
     }
-    #feedback-section a {
-      display: inline-block;
-      padding: 0.75rem 1.5rem;
-      background-color: #333;
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 500;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #6b7280;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #2563eb;
       color: #fff;
-      text-decoration: none;
-      border-radius: 5px;
-      transition: background-color 0.3s;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
     }
-    #feedback-section a:hover {
-      background-color: #555;
+    button:hover {
+      background: #1e3a8a;
     }
-
-    /* Footer */
-    footer {
-      text-align: center;
-      padding: 1rem;
-      background-color: #eee;
-      margin-top: 2rem;
+    #loading {
+      margin-top: 10px;
+      font-style: italic;
+      color: #f97316;
     }
-
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-      /* Hide the desktop hover approach, do mobile toggles in place */
-      .dropdown-menu {
-        position: static; /* no absolute or fixed */
-        display: none;    /* toggled by JS */
-        background-color: #333;
-        margin-left: 20px; /* indent if desired */
-      }
-      .slide h2 {
-        font-size: 1.5rem;
-      }
-      .slide p {
-        font-size: 1rem;
-      }
-      .slider-arrow {
-        font-size: 1.2rem;
-        padding: 8px;
-      }
-      .tool-card {
-        width: 90%;
-      }
+    #result {
+      margin-top: 30px;
+    }
+    #chart {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      background-color: #fff;
+    }
+    #sliderDiv {
+      margin-top: 20px;
+    }
+    #sliderDiv label {
+      margin: 0;
+      font-weight: 500;
+    }
+    #priceSlider {
+      width: 80%;
+      margin: 10px 0;
+    }
+    #thresholdValue {
+      font-weight: 600;
+      color: #2563eb;
+    }
+    #probability {
+      font-weight: 600;
+      color: #2563eb;
+    }
+    #explanation {
+      margin-top: 30px; 
+      padding: 20px; 
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      background-color: #f9fafb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    #explanation h3 {
+      margin-bottom: 10px;
+      font-weight: 600;
     }
   </style>
 </head>
-
 <body>
-
-<!-- Hero Section -->
-<header class="hero">
-  <div class="hero-content">
-    <h1>Project Manager Helper</h1>
-    <p>Streamline your projects with easy-to-use tools.</p>
-  </div>
-</header>
-
-<!-- Navigation Bar with Dropdown Menus -->
-<nav class="topnav">
-  <ul>
-    <li><a href="/">Home</a></li>
-    <li class="dropdown">
-      <a href="#PM tools" class="parent-link">PM Tools</a>
-      <ul class="dropdown-menu">
-        <!-- On mobile, also provide a direct link to parent if needed: -->
-        <li class="go-parent"><a href="#PM tools">Go to PM Tools</a></li>
-        <li><a href="stocks/">Stock Forecast</a></li>
-        <li><a href="network-diagram/">Network Diagram Tool</a></li>
-        <li><a href="WSB-generator/">WBS Generator</a></li>
-        <li><a href="statistics/">Data Distribution Analysis</a></li>
-        <li><a href="evc/">Earned Value Management</a></li>
-        <li><a href="risk-register/">Risk Register &amp; Assessment</a></li>
-        <li><a href="statistics/">Simple Regression</a></li>
-        <li><a href="multi-regression/">Multivariable Regression</a></li>
-        <li><a href="monte-carlo/">Monte Carlo Simulation</a></li>
-        <li><a href="advanced-network-diagram/">Advanced Network Diagram</a></li>
-        <li><a href="advanced-scheduling/">Advanced Schedule Predictor</a></li>
-        <li><a href="resources/">Resource Allocator and Gantt</a></li>
-        <li><a href="calculators/">PM Financial Calculator</a></li>
-        <li><a href="queueing/">Queueing Theory and CFD</a></li>
-      </ul>
-    </li>
-    <li class="dropdown">
-      <a href="/templates/" class="parent-link">Templates</a>
-      <ul class="dropdown-menu">
-        <li class="go-parent"><a href="/templates/">Go to Templates</a></li>
-        <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
-        <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
-      </ul>
-    </li>
-    <li class="dropdown">
-      <a href="/tutorials/" class="parent-link">Tutorials</a>
-      <ul class="dropdown-menu">
-        <li class="go-parent"><a href="/tutorials/">Go to Tutorials</a></li>
-  
-      </ul>
-    </li>
-  </ul>
-</nav>
-
-<!-- Feature Slider -->
-<section class="feature-slider">
-  <button class="slider-arrow prev" onclick="moveSlide(-1)">&#10094;</button>
-  <div class="slider-wrapper" id="slider">
-    <!-- Slide 1: Monte Carlo -->
-    <div class="slide">
-      <video autoplay loop muted playsinline class="slide-video">
-        <source src="videos/monte_carlo.mp4" type="video/mp4">
-      </video>
-      <div class="slide-content">
-        <h2>Will my project be completed on time and within budget?</h2>
-        <p>Find out the probability of completing your project on schedule and within budget using the Monte Carlo Simulation Tool.</p>
+  <!-- Back to Main Page button -->
+  <button onclick="window.location.href='https://projectmanagerhelper.com'">
+    Back to Main Page
+  </button>
+  <div class="container">
+    <h1>Advanced Stock Price Prediction Tool</h1>
+    <p>
+      Enter a ticker symbol (e.g., AAPL), the historical period (in months) to consider, select a future date, and choose a forecast method.
+      The tool uses advanced techniques to predict the future stock price or analyze sentiment and then generates an explanation of the methods used.
+    </p>
+    
+    <label for="ticker">Ticker Symbol (e.g., AAPL):</label>
+    <input type="text" id="ticker" value="AAPL">
+    
+    <label for="period">Historical Period (in months):</label>
+    <input type="number" id="period" value="12" min="1">
+    
+    <label for="futureDate">Future Date:</label>
+    <input type="date" id="futureDate">
+    
+    <label for="forecastMethod">Forecast Method:</label>
+    <select id="forecastMethod">
+      <option value="mc">Monte Carlo Simulation (GBM)</option>
+      <option value="lr">Linear Trend Forecast</option>
+      <option value="combined">Combined Technical Indicators</option>
+      <option value="sentiment">Sentiment Analysis Forecast</option>
+    </select>
+    
+    <button id="simulateButton">Run Simulation</button>
+    <div id="loading" style="display:none;">Loading data and running simulation...</div>
+    
+    <div id="result">
+      <div id="chart"></div>
+      <!-- Slider for Monte Carlo histogram (if applicable) -->
+      <div id="sliderDiv" style="display:none;">
+        <label for="priceSlider">Select Price Threshold:</label>
+        <input type="range" id="priceSlider" min="0" max="1000" step="1" value="0">
+        <span id="thresholdValue">0</span>
+        <p>Probability of final price above threshold: <span id="probability">0%</span></p>
       </div>
-    </div>
-    <!-- Slide 2: Network Diagram -->
-    <div class="slide">
-      <video autoplay loop muted playsinline class="slide-video">
-        <source src="videos/network.mp4" type="video/mp4">
-      </video>
-      <div class="slide-content">
-        <h2>Where can resources be allocated most effectively to expedite project completion?</h2>
-        <p>Identify float, crashable activities, and the critical path with the Network Diagram Tool.</p>
-      </div>
-    </div>
-    <!-- Slide 3: Weighted Average -->
-    <div class="slide">
-      <video autoplay loop muted playsinline class="slide-video">
-        <source src="videos/weighted_average.mp4" type="video/mp4">
-      </video>
-      <div class="slide-content">
-        <h2>Which project should I choose?</h2>
-        <p>Compare project options and calculate future value with the Weighted Average Calculator.</p>
-      </div>
-    </div>
-    <!-- Slide 4: Risk Management -->
-    <div class="slide">
-      <video autoplay loop muted playsinline class="slide-video">
-        <source src="videos/risk_assessment.mp4" type="video/mp4">
-      </video>
-      <div class="slide-content">
-        <h2>How do I manage project risk?</h2>
-        <p>Predict, model, and mitigate risks by combining the Risk Register, Monte Carlo Simulation, and Linear Regression Template.</p>
-      </div>
-    </div>
-    <!-- Final Slide: Scrolling Questions -->
-    <div class="slide final-slide">
-      <div class="credits-scroll-wrapper">
-        <ul class="credits-list" id="creditsList">
-          <li>...</li>
-          <li>Use Project Manager Helper to answer questions like</li>
-          <li>...</li>
-          <li>When will the project break even based on learning curve analysis?</li>
-          <li>What is the probability our final project cost will exceed the budget?</li>
-          <li>How can we estimate staffing levels using regression?</li>
-          <li>When will the project break even using learning curves?</li>
-          <li>How do we forecast cash flow trends with polynomial regression?</li>
-          <li>Which tasks carry the highest risk exposure?</li>
-          <li>How do we calculate cost variance using earned value?</li>
-          <li>Which tasks can be fast-tracked or crashed?</li>
-          <li>What’s the expected schedule slip if resources are reduced?</li>
-          <li>How do we compare project alternatives using NPV?</li>
-          <li>Which project has the higher return on investment?</li>
-          <li>What is the optimal way to allocate our finite resources?</li>
-          <li>...and many more...
-          <li>Check out our tutorials!</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-  <button class="slider-arrow next" onclick="moveSlide(1)">&#10095;</button>
-</section>
-
-<!-- Tools Section -->
-<main>
-  <section id="PM tools" class="tool-grid">
-    <div class="tool-card">
-      <img src="images/stocks.PNG" alt="Stock Forecast" />
-      <h2>Network Diagram Tool</h2>
-      <p>Predict stock prices using Linear Regression and Monte Carlo Simulations.</p>
-      <a href="stocks/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/network.png" alt="Network Diagram" />
-      <h2>Network Diagram Tool</h2>
-      <p>Analyze your project's critical path and schedule.</p>
-      <a href="network-diagram/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/WSB.png" alt="WBS Generator" />
-      <h2>WBS Generator</h2>
-      <p>Create a work breakdown structure for your project.</p>
-      <a href="WSB-generator/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/statistics.PNG" alt="Simple Regression & Distribution" />
-      <h2>Simple Regression & Distribution</h2>
-      <p>Analyze data distribution and predict using simple linear and polynomial regression models.</p>
-      <a href="statistics/" class="tool-button">Open Tool</a>
-    </div>
-
-    <div class="tool-card">
-      <img src="images/advanced-network-diagram.PNG" alt="Advanced Network Diagram" />
-      <h2>Advanced Network Diagram</h2>
-      <p>Calculates complex activity dependencies.</p>
-      <a href="advanced-network-diagram/" class="tool-button">Open Tool</a>
-    </div>
-
-     <div class="tool-card">
-      <img src="images/advanced-scheduling.PNG" alt="Advanced Scheduling" />
-      <h2>Advanced Scheduling</h2>
-      <p>Uses output from Advanced Network Diagram to simulate complex interdependencies using Monte Carlo.</p>
-      <a href="advanced-scheduling/" class="tool-button">Open Tool</a>
     </div>
     
-    <div class="tool-card">
-      <img src="images/multi-regression.PNG" alt="Multiple Regression" />
-      <h2>Multiple Regression</h2>
-      <p>Predict using multivariable linear regression.</p>
-      <a href="multi-regression/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/evm.PNG" alt="Earned Value Calculator" />
-      <h2>Earned Value Management</h2>
-      <p>Compare project performace and forecast using EVM calculations.</p>
-      <a href="evc/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/resources.png" alt="Resource Allocator and Gantt" />
-      <h2>Resource Allocator and Gantt</h2>
-      <p>Allocate resources and generenate interactive Gantt chart.</p>
-      <a href="resources/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/risk_assessment.png" alt="Risk Register" />
-      <h2>Risk Register &amp; Assessment</h2>
-      <p>Identify, prioritize, and manage project risks efficiently.</p>
-      <a href="risk-register/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/monte_carlo.png" alt="Monte Carlo Simulations" />
-      <h2>Monte Carlo Simulation</h2>
-      <p>Predict project outcomes based on uncertainty and risks.</p>
-      <a href="monte-carlo/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/calculator.png" alt="PM Financial Calculator" />
-      <h2>PM Financial Calculator</h2>
-      <p>Evaluate projects using PV, FV, IRR, and Weighted Averages.</p>
-      <a href="calculators/" class="tool-button">Open Tool</a>
-    </div>
-    <div class="tool-card">
-      <img src="images/cfd.PNG" alt="Queueing Theory and CFD" />
-      <h2>Queueing Theory and CFD</h2>
-      <p>Improve efficiency & identify bottlenecks using Queueing Calculators.</p>
-      <a href="queueing/" class="tool-button">Open Tool</a>
-    </div>
-  </section>
-</main>
+    <div id="explanation"></div>
+  </div>
+  
+  <script>
+    // 1. Generate a standard normal random variable (Box-Muller Transform)
+    function randn_bm() {
+      let u = 0, v = 0;
+      while(u === 0) u = Math.random();
+      while(v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
 
-<!-- Feedback Section -->
-<section id="feedback-section">
-  <h2>Your Feedback</h2>
-  <p>Help us improve our tools. Share your ideas or user stories.</p>
-  <a href="feedback.html">Leave Feedback</a>
-</section>
+    // 2. Fetch historical stock data from Alpha Vantage
+    async function fetchHistoricalData(ticker) {
+      // Replace with your valid Alpha Vantage API key
+      const apiKey = 'YOUR_API_KEY';
+      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data["Error Message"] || !data["Time Series (Daily)"]) {
+        throw new Error("Error fetching data. Check ticker symbol or API key.");
+      }
+      return data["Time Series (Daily)"];
+    }
 
-<!-- Footer -->
-<footer>
-  <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
-</footer>
-
-<!-- JavaScript for Slide Navigation -->
-<script>
-let currentSlide = 0;
-const slides = document.querySelectorAll(".slide");
-const totalSlides = slides.length;
-const creditsList = document.getElementById("creditsList");
-
-function moveSlide(direction) {
-  currentSlide += direction;
-  if (currentSlide < 0) currentSlide = 0;
-  if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
-  document.getElementById("slider").style.transform = `translateX(-${currentSlide * 100}%)`;
-
-  if (slides[currentSlide].classList.contains("final-slide")) {
-    startScrollingCredits();
-  } else {
-    stopScrollingCredits();
-  }
-}
-
-function startScrollingCredits() {
-  creditsList.style.visibility = "visible";
-  creditsList.style.animation = "none";
-  requestAnimationFrame(() => {
-    creditsList.style.animation = "creditsScroll 30s linear infinite";
-    creditsList.style.animationDelay = "0s";
-  });
-}
-
-function stopScrollingCredits() {
-  creditsList.style.animation = "none";
-  creditsList.style.visibility = "hidden";
-}
-</script>
-
-<!-- Desktop Portal + Mobile Toggle Approach -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  // Speed up videos
-  const allVideos = document.querySelectorAll("video");
-  allVideos.forEach(video => {
-    video.playbackRate = 1.2;
-  });
-
-  // Check if device can hover
-  const canHover = window.matchMedia('(hover: hover)').matches;
-
-  const dropdowns = document.querySelectorAll('.dropdown');
-
-  if (canHover) {
-    /* =============== DESKTOP HOVER: Portal Approach =============== */
-    dropdowns.forEach(drop => {
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-
-      // On mouse enter
-      drop.addEventListener('mouseenter', () => {
-        const rect = drop.getBoundingClientRect();
-        document.body.appendChild(dropdownMenu);
-        dropdownMenu.style.position = 'fixed';
-        dropdownMenu.style.top = rect.bottom + 'px';
-        dropdownMenu.style.left = rect.left + 'px';
-        dropdownMenu.style.display = 'block';
-        dropdownMenu.style.zIndex = '10000000';
-      });
-
-      // On mouse leave
-      drop.addEventListener('mouseleave', () => {
-        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-          drop.appendChild(dropdownMenu);
-          dropdownMenu.style.position = '';
-          dropdownMenu.style.top = '';
-          dropdownMenu.style.left = '';
-          dropdownMenu.style.display = 'none';
+    // 3. Process historical data to extract prices within the desired period
+    function processHistoricalData(timeSeries, periodMonths) {
+      const dates = Object.keys(timeSeries).sort((a, b) => new Date(a) - new Date(b));
+      const endDate = new Date(dates[dates.length - 1]);
+      const startDate = new Date(endDate);
+      startDate.setMonth(startDate.getMonth() - periodMonths);
+      
+      let prices = [];
+      for(let date of dates) {
+        const currentDate = new Date(date);
+        if(currentDate >= startDate && currentDate <= endDate) {
+          prices.push({
+            date: currentDate,
+            close: parseFloat(timeSeries[date]["4. close"])
+          });
         }
-      });
+      }
+      // Ensure ascending order
+      prices.sort((a, b) => a.date - b.date);
+      return prices;
+    }
 
-      // Also if mouse leaves the menu
-      dropdownMenu.addEventListener('mouseleave', () => {
-        if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-          drop.appendChild(dropdownMenu);
-          dropdownMenu.style.position = '';
-          dropdownMenu.style.top = '';
-          dropdownMenu.style.left = '';
-          dropdownMenu.style.display = 'none';
+    // 4. Compute daily log returns, then annualize them for Monte Carlo
+    function computeStats(prices) {
+      let logReturns = [];
+      for(let i = 1; i < prices.length; i++) {
+        const prev = prices[i-1].close;
+        const curr = prices[i].close;
+        logReturns.push(Math.log(curr / prev));
+      }
+      if (logReturns.length < 1) {
+        return { mean: 0, stdDev: 0, lastPrice: prices[prices.length - 1].close };
+      }
+      const dailyMean = logReturns.reduce((a, b) => a + b, 0) / logReturns.length;
+      const variance = logReturns.reduce((sum, r) => sum + Math.pow(r - dailyMean, 2), 0) / (logReturns.length - 1);
+      const dailyStdDev = Math.sqrt(variance);
+      const tradingDaysPerYear = 252;
+      const annualMean = dailyMean * tradingDaysPerYear;
+      const annualStdDev = dailyStdDev * Math.sqrt(tradingDaysPerYear);
+      return {
+        mean: annualMean,
+        stdDev: annualStdDev,
+        lastPrice: prices[prices.length - 1].close
+      };
+    }
+
+    // 5. Run Monte Carlo simulation using GBM
+    function runSimulation(lastPrice, mean, stdDev, T, numSimulations = 10000) {
+      let finalPrices = [];
+      for(let i = 0; i < numSimulations; i++) {
+        const Z = randn_bm();
+        const ST = lastPrice * Math.exp((mean - 0.5 * stdDev * stdDev) * T + stdDev * Math.sqrt(T) * Z);
+        finalPrices.push(ST);
+      }
+      return finalPrices;
+    }
+
+    // 6. Linear regression forecast using least squares
+    function linearRegressionForecast(prices, futureDate) {
+      if(prices.length < 2) {
+        return { forecastPrice: NaN, slope: 0, intercept: 0 };
+      }
+      const firstDate = prices[0].date;
+      let xs = prices.map(p => (p.date - firstDate) / (1000 * 60 * 60 * 24));
+      let ys = prices.map(p => p.close);
+      const n = xs.length;
+      const sumX = xs.reduce((a, b) => a + b, 0);
+      const sumY = ys.reduce((a, b) => a + b, 0);
+      const sumXY = xs.reduce((sum, x, i) => sum + x * ys[i], 0);
+      const sumX2 = xs.reduce((sum, x) => sum + x * x, 0);
+      const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      const intercept = (sumY - slope * sumX) / n;
+      const futureX = (futureDate - firstDate) / (1000 * 60 * 60 * 24);
+      const forecastPrice = intercept + slope * futureX;
+      return { forecastPrice, slope, intercept };
+    }
+
+    // 7. Plotting the Monte Carlo histogram + slider
+    function updateChartMC(finalPrices) {
+      const trace = {
+        x: finalPrices,
+        type: 'histogram',
+        marker: { color: '#7f7f7f' }
+      };
+      const layout = {
+        title: 'Simulated Final Stock Prices Distribution (Monte Carlo - GBM)',
+        xaxis: { title: 'Price' },
+        yaxis: { title: 'Frequency' }
+      };
+      Plotly.newPlot('chart', [trace], layout);
+      document.getElementById('sliderDiv').style.display = 'block';
+      const minPrice = Math.floor(Math.min(...finalPrices));
+      const maxPrice = Math.ceil(Math.max(...finalPrices));
+      const slider = document.getElementById('priceSlider');
+      slider.min = minPrice;
+      slider.max = maxPrice;
+      slider.value = minPrice;
+      document.getElementById('thresholdValue').innerText = minPrice;
+      updateProbability(finalPrices, minPrice);
+      slider.oninput = function() {
+        const threshold = parseFloat(this.value);
+        document.getElementById('thresholdValue').innerText = threshold;
+        updateProbability(finalPrices, threshold);
+      };
+    }
+
+    function updateProbability(finalPrices, threshold) {
+      const count = finalPrices.filter(price => price >= threshold).length;
+      const probability = (count / finalPrices.length * 100).toFixed(2);
+      document.getElementById('probability').innerText = probability + '%';
+    }
+
+    // 8. Plotting the Linear Trend Forecast
+    function updateChartLinear(prices, futureDate, forecastPrice) {
+      let trace1 = {
+        x: prices.map(p => p.date),
+        y: prices.map(p => p.close),
+        mode: 'lines+markers',
+        name: 'Historical Prices'
+      };
+      let lastDate = prices[prices.length - 1].date;
+      let trace2 = {
+        x: [lastDate, futureDate],
+        y: [prices[prices.length - 1].close, forecastPrice],
+        mode: 'lines+markers',
+        name: 'Linear Trend Forecast'
+      };
+      let layout = {
+        title: 'Linear Trend Forecast',
+        xaxis: { title: 'Date' },
+        yaxis: { title: 'Price' }
+      };
+      Plotly.newPlot('chart', [trace1, trace2], layout);
+      document.getElementById('sliderDiv').style.display = 'none';
+    }
+
+    // ===== New Functions for Combined Technical Indicators =====
+    function computeBollingerBands(prices, period = 20, k = 2) {
+      let bands = [];
+      for (let i = period - 1; i < prices.length; i++) {
+        let slice = prices.slice(i - period + 1, i + 1).map(p => p.close);
+        let sma = slice.reduce((a, b) => a + b, 0) / period;
+        let variance = slice.reduce((sum, price) => sum + Math.pow(price - sma, 2), 0) / period;
+        let std = Math.sqrt(variance);
+        bands.push({ date: prices[i].date, sma: sma, upper: sma + k * std, lower: sma - k * std });
+      }
+      return bands;
+    }
+
+    function computeWMA(prices, period = 20) {
+      let wmas = [];
+      for (let i = period - 1; i < prices.length; i++) {
+        let slice = prices.slice(i - period + 1, i + 1).map(p => p.close);
+        let numerator = 0, denominator = 0;
+        for (let j = 0; j < period; j++) {
+          let weight = j + 1;
+          numerator += slice[j] * weight;
+          denominator += weight;
         }
+        wmas.push({ date: prices[i].date, wma: numerator / denominator });
+      }
+      return wmas;
+    }
+
+    function computeRSI(prices, period = 14) {
+      let rsis = [];
+      for (let i = period; i < prices.length; i++) {
+        let gains = 0, losses = 0;
+        for (let j = i - period + 1; j <= i; j++) {
+          let change = prices[j].close - prices[j-1].close;
+          if (change > 0) gains += change;
+          else losses -= change;
+        }
+        let avgGain = gains / period;
+        let avgLoss = losses / period;
+        let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+        let rsi = 100 - (100 / (1 + rs));
+        rsis.push({ date: prices[i].date, rsi: rsi });
+      }
+      return rsis;
+    }
+
+    function computeEMA(prices, period) {
+      let ema = [];
+      const multiplier = 2 / (period + 1);
+      let sum = 0;
+      for (let i = 0; i < period; i++) {
+        sum += prices[i].close;
+      }
+      let prevEma = sum / period;
+      ema[period - 1] = { date: prices[period - 1].date, ema: prevEma };
+      for (let i = period; i < prices.length; i++) {
+        let currentEma = (prices[i].close - prevEma) * multiplier + prevEma;
+        ema[i] = { date: prices[i].date, ema: currentEma };
+        prevEma = currentEma;
+      }
+      return ema.filter(v => v !== undefined);
+    }
+
+    function computeMACD(prices, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+      let fastEMA = computeEMA(prices, fastPeriod);
+      let slowEMA = computeEMA(prices, slowPeriod);
+      let macdLine = [];
+      for (let i = 0; i < slowEMA.length; i++) {
+        let date = slowEMA[i].date;
+        let fastVal = fastEMA.find(e => e.date.getTime() === date.getTime());
+        if (fastVal) {
+          macdLine.push({ date: date, macd: fastVal.ema - slowEMA[i].ema });
+        }
+      }
+      if (macdLine.length < signalPeriod) return { macdLine: macdLine, signalLine: [] };
+      let signalLine = [];
+      const multiplier = 2 / (signalPeriod + 1);
+      let sum = 0;
+      for (let i = 0; i < signalPeriod; i++) {
+        sum += macdLine[i].macd;
+      }
+      let prevSignal = sum / signalPeriod;
+      signalLine[signalPeriod - 1] = { date: macdLine[signalPeriod - 1].date, signal: prevSignal };
+      for (let i = signalPeriod; i < macdLine.length; i++) {
+        let currentSignal = (macdLine[i].macd - prevSignal) * multiplier + prevSignal;
+        signalLine[i] = { date: macdLine[i].date, signal: currentSignal };
+        prevSignal = currentSignal;
+      }
+      signalLine = signalLine.filter(v => v !== undefined);
+      return { macdLine: macdLine, signalLine: signalLine };
+    }
+
+    function getScoreRSI(rsi) {
+      if(rsi <= 20) return 7;
+      else if(rsi <= 30) return 6;
+      else if(rsi <= 40) return 5;
+      else if(rsi <= 60) return 4;
+      else if(rsi <= 70) return 3;
+      else if(rsi <= 80) return 2;
+      else return 1;
+    }
+
+    function getScoreBollinger(price, band) {
+      let pos = (price - band.lower) / (band.upper - band.lower);
+      let score = 7 - Math.round(pos * 6);
+      return Math.min(7, Math.max(1, score));
+    }
+
+    function getScoreMACD(diff) {
+      if(diff >= 1) return 7;
+      else if(diff >= 0.5) return 6;
+      else if(diff > 0) return 5;
+      else if(diff === 0) return 4;
+      else if(diff > -0.5) return 3;
+      else if(diff > -1) return 2;
+      else return 1;
+    }
+
+    function getScoreWMA(price, wma) {
+      let diff = (price - wma) / wma;
+      if(diff >= 0.05) return 7;
+      else if(diff >= 0.02) return 6;
+      else if(diff > 0) return 5;
+      else if(Math.abs(diff) < 0.005) return 4;
+      else if(diff > -0.02) return 3;
+      else if(diff > -0.05) return 2;
+      else return 1;
+    }
+
+    function getRecommendation(avgScore) {
+      if(avgScore < 1.5) return "Strong Sell";
+      else if(avgScore < 2.5) return "Sell";
+      else if(avgScore < 3.5) return "Light Sell";
+      else if(avgScore < 4.5) return "Hold";
+      else if(avgScore < 5.5) return "Light Buy";
+      else if(avgScore < 6.5) return "Buy";
+      else return "Strong Buy";
+    }
+
+    // ===== New Functions for Sentiment Analysis Forecast using Alpha Vantage =====
+    async function fetchSentimentData(ticker, periodMonths) {
+      // Use your valid Alpha Vantage API key here
+      const apiKey = 'YOUR_API_KEY';
+      const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${ticker}&apikey=${apiKey}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (!data.feed) {
+        throw new Error("No sentiment data available from Alpha Vantage.");
+      }
+      // Define the date range
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setMonth(startDate.getMonth() - periodMonths);
+      
+      // Filter articles published within the specified period
+      const filteredArticles = data.feed.filter(article => {
+        const articleDate = new Date(article.time_published);
+        return articleDate >= startDate;
       });
+      
+      // Group by date (YYYY-MM-DD) and compute average sentiment per day.
+      const sentimentByDate = {};
+      filteredArticles.forEach(article => {
+        const dateStr = article.time_published.split(" ")[0];
+        // Normalize sentiment: assuming raw score is between -1 and 1, map to 0-100.
+        const rawScore = parseFloat(article.ticker_sentiment.overall_sentiment_score);
+        const normalizedSentiment = ((rawScore + 1) / 2) * 100;
+        if (!sentimentByDate[dateStr]) {
+          sentimentByDate[dateStr] = [];
+        }
+        sentimentByDate[dateStr].push(normalizedSentiment);
+      });
+      
+      let sentiments = [];
+      for (const dateStr in sentimentByDate) {
+        const scores = sentimentByDate[dateStr];
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        sentiments.push({ date: dateStr, sentiment: avg });
+      }
+      // Sort by date ascending
+      sentiments.sort((a, b) => new Date(a.date) - new Date(b.date));
+      return sentiments;
+    }
+
+    // Updated computeSentimentTrend function to handle single data point scenarios.
+    function computeSentimentTrend(sentiments) {
+      if (!sentiments || sentiments.length === 0) return "Insufficient data";
+      
+      // Compute baseline from the first available data point.
+      const start = sentiments[0].sentiment;
+      let baseline = "";
+      if (start >= 60) baseline = "Good";
+      else if (start <= 40) baseline = "Bad";
+      else baseline = "Neutral";
+      
+      // If there's only one data point, return the baseline.
+      if (sentiments.length === 1) {
+        return baseline + " Sentiment (Single Data Point)";
+      }
+      
+      // With multiple data points, calculate the trend.
+      const end = sentiments[sentiments.length - 1].sentiment;
+      const delta = end - start;
+      let trend = "";
+      if (delta > 5) trend = "Improving";
+      else if (delta < -5) trend = "Declining";
+      else trend = "Stable";
+      
+      if (trend === "Stable") return "Stable " + baseline + " Sentiment";
+      else return baseline + " " + trend + " Sentiment";
+    }
+
+    // Plot the sentiment over time
+    function updateChartSentiment(sentiments, classification) {
+      const dates = sentiments.map(s => new Date(s.date));
+      const sentimentValues = sentiments.map(s => s.sentiment);
+      const trace = {
+        x: dates,
+        y: sentimentValues,
+        mode: 'lines+markers',
+        name: 'Sentiment'
+      };
+      const layout = {
+        title: 'Sentiment Trend Over Time',
+        xaxis: { title: 'Date' },
+        yaxis: { title: 'Sentiment' },
+        annotations: [
+          {
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.5,
+            y: 0.95,
+            text: `<b>${classification}</b>`,
+            showarrow: false,
+            font: { size: 16, color: 'green' }
+          }
+        ]
+      };
+      Plotly.newPlot('chart', [trace], layout);
+      document.getElementById('sliderDiv').style.display = 'none';
+    }
+
+    // ===== Update Explanation Panel =====
+    function generateExplanation(method, mcStats, lrResult, extra) {
+      let explanation = "<h3>Explanation of Results</h3>";
+      explanation += "<p><strong>Data Source:</strong> Historical stock data is sourced from the Alpha Vantage API.</p>";
+      if (method === "mc") {
+        explanation += "<p><strong>Method:</strong> Monte Carlo Simulation using Geometric Brownian Motion (GBM).</p>";
+        explanation += "<p>The simulation uses the formula:</p>";
+        explanation += "<p style='font-style: italic;'>S<sub>T</sub> = S<sub>0</sub> × exp((μ - 0.5σ²)T + σ√T × Z)</p>";
+      } else if (method === "lr") {
+        explanation += "<p><strong>Method:</strong> Linear Trend Forecast using least squares regression.</p>";
+      } else if (method === "combined") {
+        explanation += "<p><strong>Method:</strong> Combined Technical Indicators.</p>";
+        explanation += "<p>Four technical indicators (RSI, Bollinger Bands, MACD, and WMA) are computed. Each produces a score from 1 (Strong Sell) to 7 (Strong Buy). The final recommendation is derived by averaging these scores.</p>";
+      } else if (method === "sentiment") {
+        explanation += "<p><strong>Method:</strong> Sentiment Analysis Forecast using Alpha Vantage's News Sentiment data.</p>";
+        explanation += "<p>The tool retrieves sentiment data for the specified period, aggregates it by day, and analyzes the trend over time.</p>";
+      }
+      if (lrResult) {
+        explanation += `<p><strong>Linear Regression Details:</strong> Slope = ${lrResult.slope.toFixed(4)}, Intercept = ${lrResult.intercept.toFixed(4)}, Forecast Price = ${lrResult.forecastPrice.toFixed(2)}</p>`;
+      }
+      if (mcStats) {
+        explanation += `<p><strong>Monte Carlo Simulation Details:</strong> Last Price = ${mcStats.lastPrice.toFixed(2)}, Mean Log Return = ${mcStats.mean.toFixed(4)}, Standard Deviation = ${mcStats.stdDev.toFixed(4)}</p>`;
+      }
+      if ((method === "combined" || method === "sentiment") && extra) {
+        explanation += `<p><strong>Final Outcome:</strong> ${extra}</p>`;
+      }
+      document.getElementById('explanation').innerHTML = explanation;
+    }
+
+    // 10. Main simulation event
+    document.getElementById('simulateButton').addEventListener('click', async () => {
+      document.getElementById('loading').style.display = 'block';
+      const ticker = document.getElementById('ticker').value.trim();
+      const periodMonths = parseInt(document.getElementById('period').value);
+      const futureDateInput = document.getElementById('futureDate').value;
+      const forecastMethod = document.getElementById('forecastMethod').value;
+      
+      if(!ticker || !futureDateInput) {
+        alert("Please enter both a ticker symbol and a future date.");
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+      
+      try {
+        // For methods that require historical price data
+        const timeSeries = await fetchHistoricalData(ticker);
+        const prices = processHistoricalData(timeSeries, periodMonths);
+        if(prices.length < 2) {
+          alert("Not enough historical data available for the specified period.");
+          document.getElementById('loading').style.display = 'none';
+          return;
+        }
+        
+        const futureDate = new Date(futureDateInput);
+        const lrResult = linearRegressionForecast(prices, futureDate);
+        
+        let mcStats = null;
+        let finalPrices = null;
+        
+        if(forecastMethod === "mc") {
+          mcStats = computeStats(prices);
+          const lastDate = prices[prices.length - 1].date;
+          const diffTime = Math.abs(futureDate - lastDate);
+          const T = diffTime / (365 * 24 * 60 * 60 * 1000);
+          finalPrices = runSimulation(mcStats.lastPrice, mcStats.mean, mcStats.stdDev, T);
+          updateChartMC(finalPrices);
+          generateExplanation("mc", mcStats, lrResult, null);
+        } else if(forecastMethod === "lr") {
+          updateChartLinear(prices, futureDate, lrResult.forecastPrice);
+          generateExplanation("lr", null, lrResult, null);
+        } else if(forecastMethod === "combined") {
+          const bands = computeBollingerBands(prices);
+          const wmas = computeWMA(prices);
+          const rsis = computeRSI(prices);
+          const macdData = computeMACD(prices);
+          const latestPrice = prices[prices.length - 1].close;
+          const latestBand = bands[bands.length - 1];
+          const latestWMA = wmas[wmas.length - 1].wma;
+          const latestRSI = rsis[rsis.length - 1].rsi;
+          const latestMACD = macdData.macdLine[macdData.macdLine.length - 1].macd;
+          const latestSignal = macdData.signalLine[macdData.signalLine.length - 1].signal;
+          const diffMACD = latestMACD - latestSignal;
+          const scoreRSI = getScoreRSI(latestRSI);
+          const scoreBB = getScoreBollinger(latestPrice, latestBand);
+          const scoreMACD = getScoreMACD(diffMACD);
+          const scoreWMA = getScoreWMA(latestPrice, latestWMA);
+          const combinedScore = (scoreRSI + scoreBB + scoreMACD + scoreWMA) / 4;
+          const recommendation = getRecommendation(combinedScore);
+          updateChartCombined(prices, bands, wmas, rsis, macdData, recommendation);
+          generateExplanation("combined", null, lrResult, recommendation);
+        } else if(forecastMethod === "sentiment") {
+          // Fetch sentiment data from Alpha Vantage using the NEWS_SENTIMENT endpoint
+          const sentimentData = await fetchSentimentData(ticker, periodMonths);
+          const classification = computeSentimentTrend(sentimentData);
+          updateChartSentiment(sentimentData, classification);
+          generateExplanation("sentiment", null, lrResult, classification);
+        }
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+      document.getElementById('loading').style.display = 'none';
     });
-
-    // Hide on scroll
-    window.addEventListener('scroll', () => {
-      dropdowns.forEach(drop => {
-        const dropdownMenu = drop.querySelector('.dropdown-menu');
-        if (dropdownMenu.style.position === 'fixed') {
-          drop.appendChild(dropdownMenu);
-          dropdownMenu.style.position = '';
-          dropdownMenu.style.top = '';
-          dropdownMenu.style.left = '';
-          dropdownMenu.style.display = 'none';
-        }
-      });
-    });
-
-  } else {
-    /* =============== MOBILE: Simple Toggle In-Place =============== */
-    dropdowns.forEach(drop => {
-      const parentLink = drop.querySelector('.parent-link');
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      // Start closed
-      dropdownMenu.style.display = 'none';
-
-      // On tap, toggle
-      parentLink.addEventListener('click', e => {
-        e.preventDefault(); 
-        if (dropdownMenu.style.display === 'block') {
-          // Close
-          dropdownMenu.style.display = 'none';
-        } else {
-          // Open
-          dropdownMenu.style.display = 'block';
-        }
-      });
-    });
-  }
-});
-</script>
-
+    
+    // ===== Combined Technical Indicators Chart (unchanged) =====
+    function updateChartCombined(prices, bands, wmas, rsis, macdData, recommendation) {
+      const priceTrace = {
+        x: prices.map(p => p.date),
+        y: prices.map(p => p.close),
+        mode: 'lines+markers',
+        name: 'Price',
+        xaxis: 'x',
+        yaxis: 'y'
+      };
+      const smaTrace = {
+        x: bands.map(b => b.date),
+        y: bands.map(b => b.sma),
+        mode: 'lines',
+        name: 'Bollinger SMA',
+        line: { dash: 'dash', color: 'gray' },
+        xaxis: 'x',
+        yaxis: 'y'
+      };
+      const upperTrace = {
+        x: bands.map(b => b.date),
+        y: bands.map(b => b.upper),
+        mode: 'lines',
+        name: 'Upper Band',
+        line: { color: 'red' },
+        xaxis: 'x',
+        yaxis: 'y'
+      };
+      const lowerTrace = {
+        x: bands.map(b => b.date),
+        y: bands.map(b => b.lower),
+        mode: 'lines',
+        name: 'Lower Band',
+        line: { color: 'red' },
+        xaxis: 'x',
+        yaxis: 'y'
+      };
+      const wmaTrace = {
+        x: wmas.map(w => w.date),
+        y: wmas.map(w => w.wma),
+        mode: 'lines',
+        name: 'WMA',
+        line: { color: 'orange' },
+        xaxis: 'x',
+        yaxis: 'y'
+      };
+      const macdTrace = {
+        x: macdData.macdLine.map(d => d.date),
+        y: macdData.macdLine.map(d => d.macd),
+        mode: 'lines',
+        name: 'MACD',
+        xaxis: 'x2',
+        yaxis: 'y2'
+      };
+      const signalTrace = {
+        x: macdData.signalLine.map(s => s.date),
+        y: macdData.signalLine.map(s => s.signal),
+        mode: 'lines',
+        name: 'Signal',
+        xaxis: 'x2',
+        yaxis: 'y2'
+      };
+      const rsiTrace = {
+        x: rsis.map(r => r.date),
+        y: rsis.map(r => r.rsi),
+        mode: 'lines',
+        name: 'RSI',
+        xaxis: 'x3',
+        yaxis: 'y3'
+      };
+      const layout = {
+        grid: { rows: 3, columns: 1, roworder: 'top to bottom' },
+        xaxis: { domain: [0, 1], anchor: 'y', title: 'Date' },
+        yaxis: { domain: [0.55, 1], title: 'Price' },
+        xaxis2: { domain: [0, 1], anchor: 'y2', title: 'Date' },
+        yaxis2: { domain: [0.35, 0.55], title: 'MACD' },
+        xaxis3: { domain: [0, 1], anchor: 'y3', title: 'Date' },
+        yaxis3: { domain: [0, 0.25], title: 'RSI' },
+        shapes: [
+          { type: 'line', x0: Math.min(...rsis.map(r => r.date)), x1: Math.max(...rsis.map(r => r.date)), y0: 30, y1: 30, line: { dash: 'dash', color: 'red' }, xref: 'x3', yref: 'y3' },
+          { type: 'line', x0: Math.min(...rsis.map(r => r.date)), x1: Math.max(...rsis.map(r => r.date)), y0: 70, y1: 70, line: { dash: 'dash', color: 'red' }, xref: 'x3', yref: 'y3' }
+        ],
+        annotations: [
+          {
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.5,
+            y: 0.98,
+            text: `<b>Recommendation: ${recommendation}</b>`,
+            showarrow: false,
+            font: { size: 16, color: 'green' }
+          }
+        ]
+      };
+      const traces = [priceTrace, smaTrace, upperTrace, lowerTrace, wmaTrace, macdTrace, signalTrace, rsiTrace];
+      Plotly.newPlot('chart', traces, layout);
+      document.getElementById('sliderDiv').style.display = 'none';
+    }
+  </script>
 </body>
 </html>
