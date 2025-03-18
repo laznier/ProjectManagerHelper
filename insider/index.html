@@ -64,14 +64,26 @@
       color: #f97316;
       display: none;
     }
-    /* Container for picks */
-    .picksContainer {
+    /* We place both columns side by side in a flex container */
+    .two-column {
       display: flex;
-      gap: 1rem;
+      gap: 2rem;
+      justify-content: space-between;
       flex-wrap: wrap;
     }
-    .pickItem {
+    .column {
+      flex: 1;
+      min-width: 300px; /* so they don't collapse too narrow */
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
       background-color: #fff;
+      padding: 1rem;
+    }
+    .column h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .pickItem {
       border: 1px solid #e5e7eb;
       border-radius: 4px;
       padding: 8px 16px;
@@ -87,11 +99,15 @@
     .bearish {
       color: red;
     }
+    /* Stats section for top summary */
+    #statsSection p {
+      margin: 0.5rem 0;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Optional Back Button, if desired -->
+  <!-- Optional Back Button -->
   <button onclick="window.location.href='https://www.projectmanagerhelper.com'">
     Back to Main Page
   </button>
@@ -99,7 +115,8 @@
   <h1>Insider Trading Insights</h1>
   <p>
     Enter a ticker symbol (e.g., IBM) to retrieve insider trading data from Alpha Vantage. 
-    We split them into acquisitions (bullish) vs disposals (bearish).
+    The table below shows total shares bought vs sold in the last set of data, along with
+    a chronological listing of acquisitions (bullish) vs disposals (bearish).
   </p>
 
   <label for="ticker">Ticker Symbol:</label>
@@ -108,19 +125,27 @@
   <button id="insiderButton">Get Insider Data</button>
   <div id="loading">Loading insider data...</div>
 
-  <!-- Bullish Section -->
-  <div id="bullishSection" class="section" style="display:none;">
-    <h2>Bullish (Acquisitions)</h2>
-    <div id="bullishContainer" class="picksContainer"></div>
+  <!-- Top Summary Section (total buys, sells, # of insiders) -->
+  <div id="statsSection" class="section" style="display:none;">
+    <h2>Insider Summary</h2>
+    <p id="statsSummary"></p>
   </div>
 
-  <!-- Bearish Section -->
-  <div id="bearishSection" class="section" style="display:none;">
-    <h2>Bearish (Disposals)</h2>
-    <div id="bearishContainer" class="picksContainer"></div>
+  <!-- Two columns side by side for buys / sells -->
+  <div class="two-column" style="margin-top: 20px;">
+    <!-- Bullish column -->
+    <div id="bullishCol" class="column" style="display:none;">
+      <h2>Acquisitions (Bullish)</h2>
+      <div id="bullishContainer"></div>
+    </div>
+    <!-- Bearish column -->
+    <div id="bearishCol" class="column" style="display:none;">
+      <h2>Disposals (Bearish)</h2>
+      <div id="bearishContainer"></div>
+    </div>
   </div>
 
-  <!-- Summary Section -->
+  <!-- Summary details for a single transaction -->
   <div id="summarySection" class="section" style="display:none;">
     <h2>Transaction Details</h2>
     <div id="summary"></div>
@@ -139,13 +164,13 @@
       loadingEl.style.display = 'block';
 
       // Hide sections
-      document.getElementById('bullishSection').style.display = 'none';
-      document.getElementById('bearishSection').style.display = 'none';
+      document.getElementById('statsSection').style.display = 'none';
+      document.getElementById('bullishCol').style.display = 'none';
+      document.getElementById('bearishCol').style.display = 'none';
       document.getElementById('summarySection').style.display = 'none';
       document.getElementById('summary').innerHTML = '';
 
       try {
-        // Build the /api/insider endpoint (Next.js style)
         const url = `/api/insider?symbol=${encodeURIComponent(ticker)}`;
         console.log("Fetching from:", url);
 
@@ -154,19 +179,53 @@
           throw new Error("Failed to fetch insider data. Status: " + response.status);
         }
         const data = await response.json();
-
-        // Data should contain data.data array
         if (!data.data || !Array.isArray(data.data)) {
-          throw new Error("Invalid insider data format.");
+          throw new Error("Invalid insider data format (missing data.data).");
         }
+
+        // Sort the entire data array by date ascending
+        data.data.sort((a, b) => {
+          const da = new Date(a.transaction_date);
+          const db = new Date(b.transaction_date);
+          return da - db; // oldest first
+        });
 
         // Separate acquisitions (A) from disposals (D)
         const acquisitions = data.data.filter(item => item.acquisition_or_disposal === 'A');
         const disposals = data.data.filter(item => item.acquisition_or_disposal === 'D');
 
-        // Display them
-        showPicks(acquisitions, 'bullishSection', 'bullishContainer', true);
-        showPicks(disposals, 'bearishSection', 'bearishContainer', false);
+        // Calculate total shares for buys & sells
+        let totalBuys = 0;
+        let totalSells = 0;
+        let execSet = new Set(); // to track unique insiders
+
+        data.data.forEach(item => {
+          if(item.acquisition_or_disposal === 'A') {
+            totalBuys += parseFloat(item.shares) || 0;
+          } else if(item.acquisition_or_disposal === 'D') {
+            totalSells += parseFloat(item.shares) || 0;
+          }
+          if(item.executive) {
+            execSet.add(item.executive);
+          }
+        });
+        const insiderCount = execSet.size;
+
+        // Show top stats
+        const statsSection = document.getElementById('statsSection');
+        const statsSummary = document.getElementById('statsSummary');
+        statsSummary.innerHTML = `
+          <p><strong>Total Buys:</strong> ${totalBuys.toLocaleString()} shares</p>
+          <p><strong>Total Sells:</strong> ${totalSells.toLocaleString()} shares</p>
+          <p><strong>Number of Unique Insiders:</strong> ${insiderCount}</p>
+        `;
+        statsSection.style.display = 'block';
+
+        // Render acquisitions in the bullish column
+        showColumn(acquisitions, 'bullishCol', 'bullishContainer', true);
+
+        // Render disposals in the bearish column
+        showColumn(disposals, 'bearishCol', 'bearishContainer', false);
 
       } catch (err) {
         console.error("Error retrieving insider data:", err);
@@ -176,45 +235,51 @@
       }
     });
 
-    function showPicks(pickArray, sectionId, containerId, isBullish) {
-      const section = document.getElementById(sectionId);
-      const container = document.getElementById(containerId);
-      container.innerHTML = '';
+    function showColumn(list, colId, containerId, isBullish) {
+      const colEl = document.getElementById(colId);
+      const containerEl = document.getElementById(containerId);
+      containerEl.innerHTML = "";
 
-      if (pickArray.length === 0) {
-        // If no data, hide section
-        section.style.display = 'none';
+      if(list.length === 0) {
+        colEl.style.display = 'none';
         return;
       }
+      colEl.style.display = 'block';
 
-      section.style.display = 'block';
-      pickArray.forEach((item, idx) => {
+      list.forEach((item, idx) => {
         const div = document.createElement('div');
-        div.className = 'pickItem';
-        // Add color
+        div.classList.add('pickItem');
         div.classList.add(isBullish ? 'bullish' : 'bearish');
 
-        // Show ticker, shares, date
-        div.innerHTML = `<strong>${item.ticker}</strong> - ${parseFloat(item.shares).toLocaleString()} shares on ${item.transaction_date}`;
-        // On click, show summary
+        const sharesStr = parseFloat(item.shares).toLocaleString();
+        div.innerHTML = `
+          <strong>${item.ticker}</strong> 
+          - ${sharesStr} shares 
+          on ${item.transaction_date}
+        `;
         div.addEventListener('click', () => showSummary(item, idx + 1, isBullish));
-        container.appendChild(div);
+        containerEl.appendChild(div);
       });
     }
 
     function showSummary(item, rank, isBullish) {
       document.getElementById('summarySection').style.display = 'block';
       const summaryEl = document.getElementById('summary');
-      // Build a small detail table or list
-      let html = `<p><strong>Pick #${rank}: ${item.ticker}</strong> (${isBullish ? 'Acquisition' : 'Disposal'})</p>`;
-      html += `<ul>`;
-      html += `<li>Transaction Date: ${item.transaction_date}</li>`;
-      html += `<li>Executive: ${item.executive}</li>`;
-      html += `<li>Title: ${item.executive_title}</li>`;
-      html += `<li>Security Type: ${item.security_type}</li>`;
-      html += `<li>Shares: ${parseFloat(item.shares).toLocaleString()}</li>`;
-      html += `<li>Share Price: $${parseFloat(item.share_price).toFixed(2)}</li>`;
-      html += `</ul>`;
+
+      let html = `
+        <p><strong>Pick #${rank}: ${item.ticker}</strong> 
+        (${isBullish ? 'Acquisition' : 'Disposal'})</p>
+      `;
+      html += "<ul>";
+      html += `<li><strong>Transaction Date:</strong> ${item.transaction_date}</li>`;
+      html += `<li><strong>Executive:</strong> ${item.executive || 'N/A'}</li>`;
+      html += `<li><strong>Title:</strong> ${item.executive_title || 'N/A'}</li>`;
+      html += `<li><strong>Security Type:</strong> ${item.security_type || 'N/A'}</li>`;
+      html += `<li><strong>Shares:</strong> ${parseFloat(item.shares).toLocaleString()}</li>`;
+      if(item.share_price) {
+        html += `<li><strong>Share Price:</strong> $${parseFloat(item.share_price).toFixed(2)}</li>`;
+      }
+      html += "</ul>";
 
       summaryEl.innerHTML = html;
       summaryEl.scrollIntoView({ behavior: 'smooth' });
