@@ -329,7 +329,7 @@
       document.getElementById('sliderDiv').style.display = 'none';
     }
 
-    // ===== New Functions for Combined Technical Indicators =====
+    // ===== Technical Indicators (Unchanged) =====
     function computeBollingerBands(prices, period = 20, k = 2) {
       let bands = [];
       for (let i = period - 1; i < prices.length; i++) {
@@ -479,9 +479,9 @@
       return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}Z`);
     }
 
-    // ===== New Functions for Sentiment Analysis Forecast using YOUR local server =====
+    // ===== Rewritten for Hourly Averages =====
     async function fetchSentimentData(ticker, periodMonths) {
-      // Instead of calling Alpha Vantage directly, call local server route
+      // Call our local server route
       const url = `http://localhost:3000/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
       const response = await fetch(url);
       const data = await response.json();
@@ -493,8 +493,8 @@
       const startDate = new Date(now);
       startDate.setMonth(startDate.getMonth() - periodMonths);
       
-      // Build a dictionary of daily sentiment scores for the target ticker
-      const sentimentByDate = {};
+      // Build a dictionary of hourly sentiment scores
+      const sentimentByHour = {};
 
       for (const article of data.feed) {
         // Parse date from "time_published" (e.g. "20250311T093008")
@@ -517,27 +517,34 @@
         // Optionally, normalize from -1..+1 into 0..100
         const normalizedSentiment = ((rawScore + 1) / 2) * 100;
 
-        // Group by date (YYYY-MM-DD)
-        const dateKey = parsedDate.toISOString().split("T")[0];
-        if (!sentimentByDate[dateKey]) {
-          sentimentByDate[dateKey] = [];
+        // Group by hour => "YYYY-MM-DDTHH"
+        const hourKey = parsedDate.toISOString().substring(0, 13); 
+        // e.g. "2025-03-17T15"
+
+        if (!sentimentByHour[hourKey]) {
+          sentimentByHour[hourKey] = [];
         }
-        sentimentByDate[dateKey].push(normalizedSentiment);
+        sentimentByHour[hourKey].push(normalizedSentiment);
       }
 
-      // Compute daily average
+      // Compute hourly average
       let sentiments = [];
-      for (const dateStr in sentimentByDate) {
-        const scores = sentimentByDate[dateStr];
+      for (const hourStr in sentimentByHour) {
+        const scores = sentimentByHour[hourStr];
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        sentiments.push({ date: dateStr, sentiment: avg });
+
+        // Convert "YYYY-MM-DDTHH" back into a valid date for plotting
+        // We'll add ":00:00Z" so it's valid ISO
+        const dateObj = new Date(hourStr + ":00:00Z");
+        sentiments.push({ date: dateObj.toISOString(), sentiment: avg });
       }
+
       // Sort by ascending date
       sentiments.sort((a, b) => new Date(a.date) - new Date(b.date));
       return sentiments;
     }
 
-    // Updated computeSentimentTrend function to handle single data point scenarios.
+    // Updated computeSentimentTrend to handle single data point scenarios.
     function computeSentimentTrend(sentiments) {
       if (!sentiments || sentiments.length === 0) return "Insufficient data";
       
@@ -610,7 +617,7 @@
         explanation += "<p>Four technical indicators (RSI, Bollinger Bands, MACD, and WMA) are computed. Each produces a score from 1 (Strong Sell) to 7 (Strong Buy). The final recommendation is derived by averaging these scores.</p>";
       } else if (method === "sentiment") {
         explanation += "<p><strong>Method:</strong> Sentiment Analysis Forecast using Alpha Vantage's News Sentiment data (via your local server).</p>";
-        explanation += "<p>The tool retrieves sentiment data for the specified period, aggregates it by day, and analyzes the trend over time.</p>";
+        explanation += "<p>The tool retrieves sentiment data for the specified period, aggregates it by hour, and analyzes the trend over time.</p>";
       }
       if (lrResult) {
         explanation += `<p><strong>Linear Regression Details:</strong> Slope = ${lrResult.slope.toFixed(4)}, Intercept = ${lrResult.intercept.toFixed(4)}, Forecast Price = ${lrResult.forecastPrice.toFixed(2)}</p>`;
