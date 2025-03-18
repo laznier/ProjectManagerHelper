@@ -126,7 +126,7 @@
 </head>
 <body>
   <!-- Back to Main Page button -->
-  <button onclick="window.location.href='https://projectmanagerhelper.com'">
+  <button onclick="window.location.href='https://www.projectmanagerhelper.com'">
     Back to Main Page
   </button>
   <div class="container">
@@ -182,7 +182,7 @@
     // 2. Fetch historical stock data from your LIVE server (no more localhost!)
     async function fetchHistoricalData(ticker) {
       // Replace localhost with your domain:
-      const url = `https://projectmanagerhelper.com/api/historical?symbol=${ticker}`;
+      const url = `https://www.projectmanagerhelper.com/api/historical?symbol=${ticker}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -482,7 +482,7 @@
     // ===== Rewritten for Hourly Averages, but with a live domain =====
     async function fetchSentimentData(ticker, periodMonths) {
       // Replace localhost with your domain:
-      const url = `https://projectmanagerhelper.com/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
+      const url = `https://www.projectmanagerhelper.com/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
       const response = await fetch(url);
       const data = await response.json();
       if (!data.feed) {
