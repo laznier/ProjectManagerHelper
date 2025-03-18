@@ -179,17 +179,15 @@
       return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
-    // 2. Fetch historical stock data from Alpha Vantage (split-adjusted)
+    // 2. Fetch historical stock data from YOUR local server (no direct API key here!)
     async function fetchHistoricalData(ticker) {
-      // Replace with your valid Alpha Vantage API key
-      const apiKey = 'CVSI69YMDP0PPS9V';
-      // Use TIME_SERIES_DAILY_ADJUSTED to get split-adjusted data
-      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
+      // Instead of calling Alpha Vantage directly, we call our local Node server:
+      const url = `http://localhost:3000/api/historical?symbol=${ticker}`;
       
       const response = await fetch(url);
       const data = await response.json();
       if (data["Error Message"] || !data["Time Series (Daily)"]) {
-        throw new Error("Error fetching data. Check ticker symbol or API key.");
+        throw new Error("Error fetching data. Check ticker symbol or local server setup.");
       }
       return data["Time Series (Daily)"];
     }
@@ -481,15 +479,14 @@
       return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}Z`);
     }
 
-    // ===== New Functions for Sentiment Analysis Forecast using Alpha Vantage =====
+    // ===== New Functions for Sentiment Analysis Forecast using YOUR local server =====
     async function fetchSentimentData(ticker, periodMonths) {
-      // Use your valid Alpha Vantage API key here
-      const apiKey = 'CVSI69YMDP0PPS9V';
-      const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${ticker}&apikey=${apiKey}`;
+      // Instead of calling Alpha Vantage directly, call local server route
+      const url = `http://localhost:3000/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
       const response = await fetch(url);
       const data = await response.json();
       if (!data.feed) {
-        throw new Error("No sentiment data available from Alpha Vantage.");
+        throw new Error("No sentiment data available from local server.");
       }
       // Define the date range
       const now = new Date();
@@ -601,7 +598,7 @@
     // ===== Update Explanation Panel =====
     function generateExplanation(method, mcStats, lrResult, extra) {
       let explanation = "<h3>Explanation of Results</h3>";
-      explanation += "<p><strong>Data Source:</strong> Historical stock data is sourced from the Alpha Vantage API.</p>";
+      explanation += "<p><strong>Data Source:</strong> Historical stock data is fetched from your local server, which uses the Alpha Vantage API (hidden key).</p>";
       if (method === "mc") {
         explanation += "<p><strong>Method:</strong> Monte Carlo Simulation using Geometric Brownian Motion (GBM).</p>";
         explanation += "<p>The simulation uses the formula:</p>";
@@ -612,7 +609,7 @@
         explanation += "<p><strong>Method:</strong> Combined Technical Indicators.</p>";
         explanation += "<p>Four technical indicators (RSI, Bollinger Bands, MACD, and WMA) are computed. Each produces a score from 1 (Strong Sell) to 7 (Strong Buy). The final recommendation is derived by averaging these scores.</p>";
       } else if (method === "sentiment") {
-        explanation += "<p><strong>Method:</strong> Sentiment Analysis Forecast using Alpha Vantage's News Sentiment data.</p>";
+        explanation += "<p><strong>Method:</strong> Sentiment Analysis Forecast using Alpha Vantage's News Sentiment data (via your local server).</p>";
         explanation += "<p>The tool retrieves sentiment data for the specified period, aggregates it by day, and analyzes the trend over time.</p>";
       }
       if (lrResult) {
@@ -689,7 +686,7 @@
           updateChartCombined(prices, bands, wmas, rsis, macdData, recommendation);
           generateExplanation("combined", null, lrResult, recommendation);
         } else if(forecastMethod === "sentiment") {
-          // Fetch sentiment data from Alpha Vantage using the NEWS_SENTIMENT endpoint
+          // Fetch sentiment data from your local server
           const sentimentData = await fetchSentimentData(ticker, periodMonths);
           const classification = computeSentimentTrend(sentimentData);
           updateChartSentiment(sentimentData, classification);
