@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Advanced Stock Trend + Sentiment Analysis</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advanced Stock Trend + Sentiment + Insider Analysis</title>
   <!-- Include Plotly for Charting -->
   <script src="https://cdn.plot.ly/plotly-2.18.2.min.js"></script>
   <style>
@@ -93,7 +95,7 @@
       margin-bottom: 10px;
       font-weight: 600;
     }
-    #techChart, #mcChart, #lrChart, #sentChart {
+    #techChart, #mcChart, #lrChart, #sentChart, #insiderChart {
       width: 100%;
       height: 400px;
       border: 1px solid #e5e7eb;
@@ -114,7 +116,7 @@
     Back to Main Page
   </button>
 
-  <h1>Advanced Stock Trend + Sentiment Analysis</h1>
+  <h1>Advanced Stock Trend + Sentiment + Insider Analysis</h1>
   <p>
     Enter a ticker symbol (e.g., AAPL), specify how many months of historical data to analyze, and provide a future date.  
     Upon clicking “Run Simulation,” the tool will:
@@ -124,9 +126,10 @@
     <li>Run a Linear Regression Forecast to see a projected price trend.</li>
     <li>Compute a revised Combined Technical Score (RSI, Bollinger, MACD, WMA) to indicate market posture.</li>
     <li>Analyze Sentiment data with a linear trend to see if sentiment is improving or declining.</li>
+    <li><strong>NEW:</strong> Check Insider Trading activity (Buys vs. Sells) over the specified period.</li>
   </ul>
   <p>
-    Results from all four methods are combined into an <strong>Aggregated Bullish Score</strong>. 
+    Results from all five methods are combined into an <strong>Aggregated Bullish Score</strong>. 
   </p>
 
   <label for="ticker">Ticker Symbol (e.g. AAPL):</label>
@@ -152,7 +155,7 @@
     <h2>Monte Carlo Simulation (GBM)</h2>
     <div id="mcChart"></div>
     <div id="mcDetails" style="margin-top:10px; font-weight:600;"></div>
-    <!-- Added container for our slider -->
+    <!-- Container for the slider -->
     <div id="mcSlider" style="margin-top: 20px;"></div>
   </div>
 
@@ -175,6 +178,13 @@
     <h2>Sentiment Analysis</h2>
     <div id="sentChart"></div>
     <div id="sentDetails" style="margin-top:10px; font-weight:600;"></div>
+  </div>
+
+  <!-- Insider Trading -->
+  <div id="insiderSection" class="section" style="display:none;">
+    <h2>Insider Trading Activity</h2>
+    <div id="insiderChart"></div>
+    <div id="insiderDetails" style="margin-top:10px; font-weight:600;"></div>
   </div>
 
   <!-- Explanation Section -->
@@ -266,9 +276,7 @@
       return finals;
     }
 
-    // Function to update the chart with initial finalPrices
     function updateMCChart(finalPrices, lastPrice){
-      // Store in a global array so the slider can use them
       globalFinalPrices = finalPrices;
 
       let trace={
@@ -289,7 +297,7 @@
       document.getElementById('mcDetails').innerText=
         `Bullish Probability: ${prob.toFixed(2)}%`;
 
-      // Create a vertical red line at the median of finalPrices (50% percentile).
+      // Create a vertical red line at the median
       const medianPrice = getMedian(finalPrices);
       Plotly.relayout("mcChart", {
         shapes: [{
@@ -297,15 +305,14 @@
           x0: medianPrice,
           x1: medianPrice,
           y0: 0,
-          y1: 1,              // 1 in 'paper' coords goes to the top of the plot
+          y1: 1,
           xref: 'x',
           yref: 'paper',
           line: { color: 'red', width: 2 }
         }]
       });
 
-      // Insert the slider HTML into #mcSlider
-      // We'll set its initial value to the medianPrice
+      // Insert slider HTML
       document.getElementById('mcSlider').innerHTML = `
         <label for="priceSlider">Price (move to see probability):</label>
         <input type="range"
@@ -321,18 +328,15 @@
       return prob; // 0..100
     }
 
-    // Called when the user moves the slider
     function updateMCSlider(val) {
       val = parseFloat(val);
       document.getElementById('sliderValue').textContent = val.toFixed(2);
 
-      // Recompute the probability that finalPrices >= val
       let count = globalFinalPrices.filter(p => p >= val).length;
       let prob = (count / globalFinalPrices.length) * 100;
       document.getElementById('mcDetails').innerText =
         `Bullish Probability: ${prob.toFixed(2)}%`;
 
-      // Update vertical line to new slider value
       Plotly.relayout("mcChart", {
         shapes: [{
           type: 'line',
@@ -399,7 +403,7 @@
     }
 
     /*********************************************************
-     * Combined Technical Indicators (RSI, Bollinger, MACD, WMA)
+     * Combined Technical Indicators
      *********************************************************/
     function computeBollingerBands(prices, period=20, k=2){
       let bands=[];
@@ -497,7 +501,6 @@
 
     // Scoring (1..7)
     function getScoreRSI(val){
-      // <20 => 7, >80 => 1
       if(val<=20) return 7;
       else if(val<=30) return 6;
       else if(val<=40) return 5;
@@ -510,7 +513,6 @@
       let range= band.upper- band.lower;
       if(range<=0) return 4; // fallback neutral
       let pctB= (price- band.lower)/ range;
-      // Emphasize oversold if pctB < 0 => strongly bullish
       if(pctB< 0) return 7;
       else if(pctB< 0.2) return 6;
       else if(pctB< 0.4) return 5;
@@ -522,11 +524,9 @@
     function getScoreMACD(macd, signal){
       let diff= macd- signal;
       let score= 4; // neutral
-      // If MACD above zero => +1 or +2
       if(macd> 0) score++;
       if(macd> 1) score++;
 
-      // Then apply difference
       if(diff> 0.5) score+= 2;
       else if(diff> 0) score++;
       else if(diff< -0.5) score-= 2;
@@ -766,6 +766,71 @@
     }
 
     /*********************************************************
+     * Insider Trading
+     *********************************************************/
+    async function fetchInsiderData(ticker, periodMonths){
+      // We'll assume a route that requires a ?symbol=...
+      // We'll approximate the period by the same months (though you might refine it to days)
+      const url = `https://www.projectmanagerhelper.com/api/insider?symbol=${ticker}`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if(!data.data || !Array.isArray(data.data)){
+        throw new Error("No insider data array found in the response");
+      }
+
+      // Filter by the last X months
+      const now = new Date();
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - periodMonths);
+
+      // Sum up acquisitions (A) vs disposals (D) for that date range
+      let totalBuys = 0;
+      let totalSells = 0;
+      data.data.forEach(item => {
+        if(!item.transaction_date || !item.acquisition_or_disposal || !item.shares) return;
+        const dt = new Date(item.transaction_date);
+        if(dt >= cutoff && !isNaN(dt)){
+          const shares = parseFloat(item.shares);
+          if(item.acquisition_or_disposal === "A"){
+            totalBuys += shares;
+          } else if(item.acquisition_or_disposal === "D"){
+            totalSells += shares;
+          }
+        }
+      });
+      return { totalBuys, totalSells };
+    }
+    function updateInsiderChart(totalBuys, totalSells){
+      // We will plot a simple bar chart with 2 bars: Buys vs. Sells
+      const trace = {
+        x: ["Bought", "Sold"],
+        y: [totalBuys, totalSells],
+        type: "bar",
+        marker: {
+          color: ["green", "red"]
+        }
+      };
+      const layout = {
+        title: "Insider Activity (Shares Bought vs. Sold)"
+      };
+      Plotly.newPlot("insiderChart", [trace], layout);
+
+      // Compute a bullish score
+      // e.g. insiderBull = ( (totalBuys - totalSells) / (totalBuys + totalSells) ) * 50 + 50
+      // => if buys > sells => >50
+      // => if sells > buys => <50
+      let sum = totalBuys + totalSells;
+      let insiderBull = 50;
+      if(sum > 0){
+        insiderBull = ((totalBuys - totalSells) / sum) * 50 + 50;
+      }
+      document.getElementById("insiderDetails").innerText =
+        `Insider Bullish Score: ${insiderBull.toFixed(2)}%`;
+
+      return insiderBull;
+    }
+
+    /*********************************************************
      * MAIN
      *********************************************************/
     document.getElementById("simulateButton").addEventListener("click", async()=>{
@@ -776,6 +841,7 @@
       document.getElementById('lrSection').style.display='none';
       document.getElementById('techSection').style.display='none';
       document.getElementById('sentSection').style.display='none';
+      document.getElementById('insiderSection').style.display='none';
       document.getElementById('explanation').innerHTML="";
 
       let ticker= document.getElementById('ticker').value.trim();
@@ -825,27 +891,29 @@
         document.getElementById('sentSection').style.display='block';
         let sentBull= updateSentimentChart(sentiments);
 
-        // 6) Aggregated Score
-        let aggregatedBull= (mcBull+ lrBull+ techBull+ sentBull)/4;
+        // 6) Insider
+        let insiderObj = await fetchInsiderData(ticker, periodMonths);
+        document.getElementById('insiderSection').style.display='block';
+        let insiderBull= updateInsiderChart(insiderObj.totalBuys, insiderObj.totalSells);
+
+        // 7) Aggregated Score
+        // We now have 5 sub-scores: mcBull, lrBull, techBull, sentBull, insiderBull
+        let aggregatedBull= (mcBull + lrBull + techBull + sentBull + insiderBull)/5;
         document.getElementById('aggregateSection').style.display='block';
         document.getElementById('aggregateScoreValue').innerText=
           `${aggregatedBull.toFixed(2)}%`;
 
-        // 7) Explanation
+        // 8) Explanation
         let explanation= "<h3>Detailed Explanations & Math</h3>";
         explanation+= "<p><strong>Monte Carlo (GBM):</strong> Computes daily log returns, annualizes drift (μ) & volatility (σ). We simulate final prices and measure the % above the current price => Bullish Probability.</p>";
         explanation+= "<p><strong>Linear Regression:</strong> Derives a slope & intercept using least squares on historical data. We forecast a future price, then convert (forecast/current) => 0..100% scale.</p>";
-        explanation+= "<p><strong>Combined Technical Indicators:</strong> We use four main signals:</p>";
-        explanation+= "<ul>";
-        explanation+= "<li><strong>RSI:</strong> Overbought/oversold measure. <em>&lt;30 => oversold => high bullish score</em>. &gt;80 => overbought => low bullish score.</li>";
-        explanation+= "<li><strong>Bollinger Bands (%B):</strong> If price is near or below the lower band, we consider it oversold => higher bullish. If near or above the upper band => lower bullish.</li>";
-        explanation+= "<li><strong>MACD:</strong> We check if MACD is above/below zero for trend bias, plus (MACD - signal) for momentum shift. Large positive difference => high bullish score.</li>";
-        explanation+= "<li><strong>WMA:</strong> Weighted Moving Average indicates trend direction and how far price is above/below it. &gt;5% above => strong bullish, &gt;5% below => strong bearish.</li>";
-        explanation+= "</ul>";
-        explanation+= "<p>Each sub-score is mapped from 1 (bearish) to 7 (bullish). We average them => 1..7 => re-scaled to 0..100%. A final bullish % is displayed for the short timeframe data. The chart also shows each indicator on subplots.</p>";
-        explanation+= `<p><strong>Sentiment Analysis:</strong> Aggregates news data by hour, normalizes to 0..100, and does a linear trend slope => 0..100%. Slope &gt; 0 => improving sentiment => bullish.</p>`;
-        explanation+= `<p><strong>Aggregated Bullish Score:</strong> The mean of these four results = ${aggregatedBull.toFixed(2)}%. Higher => more bullish agreement among methods.</p>`;
-	explanation += "<p><em>Note:</em> An Aggregated Bullish Score above 50% typically suggests a bullish (buy) outlook, while a score below 50% leans more bearish (sell). A score near 50% implies a neutral stance.</p>";
+        explanation+= "<p><strong>Combined Technical Indicators:</strong> RSI, Bollinger Bands, MACD, WMA combined => 0..100% scale.</p>";
+        explanation+= "<p><strong>Sentiment Analysis:</strong> Aggregates news data by hour, normalizes to 0..100, and does a linear trend slope => 0..100%. Slope &gt; 0 => bullish.</p>";
+        explanation+= "<p><strong>Insider Trading:</strong> We sum shares bought vs. sold in the last period. If buys exceed sells, the insider score &gt; 50%. If sells exceed buys, &lt; 50%.</p>";
+        explanation+= `<p><strong>Aggregated Bullish Score:</strong> The mean of these five results = ${aggregatedBull.toFixed(2)}%. Higher => more bullish agreement among methods.</p>`;
+        explanation+= "<p><em>Note:</em> An Aggregated Bullish Score above 50% typically suggests a bullish (buy) outlook, while a score below 50% leans more bearish (sell). A score near 50% implies a neutral stance.</p>";
+        explanation+= `<p><em>Weighting Tip:</em> If you want to emphasize Insider Trading data or reduce reliance on Market Sentiment, you can adjust the weights of each method using our <a href="https://www.projectmanagerhelper.com/calculators/">Weighted Score Calculator</a>. For example, assign a weight of 5 to Insider data and 1 to Sentiment if you trust insider trades more than general sentiment.</p>`;
+        
         document.getElementById('explanation').innerHTML= explanation;
       }
       catch(err){
