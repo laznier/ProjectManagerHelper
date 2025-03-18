@@ -807,8 +807,8 @@
           const macdData = computeMACD(prices);
           
           // Compute multi-timeframe recommendations:
-          const pricesShort = filterPricesByMonths(prices, 1);
-          const pricesMedium = filterPricesByMonths(prices, 3);
+          const pricesShort = filterPricesByMonths(prices, 2.5);
+          const pricesMedium = filterPricesByMonths(prices, 6);
           let recShort = computeCombinedRecommendation(pricesShort) || "N/A";
           let recMedium = computeCombinedRecommendation(pricesMedium) || "N/A";
           let recLong = "";
