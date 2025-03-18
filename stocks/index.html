@@ -179,15 +179,15 @@
       return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     }
 
-    // 2. Fetch historical stock data from YOUR local server (no direct API key here!)
+    // 2. Fetch historical stock data from your LIVE server (no more localhost!)
     async function fetchHistoricalData(ticker) {
-      // Instead of calling Alpha Vantage directly, we call our local Node server:
-      const url = `http://localhost:3000/api/historical?symbol=${ticker}`;
+      // Replace localhost with your domain:
+      const url = `https://projectmanagerhelper.com/api/historical?symbol=${ticker}`;
       
       const response = await fetch(url);
       const data = await response.json();
       if (data["Error Message"] || !data["Time Series (Daily)"]) {
-        throw new Error("Error fetching data. Check ticker symbol or local server setup.");
+        throw new Error("Error fetching data. Check ticker symbol or server setup.");
       }
       return data["Time Series (Daily)"];
     }
@@ -468,7 +468,7 @@
       else return "Strong Buy";
     }
 
-    // --- Helper to parse Alpha Vantage time strings like "20250311T093008" into a valid Date
+    // Helper to parse Alpha Vantage time strings like "20250311T093008" into a valid Date
     function parseAlphaDate(rawDateStr) {
       const year = rawDateStr.substring(0, 4);
       const month = rawDateStr.substring(4, 6);
@@ -479,14 +479,14 @@
       return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}Z`);
     }
 
-    // ===== Rewritten for Hourly Averages =====
+    // ===== Rewritten for Hourly Averages, but with a live domain =====
     async function fetchSentimentData(ticker, periodMonths) {
-      // Call our local server route
-      const url = `http://localhost:3000/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
+      // Replace localhost with your domain:
+      const url = `https://projectmanagerhelper.com/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
       const response = await fetch(url);
       const data = await response.json();
       if (!data.feed) {
-        throw new Error("No sentiment data available from local server.");
+        throw new Error("No sentiment data available from server.");
       }
       // Define the date range
       const now = new Date();
@@ -497,70 +497,51 @@
       const sentimentByHour = {};
 
       for (const article of data.feed) {
-        // Parse date from "time_published" (e.g. "20250311T093008")
         const parsedDate = parseAlphaDate(article.time_published);
-        if (isNaN(parsedDate.getTime())) continue; // invalid date, skip
-        if (parsedDate < startDate) continue;       // older than user-specified range
+        if (isNaN(parsedDate.getTime())) continue;
+        if (parsedDate < startDate) continue;
 
-        // Each article may have multiple tickers in "ticker_sentiment"
         if (!article.ticker_sentiment) continue;
-        // Find the user ticker inside the array
         const tickerItem = article.ticker_sentiment.find(
           ts => ts.ticker.toUpperCase() === ticker.toUpperCase()
         );
-        if (!tickerItem) continue; // this article doesn't mention the user ticker
+        if (!tickerItem) continue;
 
-        // Parse the raw sentiment score for that ticker
         const rawScore = parseFloat(tickerItem.ticker_sentiment_score);
         if (isNaN(rawScore)) continue;
 
-        // Optionally, normalize from -1..+1 into 0..100
         const normalizedSentiment = ((rawScore + 1) / 2) * 100;
-
-        // Group by hour => "YYYY-MM-DDTHH"
-        const hourKey = parsedDate.toISOString().substring(0, 13); 
-        // e.g. "2025-03-17T15"
-
+        const hourKey = parsedDate.toISOString().substring(0, 13);
         if (!sentimentByHour[hourKey]) {
           sentimentByHour[hourKey] = [];
         }
         sentimentByHour[hourKey].push(normalizedSentiment);
       }
 
-      // Compute hourly average
       let sentiments = [];
       for (const hourStr in sentimentByHour) {
         const scores = sentimentByHour[hourStr];
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-
-        // Convert "YYYY-MM-DDTHH" back into a valid date for plotting
-        // We'll add ":00:00Z" so it's valid ISO
         const dateObj = new Date(hourStr + ":00:00Z");
         sentiments.push({ date: dateObj.toISOString(), sentiment: avg });
       }
 
-      // Sort by ascending date
       sentiments.sort((a, b) => new Date(a.date) - new Date(b.date));
       return sentiments;
     }
 
-    // Updated computeSentimentTrend to handle single data point scenarios.
     function computeSentimentTrend(sentiments) {
       if (!sentiments || sentiments.length === 0) return "Insufficient data";
-      
-      // Baseline from the first data point
       const start = sentiments[0].sentiment;
       let baseline = "";
       if (start >= 60) baseline = "Good";
       else if (start <= 40) baseline = "Bad";
       else baseline = "Neutral";
-      
-      // If there's only one data point, return the baseline
+
       if (sentiments.length === 1) {
         return baseline + " Sentiment (Single Data Point)";
       }
       
-      // With multiple data points, calculate the difference
       const end = sentiments[sentiments.length - 1].sentiment;
       const delta = end - start;
       let trend = "";
@@ -572,7 +553,6 @@
       return baseline + " " + trend + " Sentiment";
     }
 
-    // Plot the sentiment over time
     function updateChartSentiment(sentiments, classification) {
       const dates = sentiments.map(s => new Date(s.date));
       const sentimentValues = sentiments.map(s => s.sentiment);
@@ -602,10 +582,10 @@
       document.getElementById('sliderDiv').style.display = 'none';
     }
 
-    // ===== Update Explanation Panel =====
+    // Update Explanation Panel
     function generateExplanation(method, mcStats, lrResult, extra) {
       let explanation = "<h3>Explanation of Results</h3>";
-      explanation += "<p><strong>Data Source:</strong> Historical stock data is fetched from your local server, which uses the Alpha Vantage API (hidden key).</p>";
+      explanation += "<p><strong>Data Source:</strong> Historical stock data is fetched from your live server, which uses the Alpha Vantage API (hidden key).</p>";
       if (method === "mc") {
         explanation += "<p><strong>Method:</strong> Monte Carlo Simulation using Geometric Brownian Motion (GBM).</p>";
         explanation += "<p>The simulation uses the formula:</p>";
@@ -616,7 +596,7 @@
         explanation += "<p><strong>Method:</strong> Combined Technical Indicators.</p>";
         explanation += "<p>Four technical indicators (RSI, Bollinger Bands, MACD, and WMA) are computed. Each produces a score from 1 (Strong Sell) to 7 (Strong Buy). The final recommendation is derived by averaging these scores.</p>";
       } else if (method === "sentiment") {
-        explanation += "<p><strong>Method:</strong> Sentiment Analysis Forecast using Alpha Vantage's News Sentiment data (via your local server).</p>";
+        explanation += "<p><strong>Method:</strong> Sentiment Analysis Forecast using Alpha Vantage's News Sentiment data (via your live server).</p>";
         explanation += "<p>The tool retrieves sentiment data for the specified period, aggregates it by hour, and analyzes the trend over time.</p>";
       }
       if (lrResult) {
@@ -693,7 +673,7 @@
           updateChartCombined(prices, bands, wmas, rsis, macdData, recommendation);
           generateExplanation("combined", null, lrResult, recommendation);
         } else if(forecastMethod === "sentiment") {
-          // Fetch sentiment data from your local server
+          // Fetch sentiment data from your live server
           const sentimentData = await fetchSentimentData(ticker, periodMonths);
           const classification = computeSentimentTrend(sentimentData);
           updateChartSentiment(sentimentData, classification);
