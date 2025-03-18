@@ -30,7 +30,16 @@ export default async function handler(req, res) {
           details: data,
         });
     }
-
+    if (!symbol) {
+      // Instead of returning a 400, do a "broad fetch"
+      // For demonstration, let's say you fetch a special endpoint or do nothing
+      const broadUrl = `https://www.alphavantage.co/query?function=INSIDER_TRANSACTIONS&apikey=${apiKey}`;
+      // or some other logic if Alpha Vantage supports it
+      const response = await fetch(broadUrl);
+      const data = await response.json();
+      return res.json(data);
+    }
+    
     return res.json(data);
   } catch (error) {
     console.error("Error in /api/insider route:", error);
