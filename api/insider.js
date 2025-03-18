@@ -1,45 +1,43 @@
 'use strict';
 
 const express = require('express');
-const request = require('request');
 const router = express.Router();
 
-/**
- * GET /api/insider
- * Optional query param: ?symbol=IBM
- * Example: /api/insider?symbol=AAPL
- */
-router.get('/', (req, res) => {
-  // If the client doesn't pass a symbol, default to IBM:
+router.get('/', async (req, res) => {
+  // Allow cross-origin requests
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  
+  // Get the symbol from query params or default to IBM
   const symbol = req.query.symbol || 'IBM';
+  
+  // Use the API key from environment (ensure it's set in Vercel as ALPHA_VANTAGE_KEY)
+  const apiKey = process.env.ALPHA_VANTAGE_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Missing ALPHA_VANTAGE_KEY env var" });
+  }
 
-  // Use an environment variable for your real API key, or fallback to "demo"
-  const apikey = process.env.ALPHA_VANTAGE_API_KEY || 'demo';
-
-  // Construct the Alpha Vantage insider URL
-  const url = `https://www.alphavantage.co/query?function=INSIDER_TRANSACTIONS&symbol=${symbol}&apikey=${apikey}`;
-
-  // Make the request
-  request.get(
-    {
-      url: url,
-      json: true, // automatically parses JSON
-      headers: { 'User-Agent': 'request' }
-    },
-    (err, response, data) => {
-      if (err) {
-        console.error('Error:', err);
-        return res.status(500).json({ error: 'Error fetching insider data' });
-      } else if (response.statusCode !== 200) {
-        console.error('Status:', response.statusCode);
-        return res.status(response.statusCode).json({ error: `Status code: ${response.statusCode}` });
-      } else {
-        // data is successfully parsed as a JSON object
-        // You can transform or filter data here if needed before sending to client
-        return res.json(data);
-      }
+  // Construct the Alpha Vantage URL for insider transactions
+  const url = `https://www.alphavantage.co/query?function=INSIDER_TRANSACTIONS&symbol=${symbol}&apikey=${apiKey}`;
+  
+  try {
+    // Fetch data from Alpha Vantage
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    // Check if data contains the expected insider transactions array
+    if (!data.data) {
+      return res.status(500).json({
+        error: "Error fetching insider data from Alpha Vantage",
+        details: data,
+      });
     }
-  );
+    
+    // Return the fetched data to the client
+    res.json(data);
+  } catch (err) {
+    console.error("Error in insider route:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 module.exports = router;
