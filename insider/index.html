@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Insider Trading Insights</title>
+  <!-- You can include Plotly or other libraries if needed, but here we only show textual data -->
+  <style>
+    /* Basic Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #f3f4f6, #ffffff);
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 30px;
+    }
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    p {
+      font-size: 0.95rem;
+      line-height: 1.4;
+      margin-bottom: 20px;
+      color: #555;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .bullish-button {
+      background-color: green;
+      color: #fff;
+    }
+    .bullish-button:hover {
+      background-color: darkgreen;
+    }
+    .bearish-button {
+      background-color: red;
+      color: #fff;
+    }
+    .bearish-button:hover {
+      background-color: darkred;
+    }
+    #loading {
+      margin-top: 10px;
+      font-style: italic;
+      color: #f97316;
+    }
+    #summary {
+      margin-top: 30px;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      background-color: #f9fafb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    /* Section styling for picks */
+    .picks-section {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .picks-section h2 {
+      margin-bottom: 10px;
+    }
+    /* Back to Main Page button */
+    .back-button {
+      margin: 20px;
+      padding: 8px 16px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .back-button:hover {
+      background: #1e3a8a;
+    }
+  </style>
+</head>
+<body>
+  <!-- Back to Main Page button -->
+  <button class="back-button" onclick="window.location.href='https://www.projectmanagerhelper.com'">
+    Back to Main Page
+  </button>
+
+  <div class="container">
+    <h1>Insider Trading Insights</h1>
+    <p>
+      This tool retrieves insider trading activity from our live server (powered by Alpha Vantage or a similar data provider) and identifies the top 5 bullish picks (acquisitions) and top 5 bearish picks (disposals) for the current month based on transaction volume.
+    </p>
+
+    <!-- Button to fetch and display the insider data -->
+    <button id="fetchInsiderButton">Fetch Insider Trading Data</button>
+    <div id="loading" style="display:none;">Loading insider trading data...</div>
+    
+    <!-- Sections for Bullish and Bearish picks -->
+    <div id="bullishContainer" class="picks-section" style="display:none;">
+      <h2>Bullish Picks</h2>
+      <div id="bullishPicks"></div>
+    </div>
+    
+    <div id="bearishContainer" class="picks-section" style="display:none;">
+      <h2>Bearish Picks</h2>
+      <div id="bearishPicks"></div>
+    </div>
+    
+    <!-- Summary details for a selected pick -->
+    <div id="summary"></div>
+  </div>
+
+  <script>
+    // Function to fetch insider data from your API endpoint
+    async function fetchInsiderData() {
+      const url = "https://www.projectmanagerhelper.com/api/insider";
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch insider data");
+      }
+      return await response.json();
+    }
+
+    // Render buttons for a list of picks
+    function renderPicks(picks, containerId, type) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = ""; // Clear previous buttons
+
+      picks.forEach((item, index) => {
+        const btn = document.createElement("button");
+        // For bullish: use green, for bearish: use red
+        btn.className = type === "bullish" ? "bullish-button" : "bearish-button";
+        // Button text can be ticker with share count (or any other summary)
+        btn.textContent = `${item.ticker} (${parseFloat(item.shares).toLocaleString()} shares)`;
+        // Add click listener to show detailed summary
+        btn.addEventListener("click", () => showSummary(item, index + 1, type));
+        container.appendChild(btn);
+      });
+    }
+
+    // Function to display a summary of the insider transaction
+    function showSummary(item, rank, type) {
+      const summaryDiv = document.getElementById("summary");
+      let details = `<h2>${type === "bullish" ? "Bullish" : "Bearish"} Pick #${rank}: ${item.ticker}</h2>`;
+      details += "<ul>";
+      details += `<li><strong>Transaction Date:</strong> ${item.transaction_date}</li>`;
+      details += `<li><strong>Executive:</strong> ${item.executive}</li>`;
+      details += `<li><strong>Title:</strong> ${item.executive_title}</li>`;
+      details += `<li><strong>Security Type:</strong> ${item.security_type}</li>`;
+      details += `<li><strong>Trade Type:</strong> ${item.acquisition_or_disposal === "A" ? "Acquisition" : "Disposal"}</li>`;
+      details += `<li><strong>Shares:</strong> ${parseFloat(item.shares).toLocaleString()}</li>`;
+      details += `<li><strong>Share Price:</strong> ${parseFloat(item.share_price).toFixed(2)}</li>`;
+      details += "</ul>";
+      summaryDiv.innerHTML = details;
+      // Optionally scroll into view if needed
+      summaryDiv.scrollIntoView({ behavior: "smooth" });
+    }
+
+    document.getElementById("fetchInsiderButton").addEventListener("click", async () => {
+      document.getElementById("loading").style.display = "block";
+      // Clear any previous summary
+      document.getElementById("summary").innerHTML = "";
+      try {
+        const insiderJson = await fetchInsiderData();
+        if (!insiderJson.data || !Array.isArray(insiderJson.data)) {
+          throw new Error("Invalid insider data format.");
+        }
+        // Process data: filter into bullish (A) and bearish (D)
+        const bullish = insiderJson.data
+          .filter(item => item.acquisition_or_disposal === "A")
+          .sort((a, b) => parseFloat(b.shares) - parseFloat(a.shares))
+          .slice(0, 5);
+
+        const bearish = insiderJson.data
+          .filter(item => item.acquisition_or_disposal === "D")
+          .sort((a, b) => parseFloat(b.shares) - parseFloat(a.shares))
+          .slice(0, 5);
+
+        // Render the picks if available
+        if (bullish.length) {
+          document.getElementById("bullishContainer").style.display = "block";
+          renderPicks(bullish, "bullishPicks", "bullish");
+        } else {
+          document.getElementById("bullishContainer").innerHTML = "<p>No bullish data available.</p>";
+        }
+        if (bearish.length) {
+          document.getElementById("bearishContainer").style.display = "block";
+          renderPicks(bearish, "bearishPicks", "bearish");
+        } else {
+          document.getElementById("bearishContainer").innerHTML = "<p>No bearish data available.</p>";
+        }
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+      document.getElementById("loading").style.display = "none";
+    });
+  </script>
+</body>
+</html>
