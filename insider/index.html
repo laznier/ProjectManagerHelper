@@ -131,9 +131,13 @@
     // Function to fetch insider data from your API endpoint
     async function fetchInsiderData() {
       const url = "https://www.projectmanagerhelper.com/api/insider";
+      
+      // Log the exact URL we are calling, for troubleshooting
+      console.log("Attempting to fetch from:", url);
+
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error("Failed to fetch insider data");
+        throw new Error("Failed to fetch insider data - status: " + response.status);
       }
       return await response.json();
     }
@@ -207,6 +211,7 @@
           document.getElementById("bearishContainer").innerHTML = "<p>No bearish data available.</p>";
         }
       } catch (error) {
+        console.error("Error in fetchInsiderData:", error);
         alert("Error: " + error.message);
       }
       document.getElementById("loading").style.display = "none";

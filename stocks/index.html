@@ -152,6 +152,8 @@
     <h2>Monte Carlo Simulation (GBM)</h2>
     <div id="mcChart"></div>
     <div id="mcDetails" style="margin-top:10px; font-weight:600;"></div>
+    <!-- Added container for our slider -->
+    <div id="mcSlider" style="margin-top: 20px;"></div>
   </div>
 
   <!-- Linear Regression -->
@@ -215,6 +217,19 @@
     /*********************************************************
      * Monte Carlo Simulation
      *********************************************************/
+    let globalFinalPrices = []; // Store final prices for slider updates
+
+    // Utility to get median (50th percentile) of an array
+    function getMedian(arr) {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      if (sorted.length % 2 !== 0) {
+        return sorted[mid];
+      } else {
+        return (sorted[mid - 1] + sorted[mid]) / 2;
+      }
+    }
+
     function randn_bm(){
       let u=0, v=0;
       while(u===0) u= Math.random();
@@ -250,7 +265,12 @@
       }
       return finals;
     }
+
+    // Function to update the chart with initial finalPrices
     function updateMCChart(finalPrices, lastPrice){
+      // Store in a global array so the slider can use them
+      globalFinalPrices = finalPrices;
+
       let trace={
         x: finalPrices,
         type:'histogram',
@@ -268,7 +288,63 @@
       let prob= (count/finalPrices.length)*100;
       document.getElementById('mcDetails').innerText=
         `Bullish Probability: ${prob.toFixed(2)}%`;
+
+      // Create a vertical red line at the median of finalPrices (50% percentile).
+      const medianPrice = getMedian(finalPrices);
+      Plotly.relayout("mcChart", {
+        shapes: [{
+          type: 'line',
+          x0: medianPrice,
+          x1: medianPrice,
+          y0: 0,
+          y1: 1,              // 1 in 'paper' coords goes to the top of the plot
+          xref: 'x',
+          yref: 'paper',
+          line: { color: 'red', width: 2 }
+        }]
+      });
+
+      // Insert the slider HTML into #mcSlider
+      // We'll set its initial value to the medianPrice
+      document.getElementById('mcSlider').innerHTML = `
+        <label for="priceSlider">Price (move to see probability):</label>
+        <input type="range"
+               id="priceSlider"
+               min="${Math.min(...finalPrices).toFixed(2)}"
+               max="${Math.max(...finalPrices).toFixed(2)}"
+               step="0.01"
+               value="${medianPrice.toFixed(2)}"
+               oninput="updateMCSlider(this.value)">
+        <span id="sliderValue">${medianPrice.toFixed(2)}</span>
+      `;
+
       return prob; // 0..100
+    }
+
+    // Called when the user moves the slider
+    function updateMCSlider(val) {
+      val = parseFloat(val);
+      document.getElementById('sliderValue').textContent = val.toFixed(2);
+
+      // Recompute the probability that finalPrices >= val
+      let count = globalFinalPrices.filter(p => p >= val).length;
+      let prob = (count / globalFinalPrices.length) * 100;
+      document.getElementById('mcDetails').innerText =
+        `Bullish Probability: ${prob.toFixed(2)}%`;
+
+      // Update vertical line to new slider value
+      Plotly.relayout("mcChart", {
+        shapes: [{
+          type: 'line',
+          x0: val,
+          x1: val,
+          y0: 0,
+          y1: 1,
+          xref: 'x',
+          yref: 'paper',
+          line: { color: 'red', width: 2 }
+        }]
+      });
     }
 
     /*********************************************************
@@ -462,7 +538,6 @@
     }
     function getScoreWMA(price, wmaVal){
       let diff= (price- wmaVal)/ wmaVal;
-      // e.g. 3% above => moderate
       let base=4;
       if(diff>= 0.05) base=7;
       else if(diff>= 0.02) base=6;
@@ -592,9 +667,7 @@
 
       let sRSI= getScoreRSI(rsiVal);
       let sBB= getScoreBollinger(latestPrice, band);
-      let sMACD= getScoreMACD(macdVal, sigVal); // pass macdVal & signal
-      // or if we want diff => getScoreMACD(diffMACD)? 
-      // We'll use the function that expects 2 inputs for better logic:
+      let sMACD= getScoreMACD(macdVal, sigVal);
       let sWMA= getScoreWMA(latestPrice, wmaVal);
 
       let avgScore= (sRSI+ sBB+ sMACD+ sWMA)/4;
@@ -772,7 +845,7 @@
         explanation+= "<p>Each sub-score is mapped from 1 (bearish) to 7 (bullish). We average them => 1..7 => re-scaled to 0..100%. A final bullish % is displayed for the short timeframe data. The chart also shows each indicator on subplots.</p>";
         explanation+= `<p><strong>Sentiment Analysis:</strong> Aggregates news data by hour, normalizes to 0..100, and does a linear trend slope => 0..100%. Slope &gt; 0 => improving sentiment => bullish.</p>`;
         explanation+= `<p><strong>Aggregated Bullish Score:</strong> The mean of these four results = ${aggregatedBull.toFixed(2)}%. Higher => more bullish agreement among methods.</p>`;
-
+	explanation += "<p><em>Note:</em> An Aggregated Bullish Score above 50% typically suggests a bullish (buy) outlook, while a score below 50% leans more bearish (sell). A score near 50% implies a neutral stance.</p>";
         document.getElementById('explanation').innerHTML= explanation;
       }
       catch(err){
