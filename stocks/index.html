@@ -2,8 +2,8 @@
 <html>
 <head>
   <title>Advanced Stock Price Prediction Tool</title>
-  <!-- Include Plotly for interactive charts -->
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- Updated Plotly to a recent explicit version (v2.18.2) -->
+  <script src="https://cdn.plot.ly/plotly-2.18.2.min.js"></script>
   <style>
     /* Basic Reset */
     * {
@@ -329,7 +329,7 @@
       document.getElementById('sliderDiv').style.display = 'none';
     }
 
-    // ===== Technical Indicators (Unchanged) =====
+    // ===== Technical Indicators Functions =====
     function computeBollingerBands(prices, period = 20, k = 2) {
       let bands = [];
       for (let i = period - 1; i < prices.length; i++) {
@@ -479,7 +479,7 @@
       return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}Z`);
     }
 
-    // ===== Rewritten for Hourly Averages, but with a live domain =====
+    // ===== Sentiment Analysis Functions (unchanged) =====
     async function fetchSentimentData(ticker, periodMonths) {
       // Replace localhost with your domain:
       const url = `https://www.projectmanagerhelper.com/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
@@ -594,7 +594,7 @@
         explanation += "<p><strong>Method:</strong> Linear Trend Forecast using least squares regression.</p>";
       } else if (method === "combined") {
         explanation += "<p><strong>Method:</strong> Combined Technical Indicators.</p>";
-        explanation += "<p>Four technical indicators (RSI, Bollinger Bands, MACD, and WMA) are computed. Each produces a score from 1 (Strong Sell) to 7 (Strong Buy). The final recommendation is derived by averaging these scores.</p>";
+        explanation += "<p>Four technical indicators (RSI, Bollinger Bands, MACD, and WMA) are computed. Each produces a score from 1 (Strong Sell) to 7 (Strong Buy). The final recommendation is derived by averaging these scores over different timeframes.</p>";
       } else if (method === "sentiment") {
         explanation += "<p><strong>Method:</strong> Sentiment Analysis Forecast using Alpha Vantage's News Sentiment data (via your live server).</p>";
         explanation += "<p>The tool retrieves sentiment data for the specified period, aggregates it by hour, and analyzes the trend over time.</p>";
@@ -611,82 +611,38 @@
       document.getElementById('explanation').innerHTML = explanation;
     }
 
-    // 10. Main simulation event
-    document.getElementById('simulateButton').addEventListener('click', async () => {
-      document.getElementById('loading').style.display = 'block';
-      const ticker = document.getElementById('ticker').value.trim();
-      const periodMonths = parseInt(document.getElementById('period').value);
-      const futureDateInput = document.getElementById('futureDate').value;
-      const forecastMethod = document.getElementById('forecastMethod').value;
-      
-      if(!ticker || !futureDateInput) {
-        alert("Please enter both a ticker symbol and a future date.");
-        document.getElementById('loading').style.display = 'none';
-        return;
-      }
-      
-      try {
-        // For methods that require historical price data
-        const timeSeries = await fetchHistoricalData(ticker);
-        const prices = processHistoricalData(timeSeries, periodMonths);
-        if(prices.length < 2) {
-          alert("Not enough historical data available for the specified period.");
-          document.getElementById('loading').style.display = 'none';
-          return;
-        }
-        
-        const futureDate = new Date(futureDateInput);
-        const lrResult = linearRegressionForecast(prices, futureDate);
-        
-        let mcStats = null;
-        let finalPrices = null;
-        
-        if(forecastMethod === "mc") {
-          mcStats = computeStats(prices);
-          const lastDate = prices[prices.length - 1].date;
-          const diffTime = Math.abs(futureDate - lastDate);
-          const T = diffTime / (365 * 24 * 60 * 60 * 1000);
-          finalPrices = runSimulation(mcStats.lastPrice, mcStats.mean, mcStats.stdDev, T);
-          updateChartMC(finalPrices);
-          generateExplanation("mc", mcStats, lrResult, null);
-        } else if(forecastMethod === "lr") {
-          updateChartLinear(prices, futureDate, lrResult.forecastPrice);
-          generateExplanation("lr", null, lrResult, null);
-        } else if(forecastMethod === "combined") {
-          const bands = computeBollingerBands(prices);
-          const wmas = computeWMA(prices);
-          const rsis = computeRSI(prices);
-          const macdData = computeMACD(prices);
-          const latestPrice = prices[prices.length - 1].close;
-          const latestBand = bands[bands.length - 1];
-          const latestWMA = wmas[wmas.length - 1].wma;
-          const latestRSI = rsis[rsis.length - 1].rsi;
-          const latestMACD = macdData.macdLine[macdData.macdLine.length - 1].macd;
-          const latestSignal = macdData.signalLine[macdData.signalLine.length - 1].signal;
-          const diffMACD = latestMACD - latestSignal;
-          const scoreRSI = getScoreRSI(latestRSI);
-          const scoreBB = getScoreBollinger(latestPrice, latestBand);
-          const scoreMACD = getScoreMACD(diffMACD);
-          const scoreWMA = getScoreWMA(latestPrice, latestWMA);
-          const combinedScore = (scoreRSI + scoreBB + scoreMACD + scoreWMA) / 4;
-          const recommendation = getRecommendation(combinedScore);
-          updateChartCombined(prices, bands, wmas, rsis, macdData, recommendation);
-          generateExplanation("combined", null, lrResult, recommendation);
-        } else if(forecastMethod === "sentiment") {
-          // Fetch sentiment data from your live server
-          const sentimentData = await fetchSentimentData(ticker, periodMonths);
-          const classification = computeSentimentTrend(sentimentData);
-          updateChartSentiment(sentimentData, classification);
-          generateExplanation("sentiment", null, lrResult, classification);
-        }
-      } catch (error) {
-        alert("Error: " + error.message);
-      }
-      document.getElementById('loading').style.display = 'none';
-    });
-    
-    // ===== Combined Technical Indicators Chart (unchanged) =====
-    function updateChartCombined(prices, bands, wmas, rsis, macdData, recommendation) {
+    // ===== Helper Functions for Multi-Timeframe Recommendations =====
+    function filterPricesByMonths(prices, months) {
+      const lastDate = prices[prices.length - 1].date;
+      const thresholdDate = new Date(lastDate);
+      thresholdDate.setMonth(thresholdDate.getMonth() - months);
+      return prices.filter(p => p.date >= thresholdDate);
+    }
+
+    function computeCombinedRecommendation(prices) {
+      // Ensure we have enough data for all indicators (e.g., need at least 26 data points)
+      if (prices.length < 26) return null;
+      const bands = computeBollingerBands(prices);
+      const wmas = computeWMA(prices);
+      const rsis = computeRSI(prices);
+      const macdData = computeMACD(prices);
+      const latestPrice = prices[prices.length - 1].close;
+      const latestBand = bands[bands.length - 1];
+      const latestWMA = wmas[wmas.length - 1].wma;
+      const latestRSI = rsis[rsis.length - 1].rsi;
+      const latestMACD = macdData.macdLine[macdData.macdLine.length - 1].macd;
+      const latestSignal = macdData.signalLine[macdData.signalLine.length - 1].signal;
+      const diffMACD = latestMACD - latestSignal;
+      const scoreRSI = getScoreRSI(latestRSI);
+      const scoreBB = getScoreBollinger(latestPrice, latestBand);
+      const scoreMACD = getScoreMACD(diffMACD);
+      const scoreWMA = getScoreWMA(latestPrice, latestWMA);
+      const combinedScore = (scoreRSI + scoreBB + scoreMACD + scoreWMA) / 4;
+      return getRecommendation(combinedScore);
+    }
+
+    // ===== Updated Combined Technical Indicators Chart =====
+    function updateChartCombined(prices, bands, wmas, rsis, macdData, recommendations) {
       const priceTrace = {
         x: prices.map(p => p.date),
         y: prices.map(p => p.close),
@@ -757,6 +713,7 @@
       };
       const layout = {
         grid: { rows: 3, columns: 1, roworder: 'top to bottom' },
+        margin: { t: 120 },  // Increased top margin for annotations
         xaxis: { domain: [0, 1], anchor: 'y', title: 'Date' },
         yaxis: { domain: [0.55, 1], title: 'Price' },
         xaxis2: { domain: [0, 1], anchor: 'y2', title: 'Date' },
@@ -772,8 +729,26 @@
             xref: 'paper',
             yref: 'paper',
             x: 0.5,
-            y: 0.98,
-            text: `<b>Recommendation: ${recommendation}</b>`,
+            y: 1.15,
+            text: `<b>Long Term: ${recommendations.long || "N/A"}</b>`,
+            showarrow: false,
+            font: { size: 16, color: 'green' }
+          },
+          {
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.5,
+            y: 1.08,
+            text: `<b>Medium Term: ${recommendations.medium}</b>`,
+            showarrow: false,
+            font: { size: 16, color: 'green' }
+          },
+          {
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.5,
+            y: 1.01,
+            text: `<b>Short Term: ${recommendations.short}</b>`,
             showarrow: false,
             font: { size: 16, color: 'green' }
           }
@@ -783,6 +758,82 @@
       Plotly.newPlot('chart', traces, layout);
       document.getElementById('sliderDiv').style.display = 'none';
     }
+
+    // 10. Main simulation event
+    document.getElementById('simulateButton').addEventListener('click', async () => {
+      document.getElementById('loading').style.display = 'block';
+      const ticker = document.getElementById('ticker').value.trim();
+      const periodMonths = parseInt(document.getElementById('period').value);
+      const futureDateInput = document.getElementById('futureDate').value;
+      const forecastMethod = document.getElementById('forecastMethod').value;
+      
+      if(!ticker || !futureDateInput) {
+        alert("Please enter both a ticker symbol and a future date.");
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+      
+      try {
+        // For methods that require historical price data
+        const timeSeries = await fetchHistoricalData(ticker);
+        const prices = processHistoricalData(timeSeries, periodMonths);
+        if(prices.length < 2) {
+          alert("Not enough historical data available for the specified period.");
+          document.getElementById('loading').style.display = 'none';
+          return;
+        }
+        
+        const futureDate = new Date(futureDateInput);
+        const lrResult = linearRegressionForecast(prices, futureDate);
+        
+        let mcStats = null;
+        let finalPrices = null;
+        
+        if(forecastMethod === "mc") {
+          mcStats = computeStats(prices);
+          const lastDate = prices[prices.length - 1].date;
+          const diffTime = Math.abs(futureDate - lastDate);
+          const T = diffTime / (365 * 24 * 60 * 60 * 1000);
+          finalPrices = runSimulation(mcStats.lastPrice, mcStats.mean, mcStats.stdDev, T);
+          updateChartMC(finalPrices);
+          generateExplanation("mc", mcStats, lrResult, null);
+        } else if(forecastMethod === "lr") {
+          updateChartLinear(prices, futureDate, lrResult.forecastPrice);
+          generateExplanation("lr", null, lrResult, null);
+        } else if(forecastMethod === "combined") {
+          const bands = computeBollingerBands(prices);
+          const wmas = computeWMA(prices);
+          const rsis = computeRSI(prices);
+          const macdData = computeMACD(prices);
+          
+          // Compute multi-timeframe recommendations:
+          const pricesShort = filterPricesByMonths(prices, 1);
+          const pricesMedium = filterPricesByMonths(prices, 3);
+          let recShort = computeCombinedRecommendation(pricesShort) || "N/A";
+          let recMedium = computeCombinedRecommendation(pricesMedium) || "N/A";
+          let recLong = "";
+          let longTermNote = "";
+          if (periodMonths >= 12) {
+            recLong = computeCombinedRecommendation(prices) || "N/A";
+          } else {
+            longTermNote = "Long term recommendation requires at least 12 months of data.";
+          }
+          const recommendations = { short: recShort, medium: recMedium, long: recLong };
+          
+          updateChartCombined(prices, bands, wmas, rsis, macdData, recommendations);
+          generateExplanation("combined", null, lrResult, `${recommendations.short} / ${recommendations.medium} / ${recommendations.long}${longTermNote ? " (" + longTermNote + ")" : ""}`);
+        } else if(forecastMethod === "sentiment") {
+          // Fetch sentiment data from your live server
+          const sentimentData = await fetchSentimentData(ticker, periodMonths);
+          const classification = computeSentimentTrend(sentimentData);
+          updateChartSentiment(sentimentData, classification);
+          generateExplanation("sentiment", null, lrResult, classification);
+        }
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+      document.getElementById('loading').style.display = 'none';
+    });
   </script>
 </body>
 </html>
