@@ -84,7 +84,8 @@
       background-color: #ddd;
       color: #333;
     }
-    /* (The mobile submenus use native details so no extra JS is needed.) */
+    /* (The mobile submenus use native details so no extra JS is needed by default.
+       The following JS snippet (at the end) makes sure mobile taps toggle them.) */
 
     /* Desktop Navigation: Inline horizontal menu */
     nav.header__inline-menu {
@@ -786,5 +787,21 @@
     });
   </script>
 
+  <!-- JavaScript for Mobile Submenu Toggle Fix -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // For mobile: ensure that tapping a submenu summary toggles its details open/closed
+      const mobileSubmenus = document.querySelectorAll('.menu-drawer__navigation details');
+      mobileSubmenus.forEach(detail => {
+        const summary = detail.querySelector('summary');
+        summary.addEventListener('click', function(e) {
+          // Prevent default so the native behavior doesn't immediately close it
+          e.preventDefault();
+          // Manually toggle the open attribute
+          detail.open = !detail.open;
+        });
+      });
+    });
+  </script>
 </body>
 </html>
