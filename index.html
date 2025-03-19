@@ -49,8 +49,8 @@
        Navigation: Mobile Drawer & Desktop Inline
     ============================================================ */
 
-    /* Mobile Navigation (default) using <details> in a custom header-drawer element */
-    header-drawer {
+    /* Mobile Navigation – using native <details> inside a standard div */
+    .header-drawer {
       display: block;
     }
     .menu-drawer-container summary {
@@ -84,18 +84,7 @@
       background-color: #ddd;
       color: #333;
     }
-    .dropdown-menu {
-      display: none; /* For inline menu (desktop) only; mobile header-drawer uses native details/summary */
-    }
-    .dropdown details > summary {
-      padding: 10px 20px;
-      background-color: #333;
-      color: #fff;
-      cursor: pointer;
-    }
-    .dropdown details > summary:hover {
-      background-color: #444;
-    }
+    /* (The mobile submenus use native details so no extra JS is needed.) */
 
     /* Desktop Navigation: Inline horizontal menu */
     nav.header__inline-menu {
@@ -146,7 +135,7 @@
 
     /* Media Query: Show Desktop Menu on larger screens */
     @media (min-width: 768px) {
-      header-drawer {
+      .header-drawer {
         display: none;
       }
       nav.header__inline-menu {
@@ -372,8 +361,8 @@
   <!-- HEADER WITH NAVIGATION -->
   <header>
     <!-- Mobile Menu: Drawer for small screens using native details/summary -->
-    <header-drawer data-breakpoint="tablet">
-      <details id="Details-menu-drawer-container" class="menu-drawer-container">
+    <div class="header-drawer">
+      <details class="menu-drawer-container">
         <summary class="header__icon header__icon--menu header__icon--summary" aria-label="Menu">
           <span>
             <!-- Hamburger icon -->
@@ -382,7 +371,7 @@
               <rect y="7" width="18" height="2" fill="white"></rect>
               <rect y="12" width="18" height="2" fill="white"></rect>
             </svg>
-            <!-- Close icon -->
+            <!-- Close icon (optional – you may toggle its display via CSS) -->
             <svg class="icon icon-close" viewBox="0 0 18 17" width="24" height="24" style="display:none;">
               <line x1="1" y1="1" x2="17" y2="16" stroke="white" stroke-width="2"/>
               <line x1="17" y1="1" x2="1" y2="16" stroke="white" stroke-width="2"/>
@@ -444,7 +433,7 @@
           </nav>
         </div>
       </details>
-    </header-drawer>
+    </div>
 
     <!-- Desktop Inline Menu for larger screens -->
     <nav class="header__inline-menu topnav">
@@ -731,12 +720,11 @@
     }
   </script>
 
-  <!-- JavaScript for Dropdown Behavior (Desktop Portal / Mobile Toggle)
-       Now limited to the desktop inline menu so it doesn’t interfere with the mobile header-drawer -->
+  <!-- JavaScript for Desktop Dropdown Behavior only -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const canHover = window.matchMedia('(hover: hover)').matches;
-      // Select dropdowns only inside the desktop inline menu
+      // Only target dropdowns inside the desktop inline menu
       const desktopDropdowns = document.querySelectorAll('nav.header__inline-menu .dropdown');
 
       if (canHover) {
@@ -784,7 +772,7 @@
           });
         });
       } else {
-        // Mobile: Toggle on tap (for desktop inline menu only)
+        // For the desktop inline menu on mobile (if visible), toggle on tap
         desktopDropdowns.forEach(drop => {
           const parentLink = drop.querySelector('.parent-link');
           const dropdownMenu = drop.querySelector('.dropdown-menu');
