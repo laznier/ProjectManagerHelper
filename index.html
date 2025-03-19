@@ -7,7 +7,7 @@
   <meta name="description" content="Project Manager Helper offers free, easy-to-use tools..." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Link to external stylesheet -->
+  <!-- Link to external stylesheet if needed -->
   <link rel="stylesheet" href="style.css" />
 
   <style>
@@ -24,70 +24,13 @@
     }
 
     /* ============================================================
-       Hero Section
+       Header & Navigation (Desktop)
     ============================================================ */
-    .hero {
+    header {
       position: relative;
-      background: url('images/hero-background.jpg') center/cover no-repeat;
-      color: #fff;
-      padding: 3rem 1rem;
-      text-align: center;
+      z-index: 1000;
     }
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 0;
-    }
-    .hero-content {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* ============================================================
-       Navigation: Mobile Drawer & Desktop Inline
-    ============================================================ */
-
-    /* Mobile Navigation – using native <details> inside a standard div */
-    .header-drawer {
-      display: block;
-    }
-    .menu-drawer-container summary {
-      padding: 14px 20px;
-      background-color: #333;
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .menu-drawer {
-      background-color: #333;
-      color: #fff;
-      width: 100%;
-    }
-    .menu-drawer__navigation ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-    .menu-drawer__navigation ul li {
-      border-bottom: 1px solid #444;
-    }
-    .menu-drawer__navigation ul li a {
-      display: block;
-      padding: 10px 20px;
-      color: #fff;
-    }
-    .menu-drawer__navigation ul li a:hover {
-      background-color: #ddd;
-      color: #333;
-    }
-    /* (The mobile submenus use native details so no extra JS is needed by default.
-       The following JS snippet (at the end) makes sure mobile taps toggle them.) */
-
-    /* Desktop Navigation: Inline horizontal menu */
+    /* Desktop Inline Menu */
     nav.header__inline-menu {
       display: none;
       background-color: #333;
@@ -134,14 +77,103 @@
       color: #333;
     }
 
-    /* Media Query: Show Desktop Menu on larger screens */
-    @media (min-width: 768px) {
-      .header-drawer {
-        display: none;
-      }
-      nav.header__inline-menu {
-        display: block;
-      }
+    /* ============================================================
+       Mobile Menu: Sliding Sidebar
+    ============================================================ */
+    .mobile-menu-toggle {
+      background: none;
+      border: none;
+      padding: 14px 20px;
+      cursor: pointer;
+      background-color: #333;
+      color: #fff;
+      display: block;
+    }
+    /* Hamburger Icon */
+    .mobile-menu-toggle svg {
+      vertical-align: middle;
+    }
+    /* Mobile sidebar menu – hidden by default */
+    .mobile-menu {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      width: 80%;
+      max-width: 300px;
+      height: 100%;
+      background-color: #333;
+      color: #fff;
+      overflow-y: auto;
+      transition: left 0.3s ease;
+      z-index: 1500;
+      padding-top: 1rem;
+    }
+    .mobile-menu.open {
+      left: 0;
+    }
+    .mobile-menu nav ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .mobile-menu nav ul li {
+      border-bottom: 1px solid #444;
+    }
+    .mobile-menu nav ul li a,
+    .mobile-menu nav ul li .submenu-toggle {
+      display: block;
+      padding: 10px 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+    .mobile-menu nav ul li a:hover,
+    .mobile-menu nav ul li .submenu-toggle:hover {
+      background-color: #ddd;
+      color: #333;
+    }
+    /* Submenu: hidden by default */
+    .mobile-menu nav ul li ul.submenu {
+      display: none;
+      background-color: #444;
+    }
+    .mobile-menu nav ul li ul.submenu li {
+      border: none;
+    }
+    .mobile-menu nav ul li ul.submenu li a {
+      padding-left: 40px;
+    }
+    /* Close button inside mobile menu */
+    .mobile-menu .close-menu {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+    }
+
+    /* ============================================================
+       Hero Section
+    ============================================================ */
+    .hero {
+      position: relative;
+      background: url('images/hero-background.jpg') center/cover no-repeat;
+      color: #fff;
+      padding: 3rem 1rem;
+      text-align: center;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
     }
 
     /* ============================================================
@@ -339,7 +371,19 @@
       margin-top: 2rem;
     }
 
-    /* Responsive Adjustments */
+    /* ============================================================
+       Responsive Adjustments
+    ============================================================ */
+    @media (min-width: 768px) {
+      /* Hide mobile menu toggle and sidebar on desktop */
+      .mobile-menu-toggle { display: none; }
+      .mobile-menu { display: none; }
+      nav.header__inline-menu { display: block; }
+    }
+    @media (max-width: 767px) {
+      /* Hide desktop menu on mobile */
+      nav.header__inline-menu { display: none; }
+    }
     @media (max-width: 768px) {
       .tool-card {
         width: 90%;
@@ -359,91 +403,76 @@
 </head>
 <body>
 
-  <!-- HEADER WITH NAVIGATION -->
+  <!-- Mobile Header: Hamburger Toggle -->
   <header>
-    <!-- Mobile Menu: Drawer for small screens using native details/summary -->
-    <div class="header-drawer">
-      <details class="menu-drawer-container">
-        <summary class="header__icon header__icon--menu header__icon--summary" aria-label="Menu">
-          <span>
-            <!-- Hamburger icon -->
-            <svg class="icon icon-hamburger" viewBox="0 0 18 16" width="24" height="24">
-              <rect y="2" width="18" height="2" fill="white"></rect>
-              <rect y="7" width="18" height="2" fill="white"></rect>
-              <rect y="12" width="18" height="2" fill="white"></rect>
-            </svg>
-            <!-- Close icon (optional – you may toggle its display via CSS) -->
-            <svg class="icon icon-close" viewBox="0 0 18 17" width="24" height="24" style="display:none;">
-              <line x1="1" y1="1" x2="17" y2="16" stroke="white" stroke-width="2"/>
-              <line x1="17" y1="1" x2="1" y2="16" stroke="white" stroke-width="2"/>
-            </svg>
-          </span>
-        </summary>
-        <div id="menu-drawer" class="menu-drawer">
-          <nav class="menu-drawer__navigation">
-            <ul class="menu-drawer__menu" role="list">
-              <li>
-                <details>
-                  <summary class="parent-link">PM Tools</summary>
-                  <ul class="dropdown-menu">
-                    <li><a href="network-diagram/">Network Diagram Tool</a></li>
-                    <li><a href="WSB-generator/">WBS Generator</a></li>
-                    <li><a href="statistics/">Data Distribution Analysis</a></li>
-                    <li><a href="evc/">Earned Value Management</a></li>
-                    <li><a href="risk-register/">Risk Register &amp; Assessment</a></li>
-                    <li><a href="statistics/">Simple Regression</a></li>
-                    <li><a href="multi-regression/">Multivariable Regression</a></li>
-                    <li><a href="monte-carlo/">Monte Carlo Simulation</a></li>
-                    <li><a href="advanced-network-diagram/">Advanced Network Diagram</a></li>
-                    <li><a href="advanced-scheduling/">Advanced Schedule Predictor</a></li>
-                    <li><a href="resources/">Resource Allocator and Gantt</a></li>
-                    <li><a href="calculators/">PM Financial Calculator</a></li>
-                    <li><a href="queueing/">Queueing Theory and CFD</a></li>
-                  </ul>
-                </details>
-              </li>
-              <li>
-                <details>
-                  <summary class="parent-link">Finance Tools</summary>
-                  <ul class="dropdown-menu">
-                    <li><a href="stocks/">Stock Trend Forecast</a></li>
-                    <li><a href="insider/">Insider Tracker</a></li>
-                    <li><a href="congress/">Congress Trades</a></li>
-                  </ul>
-                </details>
-              </li>
-              <li>
-                <details>
-                  <summary class="parent-link">Templates</summary>
-                  <ul class="dropdown-menu">
-                    <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
-                    <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
-                  </ul>
-                </details>
-              </li>
-              <li>
-                <details>
-                  <summary class="parent-link">Tutorials</summary>
-                  <ul class="dropdown-menu">
-                    <li><a href="/tutorials/">Go to Tutorials</a></li>
-                  </ul>
-                </details>
-              </li>
-              <li><a href="/">Home</a></li>
-            </ul>
-          </nav>
-        </div>
-      </details>
-    </div>
+    <button class="mobile-menu-toggle" id="openMenu" aria-label="Open Menu">
+      <!-- Hamburger Icon -->
+      <svg viewBox="0 0 18 16" width="24" height="24">
+        <rect y="2" width="18" height="2" fill="white"></rect>
+        <rect y="7" width="18" height="2" fill="white"></rect>
+        <rect y="12" width="18" height="2" fill="white"></rect>
+      </svg>
+    </button>
+  </header>
 
-    <!-- Desktop Inline Menu for larger screens -->
+  <!-- Mobile Sidebar Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <button class="close-menu" id="closeMenu" aria-label="Close Menu">&times;</button>
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li>
+          <span class="submenu-toggle">PM Tools &#9662;</span>
+          <ul class="submenu">
+            <li><a href="network-diagram/">Network Diagram Tool</a></li>
+            <li><a href="WSB-generator/">WBS Generator</a></li>
+            <li><a href="statistics/">Data Distribution Analysis</a></li>
+            <li><a href="evc/">Earned Value Management</a></li>
+            <li><a href="risk-register/">Risk Register &amp; Assessment</a></li>
+            <li><a href="statistics/">Simple Regression</a></li>
+            <li><a href="multi-regression/">Multivariable Regression</a></li>
+            <li><a href="monte-carlo/">Monte Carlo Simulation</a></li>
+            <li><a href="advanced-network-diagram/">Advanced Network Diagram</a></li>
+            <li><a href="advanced-scheduling/">Advanced Schedule Predictor</a></li>
+            <li><a href="resources/">Resource Allocator and Gantt</a></li>
+            <li><a href="calculators/">PM Financial Calculator</a></li>
+            <li><a href="queueing/">Queueing Theory and CFD</a></li>
+          </ul>
+        </li>
+        <li>
+          <span class="submenu-toggle">Finance Tools &#9662;</span>
+          <ul class="submenu">
+            <li><a href="stocks/">Stock Trend Forecast</a></li>
+            <li><a href="insider/">Insider Tracker</a></li>
+            <li><a href="congress/">Congress Trades</a></li>
+          </ul>
+        </li>
+        <li>
+          <span class="submenu-toggle">Templates &#9662;</span>
+          <ul class="submenu">
+            <li><a href="/templates/learning_curve.xlsx">Learning Curve</a></li>
+            <li><a href="/templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
+          </ul>
+        </li>
+        <li>
+          <span class="submenu-toggle">Tutorials &#9662;</span>
+          <ul class="submenu">
+            <li><a href="/tutorials/">Go to Tutorials</a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Desktop Inline Menu for larger screens -->
+  <header>
     <nav class="header__inline-menu topnav">
       <ul>
         <li><a href="/">Home</a></li>
         <li class="dropdown">
-          <a href="#PM tools" class="parent-link">PM Tools</a>
+          <a href="#PMtools" class="parent-link">PM Tools</a>
           <ul class="dropdown-menu">
-            <li class="go-parent"><a href="#PM tools">Go to PM Tools</a></li>
+            <li class="go-parent"><a href="#PMtools">Go to PM Tools</a></li>
             <li><a href="network-diagram/">Network Diagram Tool</a></li>
             <li><a href="WSB-generator/">WBS Generator</a></li>
             <li><a href="statistics/">Data Distribution Analysis</a></li>
@@ -704,6 +733,8 @@
       } else {
         stopScrollingCredits();
       }
+      // Update counter (if needed)
+      document.querySelector(".slider-counter--current").textContent = currentSlide + 1;
     }
 
     function startScrollingCredits() {
@@ -721,15 +752,13 @@
     }
   </script>
 
-  <!-- JavaScript for Desktop Dropdown Behavior only -->
+  <!-- JavaScript for Desktop Dropdown Behavior -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const canHover = window.matchMedia('(hover: hover)').matches;
-      // Only target dropdowns inside the desktop inline menu
       const desktopDropdowns = document.querySelectorAll('nav.header__inline-menu .dropdown');
 
       if (canHover) {
-        // Desktop: Portal approach on hover
         desktopDropdowns.forEach(drop => {
           const dropdownMenu = drop.querySelector('.dropdown-menu');
           drop.addEventListener('mouseenter', () => {
@@ -773,7 +802,6 @@
           });
         });
       } else {
-        // For the desktop inline menu on mobile (if visible), toggle on tap
         desktopDropdowns.forEach(drop => {
           const parentLink = drop.querySelector('.parent-link');
           const dropdownMenu = drop.querySelector('.dropdown-menu');
@@ -787,19 +815,32 @@
     });
   </script>
 
-  <!-- JavaScript for Mobile Submenu Toggle Fix -->
+  <!-- JavaScript for Mobile Menu Toggle and Accordion -->
   <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      // For mobile: ensure that tapping a submenu summary toggles its details open/closed
-      const mobileSubmenus = document.querySelectorAll('.menu-drawer__navigation details');
-      mobileSubmenus.forEach(detail => {
-        const summary = detail.querySelector('summary');
-        summary.addEventListener('click', function(e) {
-          // Prevent default so the native behavior doesn't immediately close it
-          e.preventDefault();
-          // Manually toggle the open attribute
-          detail.open = !detail.open;
-        });
+    // Mobile menu open/close toggle
+    const openMenuBtn = document.getElementById("openMenu");
+    const closeMenuBtn = document.getElementById("closeMenu");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    openMenuBtn.addEventListener("click", () => {
+      mobileMenu.classList.add("open");
+    });
+    closeMenuBtn.addEventListener("click", () => {
+      mobileMenu.classList.remove("open");
+    });
+
+    // Accordion behavior for mobile submenu toggles
+    const submenuToggles = document.querySelectorAll(".mobile-menu .submenu-toggle");
+    submenuToggles.forEach(toggle => {
+      toggle.addEventListener("click", () => {
+        const submenu = toggle.nextElementSibling;
+        if (submenu.style.display === "block") {
+          submenu.style.display = "none";
+          toggle.innerHTML = toggle.innerHTML.replace("&#9652;", "&#9662;");
+        } else {
+          submenu.style.display = "block";
+          toggle.innerHTML = toggle.innerHTML.replace("&#9662;", "&#9652;");
+        }
       });
     });
   </script>
