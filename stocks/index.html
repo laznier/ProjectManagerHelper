@@ -130,9 +130,13 @@
   <!-- Aggregated Signal Bar Meter -->
   <div id="aggregateSection" class="section" style="display:none;">
     <h2>Aggregated Signal</h2>
-    <div id="aggregateBar">
-      <div id="aggregateMarker"></div>
-      <span id="aggregateScoreText"></span>
+    <div style="display: flex; align-items: center;">
+      <span style="margin-right: 10px; font-weight: bold;">Sell</span>
+      <div id="aggregateBar" style="flex-grow: 1; position: relative;">
+        <div id="aggregateMarker"></div>
+        <span id="aggregateScoreText"></span>
+      </div>
+      <span style="margin-left: 10px; font-weight: bold;">Buy</span>
     </div>
   </div>
 
@@ -646,7 +650,7 @@
       let avgScore = (sRSI + sBB + sMACD + sWMA) / 4;
       let bullPct = ((avgScore - 1) / 6) * 100;
       document.getElementById('techDetails').innerText =
-        `RSI Score: ${sRSI}, Bollinger Score: ${sBB}, MACD Score: ${sMACD}, WMA Score: ${sWMA} => Technical Bullish ${bullPct.toFixed(1)}%`;
+        `RSI Score: ${sRSI}, Bollinger Score: ${sBB}, MACD Score: ${sMACD}, WMA Score: ${sWMA} => Technical Score ${bullPct.toFixed(1)}%`;
       return bullPct;
     }
 
@@ -654,24 +658,15 @@
  * Sentiment Analysis (Using a Logistic Function)
  *********************************************************/
 
-// 1) Utility function to convert slope -> 0..100% via a logistic curve
 function logisticBullish(slope) {
-  // k determines how sharply the curve saturates at extremes:
-  //  - A larger k means you reach near-0% or near-100% with smaller slopes
-  //  - A smaller k means the curve is more gradual
   const k = 0.3; 
-
-  // Logistic function: Score = 100 / [1 + e^(-k * slope)]
   let raw = 100 / (1 + Math.exp(-k * slope));
-
-  // Clamp to ensure the final result is strictly between 0 and 100
   if (raw < 0) raw = 0;
   if (raw > 100) raw = 100;
   return raw;
 }
 
 async function fetchSentimentData(ticker, periodMonths) {
-  // (No changes to how you fetch and parse the data from your existing code)
   let url = `https://www.projectmanagerhelper.com/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
   let resp = await fetch(url);
   let data = await resp.json();
@@ -715,7 +710,6 @@ function updateSentimentChart(sentiments) {
     name: 'Sentiment'
   };
 
-  // If not enough data, default to 50% 
   if (sentiments.length < 2) {
     Plotly.newPlot("sentChart", [traceRaw], {
       title: "Sentiment Analysis",
@@ -726,7 +720,6 @@ function updateSentimentChart(sentiments) {
     return 50;
   }
 
-  // Compute slope of best-fit line
   let firstDate = sentiments[0].date;
   let xs = sentiments.map(s => (s.date - firstDate) / (1000 * 60 * 60 * 24));
   let ys = sentiments.map(s => s.sentiment);
@@ -759,7 +752,6 @@ function updateSentimentChart(sentiments) {
   };
   Plotly.newPlot("sentChart", [traceRaw, traceTrend], layout);
 
-  // Apply the logistic function to get the final 0..100 bullish score
   let slopeBull = logisticBullish(slope);
 
   document.getElementById('sentDetails').innerText =
@@ -839,7 +831,6 @@ function updateSentimentChart(sentiments) {
       let futureDate = new Date(futureDateStr);
 
       try {
-        // Use your original API endpoint for historical data
         let histUrl = `https://www.projectmanagerhelper.com/api/historical?symbol=${ticker}`;
         let resp = await fetch(histUrl);
         let data = await resp.json();
@@ -853,7 +844,6 @@ function updateSentimentChart(sentiments) {
           return;
         }
 
-        // Monte Carlo Simulation
         let mcStats = computeStats(prices);
         let lastDate = prices[prices.length - 1].date;
         let T = (futureDate - lastDate) / (365 * 24 * 60 * 60 * 1000);
@@ -861,33 +851,27 @@ function updateSentimentChart(sentiments) {
         document.getElementById('mcSection').style.display = 'block';
         let mcBull = updateMCChart(mcFinals, mcStats.lastPrice);
 
-        // Linear Regression Forecast
         let lrRes = linearRegressionForecast(prices, futureDate);
         document.getElementById('lrSection').style.display = 'block';
         let lrResult = updateLRChart(prices, lrRes.forecastPrice, futureDate);
         let lrBull = lrResult.bullScore;
 
-        // Combined Technical Indicators
         document.getElementById('techSection').style.display = 'block';
         let techBull = updateTechChart(prices);
 
-        // Sentiment Analysis
         let sentiments = await fetchSentimentData(ticker, periodMonths);
         document.getElementById('sentSection').style.display = 'block';
         let sentBull = updateSentimentChart(sentiments);
 
-        // Insider Trading
         let insiderObj = await fetchInsiderData(ticker, periodMonths);
         document.getElementById('insiderSection').style.display = 'block';
         let insiderBull = updateInsiderChart(insiderObj.totalBuys, insiderObj.totalSells);
 
-        // Aggregated Bullish Score (average of all methods)
         let aggregatedBull = (mcBull + lrBull + techBull + sentBull + insiderBull) / 5;
         document.getElementById('aggregateSection').style.display = 'block';
         document.getElementById('aggregateMarker').style.left = aggregatedBull + '%';
         document.getElementById('aggregateScoreText').innerText = aggregatedBull.toFixed(2) + '%';
 
-        // Save simulation details for dynamic report
         simulationReport = {
           ticker: ticker,
           periodMonths: periodMonths,
@@ -909,7 +893,6 @@ function updateSentimentChart(sentiments) {
       document.getElementById('loading').style.display = 'none';
     });
 
-// Dynamic Detailed Report Generation (inside explanationButton event listener)
 document.getElementById("explanationButton").addEventListener("click", () => {
   if (!simulationReport) {
     alert("Please run a simulation first.");
@@ -1148,8 +1131,6 @@ Weighted Score = ( Weight(MC) × MC_Bullish
   win.document.close();
 });
 
-
-    // Insider link button
     document.getElementById("insiderLinkButton").addEventListener("click", () => {
       let ticker = document.getElementById("ticker").value.trim();
       if (ticker) {
