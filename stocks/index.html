@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Advanced Stock Trend + Sentiment + Insider Analysis</title>
+  <title>Advanced Stock Analysis</title>
   <!-- Include Plotly for Charting -->
   <script src="https://cdn.plot.ly/plotly-2.18.2.min.js"></script>
   <style>
@@ -23,10 +23,6 @@
     }
     p, li {
       margin-bottom: 0.75em;
-    }
-    ul {
-      margin-left: 20px;
-      margin-bottom: 20px;
     }
     label {
       display: block;
@@ -69,31 +65,33 @@
       margin-bottom: 10px;
       font-weight: 600;
     }
-    #aggregateSection h2 {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: center;
+    /* Aggregated bar meter styles */
+    #aggregateBar {
+      position: relative;
+      background: linear-gradient(to right, red, #ffcc00, green);
+      height: 30px;
+      border-radius: 15px;
+      margin: 10px 0;
     }
-    #aggregateScoreValue {
-      display: block;
+    #aggregateMarker {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: black;
+    }
+    #aggregateScoreText {
+      position: absolute;
+      width: 100%;
       text-align: center;
-      font-size: 1.3rem;
-      font-weight: 600;
-      margin-top: 10px;
-      color: #2563eb;
+      line-height: 30px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 1px 1px 2px #000;
     }
     #explanation {
-      margin-top: 30px;
-      padding: 20px;
-      border: 1px solid #e5e7eb;
-      border-radius: 4px;
-      background-color: #f9fafb;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-    #explanation h3 {
-      margin-bottom: 10px;
-      font-weight: 600;
+      text-align: center;
+      margin-top: 20px;
     }
     #techChart, #mcChart, #lrChart, #sentChart, #insiderChart {
       width: 100%;
@@ -107,30 +105,20 @@
       font-style: italic;
       color: #f97316;
     }
+    .flex-space {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   </style>
 </head>
 
 <body>
   <!-- Back to Main Page button -->
-  <button onclick="window.location.href='https://www.projectmanagerhelper.com'">
-    Back to Main Page
-  </button>
+  <button onclick="window.location.href='https://www.projectmanagerhelper.com'">Back to Main Page</button>
 
-  <h1>Advanced Stock Trend + Sentiment + Insider Analysis</h1>
-  <p>
-    Enter a ticker symbol (e.g., AAPL), specify how many months of historical data to analyze, and provide a future date.  
-    Upon clicking “Run Simulation,” the tool will:
-  </p>
-  <ul>
-    <li>Run a Monte Carlo Simulation (GBM) to assess price distribution.</li>
-    <li>Run a Linear Regression Forecast to see a projected price trend.</li>
-    <li>Compute a revised Combined Technical Score (RSI, Bollinger, MACD, WMA) to indicate market posture.</li>
-    <li>Analyze Sentiment data with a linear trend to see if sentiment is improving or declining.</li>
-    <li><strong>NEW:</strong> Check Insider Trading activity (Buys vs. Sells) over the specified period.</li>
-  </ul>
-  <p>
-    Results from all five methods are combined into an <strong>Aggregated Bullish Score</strong>. 
-  </p>
+  <h1>Advanced Stock Analysis</h1>
+  <p>Enter a ticker, select a historical period, and pick a future date. Click "Run Simulation" to analyze trends, technicals, sentiment, and insider trading.</p>
 
   <label for="ticker">Ticker Symbol (e.g. AAPL):</label>
   <input type="text" id="ticker" value="AAPL">
@@ -144,10 +132,17 @@
   <button id="simulateButton">Run Simulation</button>
   <div id="loading" style="display:none;">Loading data and running simulation...</div>
 
-  <!-- Aggregated Score -->
+  <!-- Aggregated Signal Bar Meter -->
   <div id="aggregateSection" class="section" style="display:none;">
-    <h2>Aggregated Bullish Score</h2>
-    <div id="aggregateScoreValue"></div>
+    <h2>Aggregated Signal</h2>
+    <div id="aggregateBar">
+      <div id="aggregateMarker"></div>
+      <span id="aggregateScoreText"></span>
+    </div>
+    <div class="flex-space">
+      <span>Sell (35%)</span>
+      <span>Buy (65%)</span>
+    </div>
   </div>
 
   <!-- Monte Carlo -->
@@ -155,7 +150,6 @@
     <h2>Monte Carlo Simulation (GBM)</h2>
     <div id="mcChart"></div>
     <div id="mcDetails" style="margin-top:10px; font-weight:600;"></div>
-    <!-- Container for the slider -->
     <div id="mcSlider" style="margin-top: 20px;"></div>
   </div>
 
@@ -185,10 +179,13 @@
     <h2>Insider Trading Activity</h2>
     <div id="insiderChart"></div>
     <div id="insiderDetails" style="margin-top:10px; font-weight:600;"></div>
+    <button id="insiderLinkButton">More Insider Info</button>
   </div>
 
-  <!-- Explanation Section -->
-  <div id="explanation"></div>
+  <!-- Explanation Section (Button only) -->
+  <div id="explanation">
+    <button id="explanationButton">View Detailed Explanation</button>
+  </div>
 
   <script>
     /*********************************************************
@@ -732,8 +729,8 @@
       let xs= sentiments.map(s=> (s.date- firstDate)/(1000*60*60*24));
       let ys= sentiments.map(s=> s.sentiment);
       let n= xs.length;
-      let sumX= xs.reduce((a,b)=> a+b,0);
-      let sumY= ys.reduce((a,b)=> a+b,0);
+      let sumX= xs.reduce((a,b)=>a+b,0);
+      let sumY= ys.reduce((a,b)=>a+b,0);
       let sumXY= xs.reduce((acc,x,i)=> acc+ x* ys[i],0);
       let sumX2= xs.reduce((acc,x)=> acc+ x*x,0);
       let slope= (n* sumXY - sumX* sumY)/(n* sumX2 - sumX* sumX);
@@ -769,8 +766,6 @@
      * Insider Trading
      *********************************************************/
     async function fetchInsiderData(ticker, periodMonths){
-      // We'll assume a route that requires a ?symbol=...
-      // We'll approximate the period by the same months (though you might refine it to days)
       const url = `https://www.projectmanagerhelper.com/api/insider?symbol=${ticker}`;
       const resp = await fetch(url);
       const data = await resp.json();
@@ -778,12 +773,10 @@
         throw new Error("No insider data array found in the response");
       }
 
-      // Filter by the last X months
       const now = new Date();
       const cutoff = new Date();
       cutoff.setMonth(cutoff.getMonth() - periodMonths);
 
-      // Sum up acquisitions (A) vs disposals (D) for that date range
       let totalBuys = 0;
       let totalSells = 0;
       data.data.forEach(item => {
@@ -801,7 +794,6 @@
       return { totalBuys, totalSells };
     }
     function updateInsiderChart(totalBuys, totalSells){
-      // We will plot a simple bar chart with 2 bars: Buys vs. Sells
       const trace = {
         x: ["Bought", "Sold"],
         y: [totalBuys, totalSells],
@@ -815,10 +807,6 @@
       };
       Plotly.newPlot("insiderChart", [trace], layout);
 
-      // Compute a bullish score
-      // e.g. insiderBull = ( (totalBuys - totalSells) / (totalBuys + totalSells) ) * 50 + 50
-      // => if buys > sells => >50
-      // => if sells > buys => <50
       let sum = totalBuys + totalSells;
       let insiderBull = 50;
       if(sum > 0){
@@ -826,7 +814,6 @@
       }
       document.getElementById("insiderDetails").innerText =
         `Insider Bullish Score: ${insiderBull.toFixed(2)}%`;
-
       return insiderBull;
     }
 
@@ -835,14 +822,12 @@
      *********************************************************/
     document.getElementById("simulateButton").addEventListener("click", async()=>{
       document.getElementById('loading').style.display='block';
-      // Hide sections
       document.getElementById('aggregateSection').style.display='none';
       document.getElementById('mcSection').style.display='none';
       document.getElementById('lrSection').style.display='none';
       document.getElementById('techSection').style.display='none';
       document.getElementById('sentSection').style.display='none';
       document.getElementById('insiderSection').style.display='none';
-      document.getElementById('explanation').innerHTML="";
 
       let ticker= document.getElementById('ticker').value.trim();
       let periodMonths= parseInt(document.getElementById('period').value);
@@ -855,7 +840,6 @@
       let futureDate= new Date(futureDateStr);
 
       try {
-        // 1) Historical Data
         let histUrl= `https://www.projectmanagerhelper.com/api/historical?symbol=${ticker}`;
         let resp= await fetch(histUrl);
         let data= await resp.json();
@@ -869,7 +853,6 @@
           return;
         }
 
-        // 2) Monte Carlo
         let mcStats= computeStats(prices);
         let lastDate= prices[prices.length-1].date;
         let T= (futureDate- lastDate)/(365*24*60*60*1000);
@@ -877,49 +860,47 @@
         document.getElementById('mcSection').style.display='block';
         let mcBull= updateMCChart(mcFinals, mcStats.lastPrice);
 
-        // 3) Linear Regression
         let lrRes= linearRegressionForecast(prices, futureDate);
         document.getElementById('lrSection').style.display='block';
         let lrBull= updateLRChart(prices, lrRes.forecastPrice, futureDate);
 
-        // 4) Combined Tech
         document.getElementById('techSection').style.display='block';
         let techBull= updateTechChart(prices);
 
-        // 5) Sentiment
         let sentiments= await fetchSentimentData(ticker, periodMonths);
         document.getElementById('sentSection').style.display='block';
         let sentBull= updateSentimentChart(sentiments);
 
-        // 6) Insider
         let insiderObj = await fetchInsiderData(ticker, periodMonths);
         document.getElementById('insiderSection').style.display='block';
         let insiderBull= updateInsiderChart(insiderObj.totalBuys, insiderObj.totalSells);
 
-        // 7) Aggregated Score
-        // We now have 5 sub-scores: mcBull, lrBull, techBull, sentBull, insiderBull
         let aggregatedBull= (mcBull + lrBull + techBull + sentBull + insiderBull)/5;
         document.getElementById('aggregateSection').style.display='block';
-        document.getElementById('aggregateScoreValue').innerText=
-          `${aggregatedBull.toFixed(2)}%`;
-
-        // 8) Explanation
-        let explanation= "<h3>Detailed Explanations & Math</h3>";
-        explanation+= "<p><strong>Monte Carlo (GBM):</strong> Computes daily log returns, annualizes drift (μ) & volatility (σ). We simulate final prices and measure the % above the current price => Bullish Probability.</p>";
-        explanation+= "<p><strong>Linear Regression:</strong> Derives a slope & intercept using least squares on historical data. We forecast a future price, then convert (forecast/current) => 0..100% scale.</p>";
-        explanation+= "<p><strong>Combined Technical Indicators:</strong> RSI, Bollinger Bands, MACD, WMA combined => 0..100% scale.</p>";
-        explanation+= "<p><strong>Sentiment Analysis:</strong> Aggregates news data by hour, normalizes to 0..100, and does a linear trend slope => 0..100%. Slope &gt; 0 => bullish.</p>";
-        explanation+= "<p><strong>Insider Trading:</strong> We sum shares bought vs. sold in the last period. If buys exceed sells, the insider score &gt; 50%. If sells exceed buys, &lt; 50%.</p>";
-        explanation+= `<p><strong>Aggregated Bullish Score:</strong> The mean of these five results = ${aggregatedBull.toFixed(2)}%. Higher => more bullish agreement among methods.</p>`;
-        explanation+= "<p><em>Note:</em> An Aggregated Bullish Score above 50% typically suggests a bullish (buy) outlook, while a score below 50% leans more bearish (sell). A score near 50% implies a neutral stance.</p>";
-        explanation+= `<p><em>Weighting Tip:</em> If you want to emphasize Insider Trading data or reduce reliance on Market Sentiment, you can adjust the weights of each method using our <a href="https://www.projectmanagerhelper.com/calculators/">Weighted Score Calculator</a>. For example, assign a weight of 5 to Insider data and 1 to Sentiment if you trust insider trades more than general sentiment.</p>`;
-        
-        document.getElementById('explanation').innerHTML= explanation;
+        let normScore = ((aggregatedBull - 35) / 30) * 100;
+        normScore = Math.min(100, Math.max(0, normScore));
+        document.getElementById('aggregateMarker').style.left = normScore + '%';
+        document.getElementById('aggregateScoreText').innerText = aggregatedBull.toFixed(2) + '%';
       }
       catch(err){
         alert("Error: "+err.message);
       }
       document.getElementById('loading').style.display='none';
+    });
+
+    // Explanation button
+    document.getElementById("explanationButton").addEventListener("click", ()=>{
+      window.location.href = "detailed_explanation.html";
+    });
+
+    // Insider link button
+    document.getElementById("insiderLinkButton").addEventListener("click", ()=>{
+      let ticker = document.getElementById("ticker").value.trim();
+      if(ticker){
+        window.open("https://www.projectmanagerhelper.com/insider/?symbol=" + encodeURIComponent(ticker) + "&days=30", "_blank");
+      } else {
+        alert("Please enter a ticker symbol.");
+      }
     });
   </script>
 </body>
