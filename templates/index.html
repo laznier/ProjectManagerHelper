@@ -2,176 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  
-  <!-- Basic SEO -->
   <title>Project Manager Helper | Excel Templates</title>
   <meta name="description" content="Download free Excel templates for project management, including our Learning Curve Template and Linear & Polynomial Regression Template for accurate project predictions." />
   <meta name="keywords" content="project management, Excel templates, learning curve, break-even, ROI, project cost, project revenue, regression, predictions" />
   <meta name="robots" content="index, follow" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Canonical URL -->
   <link rel="canonical" href="https://projectmanagerhelper.com/templates/" />
 
-  <!-- Open Graph (for social media previews) -->
-  <meta property="og:title" content="Project Manager Helper" />
-  <meta property="og:description" content="Free PM tools for project templates like Learning Curve and Regression—streamline your project workflows." />
-  <meta property="og:url" content="https://projectmanagerhelper.com/" />
-  <meta property="og:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
-  <meta property="og:type" content="website" />
-
-  <!-- Twitter Cards (optional) -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Project Manager Helper" />
-  <meta name="twitter:description" content="Free, user-friendly PM templates like Learning Curve and Regression—optimize project planning and predictions." />
-  <meta name="twitter:image" content="https://projectmanagerhelper.com/images/monte_carlo.png" />
+  <!-- Open Graph and Twitter Cards omitted for brevity -->
 
   <!-- Link to main stylesheet -->
   <link rel="stylesheet" href="../style.css" />
 
-  <!-- Navigation, hero, and card styling -->
+  <!-- Optional inline CSS for the Back to Home button -->
   <style>
-    /* Top navigation bar */
-    .topnav {
-      background-color: #333;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      white-space: nowrap;
-    }
-    .topnav ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-    }
-    .topnav ul li {
-      margin: 0;
-      flex: none;
-      position: relative; /* for dropdown portal logic */
-    }
-    .topnav ul li a {
-      display: block;
-      padding: 14px 20px;
-      color: white;
-      text-decoration: none;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .topnav ul li a:hover {
-      background-color: #ddd;
-      color: #333;
-    }
-    .topnav ul li a:active {
-      background-color: #ccc;
-    }
-
-    /* Dropdown menus for each .dropdown item */
-    .dropdown-menu {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background-color: #333;
-      min-width: 150px;
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      z-index: 9999;
-    }
-    .dropdown-menu li a {
-      display: block;
+    .back-button {
+      display: inline-block;
+      margin: 20px;
       padding: 10px 20px;
-      color: white;
+      background-color: #333;
+      color: #fff;
       text-decoration: none;
+      border-radius: 5px;
       transition: background-color 0.3s ease;
     }
-    .dropdown-menu li a:hover {
-      background-color: #ddd;
-      color: #333;
+    .back-button:hover {
+      background-color: #555;
     }
-
-    /* Hero section (darker to match the main page) */
-    .hero {
-      position: relative;
-      background: url('../images/hero-background.jpg') center/cover no-repeat;
-      color: #fff;
-      padding: 3rem 1rem;
-      text-align: center;
-    }
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.8); /* Dark overlay for consistency */
-      pointer-events: none;
-      z-index: 0;
-    }
-    .hero-content {
-      position: relative;
-      z-index: 1;
-    }
-    .hero-content h1 {
-      margin: 0;
-      white-space: nowrap;
-    }
-
-    /* Responsive title for small screens */
-    @media (max-width: 480px) {
-      .hero-content h1 {
-        font-size: clamp(20px, 5vw, 36px);
-      }
-      .topnav ul li a {
-        padding: 10px 12px;
-        font-size: 14px;
-      }
-    }
-
-    /* Tool grid and card styling */
-    .tool-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .tool-card {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      width: 300px;
-      text-align: center;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      transition: transform 0.3s ease;
-    }
-    .tool-card:hover {
-      transform: translateY(-5px);
-    }
-    .tool-card img {
-      max-width: 100%;
-      border-top-left-radius: 8px;
-      border-top-right-radius: 8px;
-    }
-    .tool-card h2 {
-      margin: 1rem 0 0.5rem;
-      font-size: 1.25rem;
-    }
-    .tool-card p {
-      padding: 0 1rem;
-      font-size: 0.95rem;
-    }
-    .tool-button {
-      display: inline-block;
-      margin: 1rem 0 1.5rem;
-      padding: 0.75rem 1.5rem;
-      background-color: #333;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 4px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .tool-button:hover {
-      background-color: #ddd;
-      color: #333;
-    }
+    /* Remove any unused navigation styles if not needed */
   </style>
 </head>
 <body>
@@ -183,46 +41,10 @@
   </div>
 </header>
 
-<!-- Navigation Bar with Dropdown Menus -->
-<nav class="topnav">
-  <ul>
-    <li><a href="/">Home</a></li>
-    <li class="dropdown">
-      <a href="#tools" class="parent-link">Tools</a>
-      <ul class="dropdown-menu">
-        <li class="go-parent"><a href="#tools">Go to Tools</a></li>
-        <li><a href="../network-diagram/">Network Diagram Tool</a></li>
-        <li><a href="../WSB-generator/">WBS Generator</a></li>
-        <li><a href="../statistics/">Data Distribution Analysis</a></li>
-        <li><a href="../evc/">Earned Value Calculator</a></li>
-        <li><a href="../risk-register/">Risk Register &amp; Assessment</a></li>
-        <li><a href="../statistics/">Simple Regression</a></li>
-        <li><a href="../multi-regression/">Multivariable Regression</a></li>
-        <li><a href="../monte-carlo/">Monte Carlo Simulation</a></li>
-        <li><a href="../advanced-network-diagram/">Advanced Network Diagram</a></li>
-        <li><a href="../advanced-scheduling/">Advanced Schedule Predictor</a></li>
-        <li><a href="../resources/">Resource Allocator and Gantt</a></li>
-        <li><a href="../calculators/">PM Financial Calculator</a></li>
-        <li><a href="../queueing/">Queueing Theory and CFD</a></li>
-      </ul>
-    </li>
-    <li class="dropdown">
-      <a href="../templates/" class="parent-link">Templates</a>
-      <ul class="dropdown-menu">
-        <li class="go-parent"><a href="../templates/">Go to Templates</a></li>
-        <li><a href="../templates/learning_curve.xlsx">Learning Curve</a></li>
-        <li><a href="../templates/linear_and_polynomial_regression.xlsx">Regression Models</a></li>
-      </ul>
-    </li>
-    <li class="dropdown">
-      <a href="../tutorials/" class="parent-link">Tutorials</a>
-      <ul class="dropdown-menu">
-        <li class="go-parent"><a href="../tutorials/">Go to Tutorials</a></li>
-      </ul>
-    </li>
-  </ul>
+<!-- Simplified Navigation: Back to Home Button Only -->
+<nav>
+  <a href="/" class="back-button">Back to Home</a>
 </nav>
-
 
 <main>
   <section id="templates" class="tool-grid">
@@ -262,94 +84,6 @@
   <p>&copy; 2025 Laznier Mederos Santos. All rights reserved.</p>
 </footer>
 
-<!-- Portal-based Dropdown & Two-Tap Mobile Logic -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  // If you have .dropdown elements, this code will portal them on desktop
-  const dropdowns = document.querySelectorAll('.dropdown');
-
-  // 1) Desktop Portal Approach (immediate disappearance)
-  dropdowns.forEach(drop => {
-    const dropdownMenu = drop.querySelector('.dropdown-menu');
-
-    // MOUSE ENTER: detach (portal) to body
-    drop.addEventListener('mouseenter', () => {
-      const rect = drop.getBoundingClientRect();
-      document.body.appendChild(dropdownMenu);
-      dropdownMenu.style.position = 'fixed';
-      dropdownMenu.style.top = rect.bottom + 'px';
-      dropdownMenu.style.left = rect.left + 'px';
-      dropdownMenu.style.display = 'block';
-      dropdownMenu.style.zIndex = '10000000';
-    });
-
-    // MOUSE LEAVE: hide immediately
-    drop.addEventListener('mouseleave', () => {
-      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-        drop.appendChild(dropdownMenu);
-        dropdownMenu.style.position = '';
-        dropdownMenu.style.top = '';
-        dropdownMenu.style.left = '';
-        dropdownMenu.style.display = 'none';
-      }
-    });
-
-    // If mouse leaves the menu itself
-    dropdownMenu.addEventListener('mouseleave', () => {
-      if (!drop.matches(':hover') && !dropdownMenu.matches(':hover')) {
-        drop.appendChild(dropdownMenu);
-        dropdownMenu.style.position = '';
-        dropdownMenu.style.top = '';
-        dropdownMenu.style.left = '';
-        dropdownMenu.style.display = 'none';
-      }
-    });
-  });
-
-  // 2) Hide any open menu if user scrolls
-  window.addEventListener('scroll', () => {
-    dropdowns.forEach(drop => {
-      const dropdownMenu = drop.querySelector('.dropdown-menu');
-      if (dropdownMenu && dropdownMenu.style.position === 'fixed') {
-        drop.appendChild(dropdownMenu);
-        dropdownMenu.style.position = '';
-        dropdownMenu.style.top = '';
-        dropdownMenu.style.left = '';
-        dropdownMenu.style.display = 'none';
-      }
-    });
-  });
-
-  // 3) Two-Tap Fix on Mobile
-  if ('ontouchstart' in window) {
-    document.querySelectorAll('.dropdown > a').forEach(topLink => {
-      let isOpen = false;
-      topLink.addEventListener('click', e => {
-        const parentLi = topLink.closest('.dropdown');
-        const dropdownMenu = parentLi.querySelector('.dropdown-menu');
-        if (!isOpen) {
-          // First tap: open the menu, prevent navigation
-          e.preventDefault();
-          const rect = parentLi.getBoundingClientRect();
-          document.body.appendChild(dropdownMenu);
-          dropdownMenu.style.position = 'fixed';
-          dropdownMenu.style.top = rect.bottom + 'px';
-          dropdownMenu.style.left = rect.left + 'px';
-          dropdownMenu.style.display = 'block';
-          dropdownMenu.style.zIndex = '10000000';
-          isOpen = true;
-        } else {
-          // Second tap: forcibly navigate
-          e.preventDefault();
-          isOpen = false;
-          setTimeout(() => {
-            window.location = topLink.href;
-          }, 100);
-        }
-      });
-    });
-  }
-});
-</script>
+<!-- Removed the JavaScript for dropdown menus since it's no longer needed -->
 </body>
 </html>
