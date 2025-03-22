@@ -655,111 +655,115 @@
     }
 
     /*********************************************************
- * Sentiment Analysis (Using a Logistic Function)
- *********************************************************/
+     * Sentiment Analysis (Using a Logistic Function and Average)
+     *********************************************************/
 
-function logisticBullish(slope) {
-  const k = 0.3; 
-  let raw = 100 / (1 + Math.exp(-k * slope));
-  if (raw < 0) raw = 0;
-  if (raw > 100) raw = 100;
-  return raw;
-}
+    function logisticBullish(slope) {
+      const k = 0.3; 
+      let raw = 100 / (1 + Math.exp(-k * slope));
+      if (raw < 0) raw = 0;
+      if (raw > 100) raw = 100;
+      return raw;
+    }
 
-async function fetchSentimentData(ticker, periodMonths) {
-  let url = `https://www.projectmanagerhelper.com/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
-  let resp = await fetch(url);
-  let data = await resp.json();
-  if (!data.feed) throw new Error("No sentiment data from server.");
+    async function fetchSentimentData(ticker, periodMonths) {
+      let url = `https://www.projectmanagerhelper.com/api/sentiment?symbol=${ticker}&periodMonths=${periodMonths}`;
+      let resp = await fetch(url);
+      let data = await resp.json();
+      if (!data.feed) throw new Error("No sentiment data from server.");
 
-  let startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - periodMonths);
-  let byHour = {};
-  for (let article of data.feed) {
-    let dt = parseAlphaDate(article.time_published);
-    if (isNaN(dt) || dt < startDate) continue;
-    if (!article.ticker_sentiment) continue;
-    let tItem = article.ticker_sentiment.find(
-      ts => ts.ticker.toUpperCase() === ticker.toUpperCase()
-    );
-    if (!tItem) continue;
-    let raw = parseFloat(tItem.ticker_sentiment_score);
-    if (isNaN(raw)) continue;
-    let norm = ((raw + 1) / 2) * 100;
-    let hourKey = dt.toISOString().substring(0, 13);
-    if (!byHour[hourKey]) byHour[hourKey] = [];
-    byHour[hourKey].push(norm);
-  }
+      let startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - periodMonths);
+      let byHour = {};
+      for (let article of data.feed) {
+        let dt = parseAlphaDate(article.time_published);
+        if (isNaN(dt) || dt < startDate) continue;
+        if (!article.ticker_sentiment) continue;
+        let tItem = article.ticker_sentiment.find(
+          ts => ts.ticker.toUpperCase() === ticker.toUpperCase()
+        );
+        if (!tItem) continue;
+        let raw = parseFloat(tItem.ticker_sentiment_score);
+        if (isNaN(raw)) continue;
+        let norm = ((raw + 1) / 2) * 100;
+        let hourKey = dt.toISOString().substring(0, 13);
+        if (!byHour[hourKey]) byHour[hourKey] = [];
+        byHour[hourKey].push(norm);
+      }
 
-  let sentiments = [];
-  for (let hStr in byHour) {
-    let vals = byHour[hStr];
-    let avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-    let dt = new Date(`${hStr}:00:00Z`);
-    sentiments.push({ date: dt, sentiment: avg });
-  }
-  sentiments.sort((a, b) => a.date - b.date);
-  return sentiments;
-}
+      let sentiments = [];
+      for (let hStr in byHour) {
+        let vals = byHour[hStr];
+        let avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        let dt = new Date(`${hStr}:00:00Z`);
+        sentiments.push({ date: dt, sentiment: avg });
+      }
+      sentiments.sort((a, b) => a.date - b.date);
+      return sentiments;
+    }
 
-function updateSentimentChart(sentiments) {
-  let traceRaw = {
-    x: sentiments.map(s => s.date),
-    y: sentiments.map(s => s.sentiment),
-    mode: 'markers+lines',
-    name: 'Sentiment'
-  };
+    function updateSentimentChart(sentiments) {
+      let traceRaw = {
+        x: sentiments.map(s => s.date),
+        y: sentiments.map(s => s.sentiment),
+        mode: 'markers+lines',
+        name: 'Sentiment'
+      };
 
-  if (sentiments.length < 2) {
-    Plotly.newPlot("sentChart", [traceRaw], {
-      title: "Sentiment Analysis",
-      xaxis: { title: "Date" },
-      yaxis: { title: "Sentiment (0..100)" }
-    });
-    document.getElementById('sentDetails').innerText = "Insufficient data => 50% default.";
-    return 50;
-  }
+      if (sentiments.length < 2) {
+        Plotly.newPlot("sentChart", [traceRaw], {
+          title: "Sentiment Analysis",
+          xaxis: { title: "Date" },
+          yaxis: { title: "Sentiment (0..100)" }
+        });
+        document.getElementById('sentDetails').innerText = "Insufficient data => 50% default.";
+        return 50;
+      }
 
-  let firstDate = sentiments[0].date;
-  let xs = sentiments.map(s => (s.date - firstDate) / (1000 * 60 * 60 * 24));
-  let ys = sentiments.map(s => s.sentiment);
-  let n = xs.length;
-  let sumX = xs.reduce((a, b) => a + b, 0);
-  let sumY = ys.reduce((a, b) => a + b, 0);
-  let sumXY = xs.reduce((acc, x, i) => acc + x * ys[i], 0);
-  let sumX2 = xs.reduce((acc, x) => acc + x * x, 0);
+      let firstDate = sentiments[0].date;
+      let xs = sentiments.map(s => (s.date - firstDate) / (1000 * 60 * 60 * 24));
+      let ys = sentiments.map(s => s.sentiment);
+      let n = xs.length;
+      let sumX = xs.reduce((a, b) => a + b, 0);
+      let sumY = ys.reduce((a, b) => a + b, 0);
+      let sumXY = xs.reduce((acc, x, i) => acc + x * ys[i], 0);
+      let sumX2 = xs.reduce((acc, x) => acc + x * x, 0);
 
-  let slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-  let intercept = (sumY - slope * sumX) / n;
+      let slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      let intercept = (sumY - slope * sumX) / n;
 
-  let minDate = sentiments[0].date;
-  let maxDate = sentiments[sentiments.length - 1].date;
-  let trendYstart = intercept + slope * xs[0];
-  let trendYend = intercept + slope * xs[xs.length - 1];
+      let minDate = sentiments[0].date;
+      let maxDate = sentiments[sentiments.length - 1].date;
+      let trendYstart = intercept + slope * xs[0];
+      let trendYend = intercept + slope * xs[xs.length - 1];
 
-  let traceTrend = {
-    x: [minDate, maxDate],
-    y: [trendYstart, trendYend],
-    mode: 'lines',
-    line: { dash: 'dash', color: 'red' },
-    name: 'Trend'
-  };
+      let traceTrend = {
+        x: [minDate, maxDate],
+        y: [trendYstart, trendYend],
+        mode: 'lines',
+        line: { dash: 'dash', color: 'red' },
+        name: 'Trend'
+      };
 
-  let layout = {
-    title: "Sentiment Analysis",
-    xaxis: { title: "Date" },
-    yaxis: { title: "Sentiment (0..100)" }
-  };
-  Plotly.newPlot("sentChart", [traceRaw, traceTrend], layout);
+      let layout = {
+        title: "Sentiment Analysis",
+        xaxis: { title: "Date" },
+        yaxis: { title: "Sentiment (0..100)" }
+      };
+      Plotly.newPlot("sentChart", [traceRaw, traceTrend], layout);
 
-  let slopeBull = logisticBullish(slope);
+      // Calculate bullish score from the trend's slope using logistic transformation
+      let slopeBull = logisticBullish(slope);
+      // Calculate the average sentiment across all data points
+      let avgSentiment = sumY / n;
+      // Combine the two scores equally
+      let finalBullishScore = 0.5 * slopeBull + 0.5 * avgSentiment;
 
-  document.getElementById('sentDetails').innerText =
-    `Slope: ${slope.toFixed(3)} => Bullish Score: ${slopeBull.toFixed(2)}%`;
+      document.getElementById('sentDetails').innerText =
+        `Slope: ${slope.toFixed(3)}, Avg Sentiment: ${avgSentiment.toFixed(2)} => Bullish Score: ${finalBullishScore.toFixed(2)}%`;
 
-  return slopeBull;
-}
-
+      return finalBullishScore;
+    }
 
     /*********************************************************
      * Insider Trading
@@ -893,13 +897,13 @@ function updateSentimentChart(sentiments) {
       document.getElementById('loading').style.display = 'none';
     });
 
-document.getElementById("explanationButton").addEventListener("click", () => {
-  if (!simulationReport) {
-    alert("Please run a simulation first.");
-    return;
-  }
-  let win = window.open("", "_blank");
-  let html = `
+    document.getElementById("explanationButton").addEventListener("click", () => {
+      if (!simulationReport) {
+        alert("Please run a simulation first.");
+        return;
+      }
+      let win = window.open("", "_blank");
+      let html = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -1018,29 +1022,20 @@ Tech Bullish % = ((Average Score – 1) / 6) * 100
         </section>
         
         <section>
-  <h2>Sentiment Analysis (Logistic Transformation)</h2>
-  <p><strong>Sentiment Bullish Score:</strong> ${simulationReport.sentBull.toFixed(2)}%</p>
-  <p>We aggregate news sentiment data on an hourly basis. Each article’s sentiment is initially on a scale of –1 to +1, then normalized to 0–100. Next, we fit a linear trend to these normalized sentiment values over time to determine the <em>slope</em>.</p>
-
-  <p>
-We apply a <strong>logistic function</strong> to soften extreme slopes and avoid abrupt 0% or 100% scores.
-  </p>
-  <pre>
-Score = 100 / [1 + e^(-k × slope)]
-  </pre>
-  <p>
-    Where:
-    <ul>
-      <li><strong>slope</strong> is the trend coefficient (positive for improving sentiment, negative for declining sentiment).</li>
-      <li><strong>k</strong> is a scaling factor controlling how quickly the score saturates near 0% or 100%. A higher k means smaller slopes yield extreme scores faster; a lower k spreads out the slope range more gradually.</li>
-      <li>The result is then clamped to ensure it stays between 0% and 100%.</li>
-    </ul>
-  </p>
-  <p>
-    With this logistic approach, moderate slopes produce moderate bullish scores, and only very large positive or negative slopes push the score near 100% or 0%, respectively. This helps stabilize the sentiment metric against outliers or short-term volatility in the data.
-  </p>
-</section>
-
+          <h2>Sentiment Analysis (Combined Logistic and Average)</h2>
+          <p><strong>Sentiment Bullish Score:</strong> ${simulationReport.sentBull.toFixed(2)}%</p>
+          <p>We aggregate news sentiment data on an hourly basis. Each article’s sentiment is initially on a scale of –1 to +1, then normalized to 0–100.</p>
+          <p>We then fit a linear trend to these normalized sentiment values over time to determine the <em>slope</em> of sentiment changes. A logistic function is applied to this slope:</p>
+          <pre>
+Score_slope = 100 / [1 + e^(-k × slope)]
+          </pre>
+          <p>This logistic score softens extreme values, ensuring moderate slopes yield moderate scores. Additionally, we compute the average sentiment across all articles (<em>Avg_Sentiment</em>).</p>
+          <p>The final sentiment bullish score is then calculated as the weighted average of the logistic score and the average sentiment, each contributing 50%:</p>
+          <pre>
+Final Score = 0.5 × Score_slope + 0.5 × Avg_Sentiment
+          </pre>
+          <p>This combined metric accounts for both the trend in sentiment and its overall strength, providing a more balanced view of market sentiment.</p>
+        </section>
         
         <section>
           <h2>Insider Trading Analysis</h2>
@@ -1127,9 +1122,9 @@ Weighted Score = ( Weight(MC) × MC_Bullish
       </body>
       </html>
       `;
-  win.document.write(html);
-  win.document.close();
-});
+      win.document.write(html);
+      win.document.close();
+    });
 
     document.getElementById("insiderLinkButton").addEventListener("click", () => {
       let ticker = document.getElementById("ticker").value.trim();
